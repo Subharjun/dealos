@@ -6,7 +6,7 @@
 **Where things stand:**
 - The 12 agents are built, deployed to Dev and tested.
 - The Power Automate workflows that compose them are not built yet.
-- Nothing is committed to git yet.
+- Code is on GitHub (private): https://github.com/Subharjun/dealos, branch `main`.
 
 ---
 
@@ -80,6 +80,7 @@ DD1 survives as the **Listing Verification** agent.
 | `tests/DealOS.Agents.Harness/` | Offline checks (21 currently pass). Writes `build/agents/agents.manifest.json` and each agent's schemas. |
 | `tools/` | `dv.py` (Web API client), `deploy_agents.py` (idempotent deploy), `run_agent.py` (run an agent), `seed_test_data.py` (test PDFs and cleanup) |
 | `README.md`, `HANDOFF.md` | Entry points |
+| GitHub | https://github.com/Subharjun/dealos (private). Git identity is set per repo to the user's GitHub no-reply email. |
 
 ---
 
@@ -206,7 +207,7 @@ $PAC solution export --name DealOS --path /tmp/DealOS.zip --overwrite && $PAC so
 
 - [ ] Enable billing on the Gemini (Google AI Studio) project. **Rotate the key**, update `.env`, then run `python3 tools/deploy_agents.py`.
 - [ ] Decide whether to keep or clean the test data (section 6). `python3 tools/seed_test_data.py cleanup` removes the `[AGENT-TEST]` documents.
-- [ ] First git commit (the user has not asked yet; ask before committing).
+- [x] First commit pushed to the private repo https://github.com/Subharjun/dealos (6 Oct 2026). Commit and push again after changes when the user asks.
 - [ ] Optional: fill `agents.pricing` with Gemini token prices so `gc_modelcall.gc_costusd` is recorded.
 
 ### Next phase: Power Automate workflows that compose the agents (the user's stated next step)
