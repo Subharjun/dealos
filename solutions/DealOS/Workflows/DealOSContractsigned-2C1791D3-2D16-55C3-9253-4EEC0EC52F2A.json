@@ -1,0 +1,632 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_commondataserviceforapps": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "gc_dataverse"
+        },
+        "api": {
+          "name": "shared_commondataserviceforapps"
+        }
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$connections": {
+          "defaultValue": {},
+          "type": "Object"
+        },
+        "$authentication": {
+          "defaultValue": {},
+          "type": "SecureObject"
+        }
+      },
+      "triggers": {
+        "When_a_contract_is_signed": {
+          "type": "OpenApiConnectionWebhook",
+          "inputs": {
+            "host": {
+              "connectionName": "shared_commondataserviceforapps",
+              "operationId": "SubscribeWebhookTrigger",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "subscriptionRequest/message": 3,
+              "subscriptionRequest/entityname": "gc_contract",
+              "subscriptionRequest/scope": 4,
+              "subscriptionRequest/filterexpression": "gc_status eq 303300003",
+              "subscriptionRequest/filteringattributes": "gc_status"
+            },
+            "authentication": "@parameters('$authentication')"
+          },
+          "runtimeConfiguration": {
+            "concurrency": {
+              "runs": 1
+            }
+          }
+        }
+      },
+      "actions": {
+        "Try": {
+          "type": "Scope",
+          "actions": {
+            "Stamp_signed_date": {
+              "type": "If",
+              "expression": "@empty(triggerOutputs()?['body/gc_signedon'])",
+              "actions": {
+                "Set_signed_on": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_commondataserviceforapps",
+                      "operationId": "UpdateRecord",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                    },
+                    "parameters": {
+                      "entityName": "gc_contracts",
+                      "recordId": "@{triggerOutputs()?['body/gc_contractid']}",
+                      "item/gc_signedon": "@utcNow()"
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  },
+                  "runAfter": {}
+                }
+              },
+              "else": {
+                "actions": {}
+              },
+              "runAfter": {}
+            },
+            "To_signed": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "PerformUnboundAction",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "actionName": "gc_TransitionDeal",
+                  "item/DealId": "@{triggerOutputs()?['body/_gc_deal_value']}",
+                  "item/TargetStage": 303300005,
+                  "item/Reason": "Contract signed"
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {
+                "Stamp_signed_date": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Signed_refused": {
+              "type": "If",
+              "expression": "@not(equals(outputs('To_signed')?['body/Allowed'], true))",
+              "actions": {
+                "Signed_stuck_task": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_commondataserviceforapps",
+                      "operationId": "CreateRecord",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                    },
+                    "parameters": {
+                      "entityName": "gc_reviewtasks",
+                      "item/gc_name": "@{take(concat('Contract signed but deal not moved: ', triggerOutputs()?['body/gc_name']), 100)}",
+                      "item/gc_kind": 303300001,
+                      "item/gc_purpose": 303300009,
+                      "item/gc_assigneerole": 303300002,
+                      "item/gc_status": 303300000,
+                      "item/gc_payload": "@{string(addProperty(json('{}'), 'failures', outputs('To_signed')?['body/Failures']))}",
+                      "item/gc_deal@odata.bind": "gc_deals(@{triggerOutputs()?['body/_gc_deal_value']})"
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  },
+                  "runAfter": {}
+                },
+                "Stop_not_signed": {
+                  "type": "Terminate",
+                  "inputs": {
+                    "runStatus": "Succeeded"
+                  },
+                  "runAfter": {
+                    "Signed_stuck_task": [
+                      "Succeeded"
+                    ]
+                  }
+                }
+              },
+              "else": {
+                "actions": {}
+              },
+              "runAfter": {
+                "To_signed": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Open_escrow": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "PerformUnboundAction",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "actionName": "gc_OpenEscrow",
+                  "item/DealId": "@{triggerOutputs()?['body/_gc_deal_value']}"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "none"
+                }
+              },
+              "runAfter": {
+                "Signed_refused": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "To_awaiting_funding": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "PerformUnboundAction",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "actionName": "gc_TransitionDeal",
+                  "item/DealId": "@{triggerOutputs()?['body/_gc_deal_value']}",
+                  "item/TargetStage": 303300006,
+                  "item/Reason": "Escrow opened"
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {
+                "Open_escrow": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Funding_refused": {
+              "type": "If",
+              "expression": "@not(equals(outputs('To_awaiting_funding')?['body/Allowed'], true))",
+              "actions": {
+                "Funding_stuck_task": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_commondataserviceforapps",
+                      "operationId": "CreateRecord",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                    },
+                    "parameters": {
+                      "entityName": "gc_reviewtasks",
+                      "item/gc_name": "@{take(concat('Escrow opened but deal not moved: ', triggerOutputs()?['body/gc_name']), 100)}",
+                      "item/gc_kind": 303300001,
+                      "item/gc_purpose": 303300009,
+                      "item/gc_assigneerole": 303300002,
+                      "item/gc_status": 303300000,
+                      "item/gc_payload": "@{string(addProperty(json('{}'), 'failures', outputs('To_awaiting_funding')?['body/Failures']))}",
+                      "item/gc_deal@odata.bind": "gc_deals(@{triggerOutputs()?['body/_gc_deal_value']})"
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  },
+                  "runAfter": {}
+                }
+              },
+              "else": {
+                "actions": {}
+              },
+              "runAfter": {
+                "To_awaiting_funding": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Run_Payment": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "PerformUnboundAction",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "actionName": "gc_Agent_Payment",
+                  "item/Input": "{\"trigger\": \"flow:contract-signed\"}",
+                  "item/SubjectId": "@{triggerOutputs()?['body/_gc_deal_value']}"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "none"
+                }
+              },
+              "runAfter": {
+                "Funding_refused": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Check_Payment": {
+              "type": "If",
+              "expression": "@not(equals(outputs('Run_Payment')?['body/Status'], 'Succeeded'))",
+              "actions": {
+                "Record_Payment_failure": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_commondataserviceforapps",
+                      "operationId": "CreateRecord",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                    },
+                    "parameters": {
+                      "entityName": "gc_flowfailures",
+                      "item/gc_name": "DealOS | Contract signed",
+                      "item/gc_flowname": "DealOS | Contract signed",
+                      "item/gc_runurl": "https://make.powerautomate.com/environments/@{workflow()?['tags']?['environmentName']}/flows/@{workflow()?['name']}/runs/@{workflow()?['run']?['name']}",
+                      "item/gc_step": "Run_Payment",
+                      "item/gc_error": "@{coalesce(outputs('Run_Payment')?['body/Summary'], 'agent call failed')}",
+                      "item/gc_payload": "@{take(string(triggerOutputs()?['body']), 100000)}",
+                      "item/gc_status": 303300000
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  },
+                  "runAfter": {}
+                }
+              },
+              "else": {
+                "actions": {}
+              },
+              "runAfter": {
+                "Run_Payment": [
+                  "Succeeded",
+                  "Failed",
+                  "TimedOut"
+                ]
+              }
+            },
+            "Parse_Payment": {
+              "type": "ParseJson",
+              "inputs": {
+                "content": "@json(coalesce(outputs('Run_Payment')?['body/Result'], '{}'))",
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "agent": {
+                      "type": "string"
+                    },
+                    "run_id": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "model": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "error": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "result": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "contract_value": {
+                          "type": [
+                            "number",
+                            "null"
+                          ]
+                        },
+                        "currency": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "schedule": {
+                          "type": [
+                            "array",
+                            "null"
+                          ],
+                          "items": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "properties": {
+                              "sequence": {
+                                "type": [
+                                  "integer",
+                                  "null"
+                                ]
+                              },
+                              "pct": {
+                                "type": [
+                                  "number",
+                                  "null"
+                                ]
+                              },
+                              "condition": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "gross": {
+                                "type": [
+                                  "number",
+                                  "null"
+                                ]
+                              },
+                              "commission_deducted": {
+                                "type": [
+                                  "number",
+                                  "null"
+                                ]
+                              },
+                              "net_to_seller": {
+                                "type": [
+                                  "number",
+                                  "null"
+                                ]
+                              }
+                            }
+                          }
+                        },
+                        "releases_ready": {
+                          "type": [
+                            "array",
+                            "null"
+                          ],
+                          "items": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "properties": {
+                              "release_id": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "milestone_types": {
+                                "type": [
+                                  "array",
+                                  "null"
+                                ],
+                                "items": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "blockers": {
+                          "type": [
+                            "array",
+                            "null"
+                          ],
+                          "items": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        },
+                        "summary": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "needs_human": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ]
+                        },
+                        "confidence": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      }
+                    },
+                    "actions": {
+                      "type": [
+                        "array",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              },
+              "runAfter": {
+                "Check_Payment": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Deal": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "GetItem",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_deals",
+                  "recordId": "@{triggerOutputs()?['body/_gc_deal_value']}",
+                  "$select": "gc_name,_gc_buyer_value,_gc_seller_value"
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {
+                "Parse_Payment": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Escrow": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "GetItem",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_payments",
+                  "recordId": "@{outputs('Open_escrow')?['body/PaymentId']}",
+                  "$select": "gc_amountdue,gc_currency,gc_fundingdeadline"
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {
+                "Deal": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Notify_buyer": {
+              "type": "Workflow",
+              "inputs": {
+                "host": {
+                  "workflowReferenceName": "4f7bfa4c-432c-512b-b763-c703a64a583b"
+                },
+                "body": {
+                  "text": "@{body('Deal')?['_gc_buyer_value']}",
+                  "text_1": "Contract signed: please fund escrow",
+                  "text_2": "The contract for '@{body('Deal')?['gc_name']}' is signed. Please fund escrow with @{body('Escrow')?['gc_currency']} @{formatNumber(body('Escrow')?['gc_amountdue'], 'N2')} by @{formatDateTime(body('Escrow')?['gc_fundingdeadline'], 'd MMM yyyy')}.\nFund the escrow account by the deadline shown in DealOS. Money is released to the seller in stages, only after the agreed milestones are verified.",
+                  "text_3": "deal.signed"
+                }
+              },
+              "runAfter": {
+                "Escrow": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Notify_seller": {
+              "type": "Workflow",
+              "inputs": {
+                "host": {
+                  "workflowReferenceName": "4f7bfa4c-432c-512b-b763-c703a64a583b"
+                },
+                "body": {
+                  "text": "@{body('Deal')?['_gc_seller_value']}",
+                  "text_1": "Contract signed",
+                  "text_2": "The contract for '@{body('Deal')?['gc_name']}' is signed. We will tell you as soon as the buyer has funded escrow.",
+                  "text_3": "deal.signed"
+                }
+              },
+              "runAfter": {
+                "Notify_buyer": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Audit": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "CreateRecord",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_auditevents",
+                  "item/gc_hash": "set-by-invariants-plugin",
+                  "item/gc_name": "deal.escrow_opened",
+                  "item/gc_actor": "flow:contract-signed",
+                  "item/gc_action": "deal.escrow_opened",
+                  "item/gc_subjecttype": "gc_deal",
+                  "item/gc_subjectid": "@{triggerOutputs()?['body/_gc_deal_value']}",
+                  "item/gc_details": "@{take(string(addProperty(json('{}'), 'escrow', outputs('Open_escrow')?['body/Summary'])), 100000)}"
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {
+                "Notify_seller": [
+                  "Succeeded"
+                ]
+              }
+            }
+          },
+          "runAfter": {}
+        },
+        "Catch": {
+          "type": "Scope",
+          "actions": {
+            "Record_failure": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "CreateRecord",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_flowfailures",
+                  "item/gc_name": "DealOS | Contract signed",
+                  "item/gc_flowname": "DealOS | Contract signed",
+                  "item/gc_runurl": "https://make.powerautomate.com/environments/@{workflow()?['tags']?['environmentName']}/flows/@{workflow()?['name']}/runs/@{workflow()?['run']?['name']}",
+                  "item/gc_step": "Try",
+                  "item/gc_error": "@{take(string(result('Try')), 3900)}",
+                  "item/gc_payload": "@{take(string(triggerOutputs()?['body']), 100000)}",
+                  "item/gc_status": 303300000
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {}
+            },
+            "Fail_run": {
+              "type": "Terminate",
+              "inputs": {
+                "runStatus": "Failed",
+                "runError": {
+                  "code": "DealOSFlowFailure",
+                  "message": "Recorded in Flow failures"
+                }
+              },
+              "runAfter": {
+                "Record_failure": [
+                  "Succeeded"
+                ]
+              }
+            }
+          },
+          "runAfter": {
+            "Try": [
+              "Failed",
+              "TimedOut"
+            ]
+          }
+        }
+      }
+    },
+    "templateName": null
+  },
+  "schemaVersion": "1.0.0.0"
+}

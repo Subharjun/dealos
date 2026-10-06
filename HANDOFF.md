@@ -1,11 +1,16 @@
 # HANDOFF: resume here
 
 **Last updated:** 6 October 2026
-**Read first in any new chat:** this file, then [docs/AGENTS.md](docs/AGENTS.md), then [docs/ARCHITECTURE_AND_BUILD_PLAN.md](docs/ARCHITECTURE_AND_BUILD_PLAN.md).
+**Read first in any new chat:** this file, then [docs/WORKFLOWS.md](docs/WORKFLOWS.md), [docs/AGENTS.md](docs/AGENTS.md), then [docs/ARCHITECTURE_AND_BUILD_PLAN.md](docs/ARCHITECTURE_AND_BUILD_PLAN.md).
 
 **Where things stand:**
 - The 12 agents are built, deployed to Dev and tested.
-- The Power Automate workflows that compose them are not built yet.
+- **The workflow phase is built:**
+    - 22 cloud flows, all on in Dev
+    - 4 deterministic operations APIs: `gc_AcceptOffer`, `gc_OpenEscrow`, `gc_ReleaseDeal`, `gc_InstructRelease`
+    - the trade has been run end to end on `[AGENT-TEST]` data
+- **Next:** Copilot Studio front-door agents, then the Power Pages marketplace (section 9).
+- **Housekeeping is deliberately left until the build is finished** (the user's decision): removing test data, a paid Gemini key and key rotation.
 - Code is on GitHub (private): https://github.com/Subharjun/dealos, branch `main`.
 
 ---
@@ -63,7 +68,7 @@ DD1 survives as the **Listing Verification** agent.
 | Solution | `DealOS` (unmanaged). Publisher prefix `gc`, choice-value prefix `30330` (values start at 303300000). |
 | PAC CLI | `DOTNET_ROOT=/opt/homebrew/opt/dotnet/libexec ~/.dotnet/tools/pac` (auth profile `dealos` already active) |
 | .NET | SDK 10 at `/opt/homebrew/opt/dotnet/libexec/dotnet` (`dotnet` on PATH is v8; use the full path) |
-| Web API from the CLI | `python3 tools/dv.py login` (device code, Azure CLI public client). Token cached in `.dv_token.json`, which git ignores. Then `tools/dv.py get/post/patch`. |
+| Web API from the CLI | `python3 tools/dv.py login` opens a **browser sign-in** (auth code + PKCE on localhost, Azure CLI public client). The tenant's security defaults **block the device-code flow** (`login --device`), so don't use it. The token is cached in `.dv_token.json`, which git ignores. Then use `tools/dv.py get/post/patch`. When a refresh fails with AADSTS530035, sign in again. |
 | Azure CLI | Logged in to a **different** tenant (personal student subscription). Not used. |
 | Gemini key | `.env` (`GEMINI_API_KEY`, gitignored) and Dataverse `gc_secret` row `gemini.api_key`. **Free tier. Rotate it: it was pasted in chat.** |
 
@@ -75,10 +80,11 @@ DD1 survives as the **Listing Verification** agent.
 |---|---|
 | `docs/ARCHITECTURE_AND_BUILD_PLAN.md` | Full plan: problem, architecture, lifecycle, multi-agent design, workflow catalogue, data model additions, money/escrow, logistics, Power Pages, security, ALM, testing, phased plan, risks, open decisions |
 | `docs/AGENTS.md` | Agent catalogue, calling contract, guardrails, settings, developer workflow, test results |
+| `docs/WORKFLOWS.md` | Flow catalogue, review decisions, operations APIs, notifications, conventions |
 | `solutions/DealOS/` | Unpacked solution (re-export after any environment change; see section 8) |
-| `src/DealOS.Agents/` | Agent plug-in (net462, signed): `Infrastructure/` (JSON, Gemini client, Dataverse helpers, schema), `Runtime/` (definition, context, runtime and logging), `Tools/` (tool catalogue, evidence helpers, message validator), `Agents/` (12 definitions), `AgentPlugin.cs` |
-| `tests/DealOS.Agents.Harness/` | Offline checks (21 currently pass). Writes `build/agents/agents.manifest.json` and each agent's schemas. |
-| `tools/` | `dv.py` (Web API client), `deploy_agents.py` (idempotent deploy), `run_agent.py` (run an agent), `seed_test_data.py` (test PDFs and cleanup) |
+| `src/DealOS.Agents/` | Plug-in assembly (net462, signed): `Infrastructure/` (JSON, Gemini client, Dataverse helpers, schema), `Runtime/` (definition, context, runtime and logging), `Tools/` (tool catalogue, evidence helpers, message validator), `Agents/` (12 definitions), `AgentPlugin.cs`, `Operations/OperationsPlugin.cs` (the 4 deterministic operations) |
+| `tests/DealOS.Agents.Harness/` | Offline checks (26 currently pass, including the escrow maths). Writes `build/agents/agents.manifest.json` and each agent's schemas. |
+| `tools/` | `dv.py` (Web API client), `deploy_agents.py` (plug-in, agents, operations, settings), `deploy_flows.py` (all flows), `flows/` (flow definitions as code), `run_agent.py` (run an agent), `seed_test_data.py` (test PDFs, test deal scenario, cleanup), `watch.py` (what happened since a time: audit, failures, review tasks) |
 | `README.md`, `HANDOFF.md` | Entry points |
 | GitHub | https://github.com/Subharjun/dealos (private). Git identity is set per repo to the user's GitHub no-reply email. |
 
@@ -152,6 +158,32 @@ DD1 survives as the **Listing Verification** agent.
 
     Details are in `docs/AGENTS.md`.
 
+### Built in the workflow session (6 Oct 2026, see [docs/WORKFLOWS.md](docs/WORKFLOWS.md))
+
+- **22 cloud flows, all on.** They are generated from `tools/flows/definitions.py` and deployed by `tools/deploy_flows.py`:
+    - Listing verification (rewritten: agents instead of OpenAI)
+    - Document intake, Party onboarding
+    - RFQ matching, New listing matching, Match notifications, Match accepted
+    - Offer pricing (extended), Offer accepted
+    - Terms agreed, Compliance check, Contracting, Contract signed, Escrow funded
+    - Milestone progress, Release settled, Deal cancelled
+    - Review decisions (new), Approvals (now ask-and-record only)
+    - Notify party (child flow), Daily digest, Daily sweep (now on)
+- **4 operations custom APIs** (plug-in type `DealOS.Agents.Operations.OperationsPlugin`, no AI):
+    - `gc_AcceptOffer`: lot reserve or split, competing deals closed, row-lock race safety
+    - `gc_OpenEscrow`
+    - `gc_ReleaseDeal`
+    - `gc_InstructRelease`: re-checks the Finance approval, funding and overlay
+- **New column** `gc_deal.gc_requirement`, a lookup to the RFQ (bind name `gc_Requirement`).
+- **New settings:**
+    - `escrow.default_schedule` (30/70), `escrow.partner`, `escrow.funding_days`
+    - `notifications.email.enabled` = **false** (flows record messages instead of emailing), `notifications.email.redirect`
+    - `admin.digest.recipients`
+- **Agent fixes:**
+    - The system now opens Listing Publish, Tier Upgrade, Fund Release, Contract Issue and Message Send tasks; the model can't. The Tier Upgrade payload carries the tier.
+    - A risk-flagged document forces **Hold**.
+    - The Pricing agent can no longer re-price an offer with costs it assumed.
+
 ---
 
 ## 6. Test data in Dev (safe to reuse or delete)
@@ -168,6 +200,15 @@ DD1 survives as the **Listing Verification** agent.
 | Listing `[AGENT-TEST] Copper cathode 300 MT` (Published) | `74b77e15-6dc1-f111-aaaf-7ced8daf451f` |
 | Buyer requirement `[AGENT-TEST] Need 250 MT copper cathode` (Open) | `75b77e15-6dc1-f111-aaaf-7ced8daf451f` |
 | Commodity "Copper cathode (Grade A)" | `89f5bb75-c7c0-f111-aaaf-7ced8daf451f` |
+| Deal `[AGENT-TEST] deal A` (second run): the **full lifecycle to Settled**, with escrow, 8 milestones, 2 settled releases and a shipment | `1f6be868-73c1-f111-aaaf-7ced8daf451f` |
+| Deals `[AGENT-TEST] deal A/B` (first run): A at Terms Agreed (accepted before the flows existed), B Cancelled | `1d9b9b73-…`, `1f9b9b73-…` |
+| Account `[AGENT-TEST] Onboarding Seller Pvt Ltd` (KYB In Progress, approved request recorded) | `87b21f9b-74c1-f111-aaaf-7ced8daf451f` |
+| RFQ `[AGENT-TEST] RFQ 200 MT copper cathode`, its match (Mutual) and deal `RFQ: [AGENT-TEST] Copper cathode 300 MT` (Inquiry) | `8ab21f9b-74c1-f111-aaaf-7ced8daf451f` |
+| Listing `[AGENT-TEST] Copper cathode 500 MT (flow test)` (In Verification, Hold, 2 PDFs) | `aa1fb1ba-74c1-f111-aaaf-7ced8daf451f` |
+
+**Changed for testing:** both `[SMOKE]` accounts were set to KYB Verified / Passed and given a Clear `[AGENT-TEST]` screening, so that deals pass the Contracting guard. Approval requests for the test tasks are still open in the gigacore user's Approvals (Teams or Outlook). They can be ignored or cancelled, because the tasks were decided directly.
+
+`python3 tools/seed_test_data.py cleanup` removes the `[AGENT-TEST]` deals, offers, lots, payments, releases, milestones, contracts and documents. Append-only rows (stage transitions, audit, payment events) stay by design, so deals with transitions may refuse deletion; cancel them instead. The full removal of test data is scheduled for the end of the build.
 
 ---
 
@@ -182,6 +223,14 @@ DD1 survives as the **Listing Verification** agent.
 - **`ResolveEvidence` wants the full choice value** (303300004), not an index. It *writes* facts, because it rebuilds them.
 - **`pac power-fx` can't reach these tables or custom APIs.** Use `tools/dv.py` instead.
 - **The `gc_platformsetting.gc_valuetype` values** are Bool 303300000, Number 303300001, Text 303300002, Json 303300003.
+- **`gc_auditevent.gc_hash` is a required column**, even though the invariants plug-in computes it. A flow's *Create row* must pass a placeholder (the flows use `set-by-invariants-plugin`). Without it, the flow cannot be saved or turned on. This is why the 4 original flows had never been activated.
+- **OData `startswith(gc_name,'[AGENT-TEST]')` matches nothing,** because Dataverse turns it into SQL `LIKE`, where `[` opens a character class. Escape it as `'[[]AGENT-TEST]'`.
+- **The lookup created by the Web API keeps its schema-name case in OData binds:** `gc_Requirement@odata.bind`, not `gc_requirement@…`. The older lookups are lower-case.
+- **Dataverse triggers carry no choice labels** (`…@OData.Community.Display.V1.FormattedValue`) on create or update. Map the values in the flow instead; see `incoterm_label` in `tools/flows/definitions.py`.
+- **`gc_TransitionDeal` returns `Allowed=false` plus `Failures`; it never throws.** Its guards are the real gate: KYB Verified for both parties and screening cleared before Contracting, signed contract, escrow opened or funded, milestones, all releases settled.
+- **`gc_paymentrelease` has invariants:** amount > 0, and commission + net must equal the amount on every create or update.
+- **Writing a field to its current value still fires "modified" triggers.** Code that a flow calls must not rewrite the field that triggered that flow (see `gc_AcceptOffer`).
+- **Agents must not be able to change money numbers on their own.** The Pricing agent re-priced an offer with assumed costs, so `calculate_price_quote` now takes cost inputs only from the caller's TASK INPUT.
 
 ---
 
@@ -190,43 +239,36 @@ DD1 survives as the **Listing Verification** agent.
 ```bash
 cd ~/Desktop/Power-Automate-lastry
 export DOTNET_ROOT=/opt/homebrew/opt/dotnet/libexec; D=$DOTNET_ROOT/dotnet; PAC=~/.dotnet/tools/pac
-python3 tools/dv.py get WhoAmI                        # token still valid? else: python3 tools/dv.py login
+python3 tools/dv.py get WhoAmI                        # token still valid? else: python3 tools/dv.py login  (browser sign-in)
 $D build -c Release src/DealOS.Agents                  # after code changes
 $D run --project tests/DealOS.Agents.Harness -- build/agents
 python3 tools/deploy_agents.py                         # idempotent
+python3 tools/deploy_flows.py                          # all flows (or --only "<name>")
 python3 tools/run_agent.py ListingVerification f6e59aa2-c7c0-f111-aaaf-7ced8daf451f --dry
-# sync the repo with the environment after changes made there:
-$PAC solution export --name DealOS --path /tmp/DealOS.zip --overwrite && $PAC solution unpack --zipfile /tmp/DealOS.zip --folder solutions/DealOS --packagetype Unmanaged --allowDelete true
+python3 tools/watch.py 15m                             # what the flows did: audit, failures, review tasks
+# sync the repo with the environment after changes made there (PAC sign-in is blocked by security defaults; this uses dv.py):
+python3 tools/export_solution.py
 ```
 
 ---
 
 ## 9. What remains (in priority order)
 
-### Immediate housekeeping
+### Workflow phase: done (6 Oct 2026)
 
-- [ ] Enable billing on the Gemini (Google AI Studio) project. **Rotate the key**, update `.env`, then run `python3 tools/deploy_agents.py`.
-- [ ] Decide whether to keep or clean the test data (section 6). `python3 tools/seed_test_data.py cleanup` removes the `[AGENT-TEST]` documents.
-- [x] First commit pushed to the private repo https://github.com/Subharjun/dealos (6 Oct 2026). Commit and push again after changes when the user asks.
-- [ ] Optional: fill `agents.pricing` with Gemini token prices so `gc_modelcall.gc_costusd` is recorded.
+All items are built and tested live on `[AGENT-TEST]` data; see [docs/WORKFLOWS.md](docs/WORKFLOWS.md#test-results-6-oct-2026-dev).
 
-### Next phase: Power Automate workflows that compose the agents (the user's stated next step)
+**Small follow-ups, not blocking:**
+- The **Daily digest** has not run yet; it first runs at 03:00 UTC. It emails `admin.digest.recipients`, or the `approvals.assignees` default when that is empty. **Teams** needs a Teams connection created in the maker portal; until then the digest goes by email.
+- **Plan flows not built yet:**
+    - #6 Screening: a sanctions provider is needed first
+    - #13 Inspection booking: needs the inspection table
+    - #17 Dispute
+    - #18 Flow failure replay: for now, resubmit from the run link in `gc_flowfailure`
+    - Daily sweep additions: funding deadlines and stale RFQs
+- The Pricing / Negotiation agents run on request (portal or chat) with `Input` cost inputs or limits; no flow calls Negotiation.
 
-Each flow uses **Perform an unbound action** `gc_Agent_*`, then **Parse JSON** on `Result` (schemas are in `build/agents/*.output.json`), then branches on `Status` and `NeedsHuman`. The flows must be added to the `DealOS` solution with connection references, and keep the existing convention: a Try/Catch scope plus `gc_flowfailure` on error.
-
-- [ ] **Listing pipeline.** Listing Submitted → for each pending document, `gc_Agent_DocumentIntelligence` → `gc_Agent_ListingVerification` → existing Approvals flow. Replace the OpenAI step in the existing "Listing verification" flow.
-- [ ] **Document uploaded later** (seller answers) → DocumentIntelligence → ListingVerification.
-- [ ] **Party onboarding.** Account created or KYB documents uploaded → OnboardingKYB or BuyerVerification, depending on role.
-- [ ] **RFQ.** Buyer requirement Open → Matching → notify both sides for opt-in.
-- [ ] **Offer.** Offer created → existing pricing flow → Pricing explanation. Negotiation runs on request (from the portal or chat).
-- [ ] **Offer accepted.** New custom API `gc_AcceptOffer`: reserve the lot, close competing deals, call TransitionDeal.
-- [ ] **Terms Agreed** → Compliance → (if Clear) Contract.
-- [ ] **Signed** → Payment (schedule) → escrow partner.
-- [ ] **Funded** → Logistics.
-- [ ] **Milestone verified** → Payment (release readiness) → Finance approval.
-- [ ] **Daily** → AdminSupervisor digest posted to Teams.
-
-### Later phases (see the plan, section 17)
+### Next phase: Copilot Studio front-door agents (then Power Pages)
 
 - [ ] Copilot Studio front-door agents, Buyer Concierge and Seller Assistant (`pac copilot init/push` works from this Mac), calling the `gc_Agent_*` APIs as tools.
 - [ ] Power Pages marketplace: catalog with badges, onboarding, listings, RFQ, side-by-side offer comparison, deal room. Entra External ID, web roles, table permissions, masked identities until contract.
@@ -234,6 +276,15 @@ Each flow uses **Perform an unbound action** `gc_Agent_*`, then **Parse JSON** o
 - [ ] New tables from plan section 8: RFQ invites, inspection, warehouse, shipment documents, invoice, rating, dispute, notification preferences. Field security for restricted attributes.
 - [ ] ALM: create Test and Prod environments, add a pipeline, and split the solution (Core / Flows / Agents / Portal) as it grows.
 - [ ] Evidence benchmark of 30–50 real past deals; release gates are in plan section 16.
+
+### Housekeeping: deliberately last (the user's decision, 6 Oct 2026)
+
+Do these only when the whole build is finished:
+- [ ] **Remove all mock and test data permanently,** so real people can use the platform: `[AGENT-TEST]`, `[SMOKE …]`, the sample commission plan, and the test KYB/screening changes on the smoke accounts.
+- [ ] **Paid Gemini key.** Subscribe or enable billing, **rotate the key** (it was pasted in chat), update `.env`, then run `python3 tools/deploy_agents.py`.
+- [ ] Turn on `notifications.email.enabled` and set the real `admin.digest.recipients` and `approvals.assignees`.
+- [ ] Optional: fill `agents.pricing` with Gemini token prices so `gc_modelcall.gc_costusd` is recorded.
+- [x] The repo is on GitHub (private): https://github.com/Subharjun/dealos. Commit and push only when the user asks.
 
 ### Open business decisions (the user's to make; plan section 19)
 
@@ -253,6 +304,7 @@ Each flow uses **Perform an unbound action** `gc_Agent_*`, then **Parse JSON** o
 
 - Write documents as Markdown in this repo.
 - Build on Power Platform; don't propose alternative stacks.
-- Agents first, then workflows.
+- Agents first, then workflows (done), then Copilot Studio, then Power Pages.
+- **Finish the whole build first.** Test-data removal and the paid Gemini key come last.
 - Test with `--dry` before live runs.
 - Mark test records with `[AGENT-TEST]`.

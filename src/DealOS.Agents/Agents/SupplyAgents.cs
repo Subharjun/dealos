@@ -6,6 +6,7 @@ using DealOS.Agents.Infrastructure;
 using DealOS.Agents.Runtime;
 using DealOS.Agents.Tools;
 using Microsoft.Xrm.Sdk;
+using Microsoft.Xrm.Sdk.Query;
 
 namespace DealOS.Agents.Agents
 {
@@ -211,8 +212,7 @@ namespace DealOS.Agents.Agents
 3. Asks: at most CONTEXT.limits.max_asks, highest priority first (blockers to publishing > conflicts > outdated > evidence for key claims). Prefer the system gaps. Call ask_question for each. If it is refused, accept and move on – never re-ask.
 4. If you recorded asks, call draft_message (audience Source): a short, polite, commercial message to the seller listing only those asks. No legal warnings, no long explanations.
 5. If commodity, origin country, quantity and one spec value are at least Claimed, call draft_message (audience Market): at most 6 short lines – what it is, origin country (no exact site), scale, key spec, terms if known, and a call to action. Word Claimed values as stated by the seller; Documented values may cite the document type. Never include the seller's name, licence numbers, exact location or contacts.
-6. If recommendation is Publish, call create_review_task (purpose Listing Publish, kind Approval).
-7. Call finish.";
+6. Call finish. If recommendation is Publish, the system opens the Listing Publish approval itself.";
             }
         }
 
@@ -282,6 +282,18 @@ namespace DealOS.Agents.Agents
             result["source_request_drafted"] = drafted("Source");
             result["asks"] = acts.Where(x => J.Str(x, "action") == "ask_question").Select(x => (object)J.ObjOf(x, "detail")).ToList();
             result["badge"] = Dv.Label(ctx.Subject, "gc_badge") ?? J.Str(result, "badge");
+
+            // Deterministic floor: a document flagged as risky (prompt injection, tampering...) always puts the listing on Hold for a human.
+            var flagged = ctx.Dv.Query("gc_document", new[] { "gc_name", "gc_riskflags" }, 50, "gc_listing", ConditionOperator.Equal, ctx.Subject.Id)
+                .Where(d => { var f = (d.GetAttributeValue<string>("gc_riskflags") ?? "").Trim(); return f.Length > 0 && f != "[]"; })
+                .Select(d => d.GetAttributeValue<string>("gc_name")).ToList();
+            var rec = J.Str(result, "recommendation");
+            if (flagged.Count > 0 && rec != "Hold" && rec != "Reject")
+            {
+                result["recommendation"] = "Hold";
+                result["needs_human"] = true;
+                result["guard_note"] = "Raised from " + rec + " to Hold: risk flags on " + string.Join(", ", flagged) + ".";
+            }
             if (J.Str(result, "recommendation") == "Publish")
             {
                 var facts = ToolCatalog.SubjectFacts(ctx);

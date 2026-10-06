@@ -62,6 +62,279 @@
               },
               "runAfter": {}
             },
+            "Deal": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "GetItem",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_deals",
+                  "recordId": "@{triggerOutputs()?['body/_gc_deal_value']}",
+                  "$select": "gc_name,gc_stage,_gc_buyer_value,_gc_seller_value"
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {
+                "Price_offer": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "First_offer": {
+              "type": "If",
+              "expression": "@equals(body('Deal')?['gc_stage'], 303300000)",
+              "actions": {
+                "To_negotiation": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_commondataserviceforapps",
+                      "operationId": "PerformUnboundAction",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                    },
+                    "parameters": {
+                      "actionName": "gc_TransitionDeal",
+                      "item/DealId": "@{triggerOutputs()?['body/_gc_deal_value']}",
+                      "item/TargetStage": 303300001,
+                      "item/Reason": "First offer received"
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  },
+                  "runAfter": {}
+                }
+              },
+              "else": {
+                "actions": {}
+              },
+              "runAfter": {
+                "Deal": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Run_Pricing": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "PerformUnboundAction",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "actionName": "gc_Agent_Pricing",
+                  "item/Input": "{\"trigger\": \"flow:offer-pricing\"}",
+                  "item/SubjectId": "@{triggerOutputs()?['body/gc_offerid']}"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "none"
+                }
+              },
+              "runAfter": {
+                "First_offer": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Check_Pricing": {
+              "type": "If",
+              "expression": "@not(equals(outputs('Run_Pricing')?['body/Status'], 'Succeeded'))",
+              "actions": {
+                "Record_Pricing_failure": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_commondataserviceforapps",
+                      "operationId": "CreateRecord",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                    },
+                    "parameters": {
+                      "entityName": "gc_flowfailures",
+                      "item/gc_name": "DealOS | Offer pricing",
+                      "item/gc_flowname": "DealOS | Offer pricing",
+                      "item/gc_runurl": "https://make.powerautomate.com/environments/@{workflow()?['tags']?['environmentName']}/flows/@{workflow()?['name']}/runs/@{workflow()?['run']?['name']}",
+                      "item/gc_step": "Run_Pricing",
+                      "item/gc_error": "@{coalesce(outputs('Run_Pricing')?['body/Summary'], 'agent call failed')}",
+                      "item/gc_payload": "@{take(string(triggerOutputs()?['body']), 100000)}",
+                      "item/gc_status": 303300000
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  },
+                  "runAfter": {}
+                }
+              },
+              "else": {
+                "actions": {}
+              },
+              "runAfter": {
+                "Run_Pricing": [
+                  "Succeeded",
+                  "Failed",
+                  "TimedOut"
+                ]
+              }
+            },
+            "Parse_Pricing": {
+              "type": "ParseJson",
+              "inputs": {
+                "content": "@json(coalesce(outputs('Run_Pricing')?['body/Result'], '{}'))",
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "agent": {
+                      "type": "string"
+                    },
+                    "run_id": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "model": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "error": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "result": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "currency": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "buyer_view": {
+                          "type": [
+                            "object",
+                            "null"
+                          ],
+                          "properties": {
+                            "landed_cost": {
+                              "type": [
+                                "number",
+                                "null"
+                              ]
+                            },
+                            "explanation": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          }
+                        },
+                        "seller_view": {
+                          "type": [
+                            "object",
+                            "null"
+                          ],
+                          "properties": {
+                            "net_payout": {
+                              "type": [
+                                "number",
+                                "null"
+                              ]
+                            },
+                            "explanation": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          }
+                        },
+                        "assumptions": {
+                          "type": [
+                            "array",
+                            "null"
+                          ],
+                          "items": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        },
+                        "missing_inputs": {
+                          "type": [
+                            "array",
+                            "null"
+                          ],
+                          "items": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        },
+                        "summary": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "needs_human": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ]
+                        },
+                        "confidence": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      }
+                    },
+                    "actions": {
+                      "type": [
+                        "array",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              },
+              "runAfter": {
+                "Check_Pricing": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Notify_counterparty": {
+              "type": "Workflow",
+              "inputs": {
+                "host": {
+                  "workflowReferenceName": "4f7bfa4c-432c-512b-b763-c703a64a583b"
+                },
+                "body": {
+                  "text": "@{if(equals(triggerOutputs()?['body/_gc_fromparty_value'], body('Deal')?['_gc_seller_value']), body('Deal')?['_gc_buyer_value'], body('Deal')?['_gc_seller_value'])}",
+                  "text_1": "New offer on your deal",
+                  "text_2": "A new offer was made on '@{body('Deal')?['gc_name']}': @{triggerOutputs()?['body/gc_price']} @{triggerOutputs()?['body/gc_currency']} per unit for @{triggerOutputs()?['body/gc_quantity']} units, @{coalesce(json('{\"303300000\": \"EXW\", \"303300001\": \"FCA\", \"303300002\": \"FAS\", \"303300003\": \"FOB\", \"303300004\": \"CFR\", \"303300005\": \"CIF\", \"303300006\": \"CPT\", \"303300007\": \"CIP\", \"303300008\": \"DAP\", \"303300009\": \"DPU\", \"303300010\": \"DDP\"}')?[string(triggerOutputs()?['body/gc_incoterm'])], 'Incoterm not set')}.\nOpen DealOS to see your landed cost or net payout, then accept, counter or decline.",
+                  "text_3": "offer.created"
+                }
+              },
+              "runAfter": {
+                "Parse_Pricing": [
+                  "Succeeded"
+                ]
+              }
+            },
             "Audit": {
               "type": "OpenApiConnection",
               "inputs": {
@@ -72,16 +345,18 @@
                 },
                 "parameters": {
                   "entityName": "gc_auditevents",
+                  "item/gc_hash": "set-by-invariants-plugin",
+                  "item/gc_name": "offer.priced",
                   "item/gc_actor": "flow:offer-pricing",
                   "item/gc_action": "offer.priced",
                   "item/gc_subjecttype": "gc_offer",
                   "item/gc_subjectid": "@{triggerOutputs()?['body/gc_offerid']}",
-                  "item/gc_details": "@{string(addProperty(json('{}'), 'summary', outputs('Price_offer')?['body/Summary']))}"
+                  "item/gc_details": "@{take(string(addProperty(addProperty(json('{}'), 'summary', outputs('Price_offer')?['body/Summary']), 'explanation', outputs('Run_Pricing')?['body/Summary'])), 100000)}"
                 },
                 "authentication": "@parameters('$authentication')"
               },
               "runAfter": {
-                "Price_offer": [
+                "Notify_counterparty": [
                   "Succeeded"
                 ]
               }

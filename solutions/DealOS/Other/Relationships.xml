@@ -56,6 +56,7 @@
   <EntityRelationship Name="gc_auditevent_gc_agentrun" />
   <EntityRelationship Name="gc_buyerrequirement_gc_buyer" />
   <EntityRelationship Name="gc_buyerrequirement_gc_commodity" />
+  <EntityRelationship Name="gc_buyerrequirement_gc_deal_requirement" />
   <EntityRelationship Name="gc_buyerrequirement_gc_destinationcountry" />
   <EntityRelationship Name="gc_conflict_gc_fact" />
   <EntityRelationship Name="gc_conflict_gc_resolutionassertion" />

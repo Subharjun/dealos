@@ -1,0 +1,30 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Workflow WorkflowId="{aa21e3d3-d8fa-595c-9edb-fdfe8712ca67}" Name="DealOS | Escrow funded" Description="Payment set to Funded (Finance, later the partner webhook) → deal Funded → Logistics agent (checklist, milestones, booking approval) → notify." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <JsonFileName>/Workflows/DealOSEscrowfunded-AA21E3D3-D8FA-595C-9EDB-FDFE8712CA67.json</JsonFileName>
+  <Type>1</Type>
+  <Subprocess>0</Subprocess>
+  <Category>5</Category>
+  <Mode>0</Mode>
+  <Scope>4</Scope>
+  <OnDemand>0</OnDemand>
+  <TriggerOnCreate>0</TriggerOnCreate>
+  <TriggerOnDelete>0</TriggerOnDelete>
+  <AsyncAutodelete>0</AsyncAutodelete>
+  <SyncWorkflowLogOnFailure>0</SyncWorkflowLogOnFailure>
+  <StateCode>1</StateCode>
+  <StatusCode>2</StatusCode>
+  <RunAs>1</RunAs>
+  <IsTransacted>1</IsTransacted>
+  <IntroducedVersion>1.0.0.0</IntroducedVersion>
+  <IsCustomizable>1</IsCustomizable>
+  <BusinessProcessType>0</BusinessProcessType>
+  <IsCustomProcessingStepAllowedForOtherPublishers>1</IsCustomProcessingStepAllowedForOtherPublishers>
+  <ModernFlowType>0</ModernFlowType>
+  <PrimaryEntity>none</PrimaryEntity>
+  <LocalizedNames>
+    <LocalizedName languagecode="1033" description="DealOS | Escrow funded" />
+  </LocalizedNames>
+  <Descriptions>
+    <Description languagecode="1033" description="Payment set to Funded (Finance, later the partner webhook) → deal Funded → Logistics agent (checklist, milestones, booking approval) → notify." />
+  </Descriptions>
+</Workflow>

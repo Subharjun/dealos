@@ -1,0 +1,460 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_commondataserviceforapps": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "gc_dataverse"
+        },
+        "api": {
+          "name": "shared_commondataserviceforapps"
+        }
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$connections": {
+          "defaultValue": {},
+          "type": "Object"
+        },
+        "$authentication": {
+          "defaultValue": {},
+          "type": "SecureObject"
+        }
+      },
+      "triggers": {
+        "When_a_milestone_progresses": {
+          "type": "OpenApiConnectionWebhook",
+          "inputs": {
+            "host": {
+              "connectionName": "shared_commondataserviceforapps",
+              "operationId": "SubscribeWebhookTrigger",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "subscriptionRequest/message": 3,
+              "subscriptionRequest/entityname": "gc_milestone",
+              "subscriptionRequest/scope": 4,
+              "subscriptionRequest/filteringattributes": "gc_status"
+            },
+            "authentication": "@parameters('$authentication')"
+          },
+          "conditions": [
+            {
+              "expression": "@or(equals(triggerOutputs()?['body/gc_status'], 303300001), equals(triggerOutputs()?['body/gc_status'], 303300002))"
+            }
+          ],
+          "runtimeConfiguration": {
+            "concurrency": {
+              "runs": 1
+            }
+          }
+        }
+      },
+      "actions": {
+        "Try": {
+          "type": "Scope",
+          "actions": {
+            "Deal": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "GetItem",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_deals",
+                  "recordId": "@{triggerOutputs()?['body/_gc_deal_value']}",
+                  "$select": "gc_name,gc_stage"
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {}
+            },
+            "Shipped": {
+              "type": "If",
+              "expression": "@and(or(equals(triggerOutputs()?['body/gc_type'], 303300002), equals(triggerOutputs()?['body/gc_type'], 303300003)), equals(body('Deal')?['gc_stage'], 303300007))",
+              "actions": {
+                "To_in_transit": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_commondataserviceforapps",
+                      "operationId": "PerformUnboundAction",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                    },
+                    "parameters": {
+                      "actionName": "gc_TransitionDeal",
+                      "item/DealId": "@{triggerOutputs()?['body/_gc_deal_value']}",
+                      "item/TargetStage": 303300008,
+                      "item/Reason": "Departure / B/L milestone"
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  },
+                  "runAfter": {}
+                }
+              },
+              "else": {
+                "actions": {}
+              },
+              "runAfter": {
+                "Deal": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Arrived": {
+              "type": "If",
+              "expression": "@and(equals(triggerOutputs()?['body/gc_type'], 303300007), equals(body('Deal')?['gc_stage'], 303300008))",
+              "actions": {
+                "To_delivered": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_commondataserviceforapps",
+                      "operationId": "PerformUnboundAction",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                    },
+                    "parameters": {
+                      "actionName": "gc_TransitionDeal",
+                      "item/DealId": "@{triggerOutputs()?['body/_gc_deal_value']}",
+                      "item/TargetStage": 303300009,
+                      "item/Reason": "Delivery milestone"
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  },
+                  "runAfter": {}
+                }
+              },
+              "else": {
+                "actions": {}
+              },
+              "runAfter": {
+                "Shipped": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Run_Payment": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "PerformUnboundAction",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "actionName": "gc_Agent_Payment",
+                  "item/Input": "{\"trigger\": \"flow:milestone-progress\"}",
+                  "item/SubjectId": "@{triggerOutputs()?['body/_gc_deal_value']}"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "none"
+                }
+              },
+              "runAfter": {
+                "Arrived": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Check_Payment": {
+              "type": "If",
+              "expression": "@not(equals(outputs('Run_Payment')?['body/Status'], 'Succeeded'))",
+              "actions": {
+                "Record_Payment_failure": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_commondataserviceforapps",
+                      "operationId": "CreateRecord",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                    },
+                    "parameters": {
+                      "entityName": "gc_flowfailures",
+                      "item/gc_name": "DealOS | Milestone progress",
+                      "item/gc_flowname": "DealOS | Milestone progress",
+                      "item/gc_runurl": "https://make.powerautomate.com/environments/@{workflow()?['tags']?['environmentName']}/flows/@{workflow()?['name']}/runs/@{workflow()?['run']?['name']}",
+                      "item/gc_step": "Run_Payment",
+                      "item/gc_error": "@{coalesce(outputs('Run_Payment')?['body/Summary'], 'agent call failed')}",
+                      "item/gc_payload": "@{take(string(triggerOutputs()?['body']), 100000)}",
+                      "item/gc_status": 303300000
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  },
+                  "runAfter": {}
+                }
+              },
+              "else": {
+                "actions": {}
+              },
+              "runAfter": {
+                "Run_Payment": [
+                  "Succeeded",
+                  "Failed",
+                  "TimedOut"
+                ]
+              }
+            },
+            "Parse_Payment": {
+              "type": "ParseJson",
+              "inputs": {
+                "content": "@json(coalesce(outputs('Run_Payment')?['body/Result'], '{}'))",
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "agent": {
+                      "type": "string"
+                    },
+                    "run_id": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "model": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "error": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "result": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "contract_value": {
+                          "type": [
+                            "number",
+                            "null"
+                          ]
+                        },
+                        "currency": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "schedule": {
+                          "type": [
+                            "array",
+                            "null"
+                          ],
+                          "items": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "properties": {
+                              "sequence": {
+                                "type": [
+                                  "integer",
+                                  "null"
+                                ]
+                              },
+                              "pct": {
+                                "type": [
+                                  "number",
+                                  "null"
+                                ]
+                              },
+                              "condition": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "gross": {
+                                "type": [
+                                  "number",
+                                  "null"
+                                ]
+                              },
+                              "commission_deducted": {
+                                "type": [
+                                  "number",
+                                  "null"
+                                ]
+                              },
+                              "net_to_seller": {
+                                "type": [
+                                  "number",
+                                  "null"
+                                ]
+                              }
+                            }
+                          }
+                        },
+                        "releases_ready": {
+                          "type": [
+                            "array",
+                            "null"
+                          ],
+                          "items": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "properties": {
+                              "release_id": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "milestone_types": {
+                                "type": [
+                                  "array",
+                                  "null"
+                                ],
+                                "items": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "blockers": {
+                          "type": [
+                            "array",
+                            "null"
+                          ],
+                          "items": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        },
+                        "summary": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "needs_human": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ]
+                        },
+                        "confidence": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      }
+                    },
+                    "actions": {
+                      "type": [
+                        "array",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              },
+              "runAfter": {
+                "Check_Payment": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Audit": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "CreateRecord",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_auditevents",
+                  "item/gc_hash": "set-by-invariants-plugin",
+                  "item/gc_name": "milestone.progress",
+                  "item/gc_actor": "flow:milestone-progress",
+                  "item/gc_action": "milestone.progress",
+                  "item/gc_subjecttype": "gc_milestone",
+                  "item/gc_subjectid": "@{triggerOutputs()?['body/gc_milestoneid']}",
+                  "item/gc_details": "@{take(string(addProperty(addProperty(addProperty(json('{}'), 'type', triggerOutputs()?['body/gc_type']), 'status', triggerOutputs()?['body/gc_status']), 'payment', outputs('Run_Payment')?['body/Summary'])), 100000)}"
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {
+                "Parse_Payment": [
+                  "Succeeded"
+                ]
+              }
+            }
+          },
+          "runAfter": {}
+        },
+        "Catch": {
+          "type": "Scope",
+          "actions": {
+            "Record_failure": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "CreateRecord",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_flowfailures",
+                  "item/gc_name": "DealOS | Milestone progress",
+                  "item/gc_flowname": "DealOS | Milestone progress",
+                  "item/gc_runurl": "https://make.powerautomate.com/environments/@{workflow()?['tags']?['environmentName']}/flows/@{workflow()?['name']}/runs/@{workflow()?['run']?['name']}",
+                  "item/gc_step": "Try",
+                  "item/gc_error": "@{take(string(result('Try')), 3900)}",
+                  "item/gc_payload": "@{take(string(triggerOutputs()?['body']), 100000)}",
+                  "item/gc_status": 303300000
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {}
+            },
+            "Fail_run": {
+              "type": "Terminate",
+              "inputs": {
+                "runStatus": "Failed",
+                "runError": {
+                  "code": "DealOSFlowFailure",
+                  "message": "Recorded in Flow failures"
+                }
+              },
+              "runAfter": {
+                "Record_failure": [
+                  "Succeeded"
+                ]
+              }
+            }
+          },
+          "runAfter": {
+            "Try": [
+              "Failed",
+              "TimedOut"
+            ]
+          }
+        }
+      }
+    },
+    "templateName": null
+  },
+  "schemaVersion": "1.0.0.0"
+}

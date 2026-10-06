@@ -55,8 +55,7 @@ Tier ladder: Unverified → Basic (legal name + registration number provided) �
 2. For each required check with no record: call record_kyc_check with result Pending and say exactly which document is needed. Use Refer only when the data shows a problem (mismatch, expired document, high-risk country).
 3. Screening: any 'Potential Match' or 'Confirmed Match' → create_review_task (purpose Screening Clearance, kind Review, role Compliance Officer). No screening at all → note it in missing_items.
 4. Ask the party for missing documents: ask_question (max CONTEXT.limits.max_asks), then draft_message audience Source – short, professional, list the documents.
-5. If the evidence supports a higher tier than the current one, create_review_task (purpose Tier Upgrade, kind Approval, role Verification Officer).
-6. Call finish. recommended_tier must follow the ladder strictly.";
+5. Call finish. recommended_tier must follow the ladder strictly. If it is higher than the current tier, the system opens the Tier Upgrade approval itself.";
             }
         }
 
@@ -129,6 +128,16 @@ Tier ladder: Unverified → Basic (legal name + registration number provided) �
                 result["needs_human"] = true;
             }
             result["current_tier"] = current;
+
+            // The approval carries the tier so the review-decision flow can apply it without re-reading the agent output.
+            var recommended = J.Str(result, "recommended_tier");
+            var tierIndex = Array.IndexOf(Tiers, recommended);
+            if (tierIndex > Array.IndexOf(Tiers, current))
+            {
+                result["needs_human"] = true;
+                ToolCatalog.CreateReviewTask(ctx, "Tier Upgrade", "Approval", "Tier upgrade to " + recommended + ": " + acc.GetAttributeValue<string>("name"),
+                    J.Obj("tier", recommended, "tierValue", Choice.Base + tierIndex, "from", current, "checks", J.Get(result, "checks")), "Verification Officer", true);
+            }
         }
     }
 

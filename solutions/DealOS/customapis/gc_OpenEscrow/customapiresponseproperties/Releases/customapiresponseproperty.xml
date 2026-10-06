@@ -1,0 +1,11 @@
+<customapiresponseproperty uniquename="Releases">
+  <description default="Number of release tranches.">
+    <label description="Number of release tranches." languagecode="1033" />
+  </description>
+  <displayname default="Releases">
+    <label description="Releases" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <name>gc_OpenEscrow.Releases</name>
+  <type>7</type>
+</customapiresponseproperty>

@@ -1,0 +1,12 @@
+<customapirequestparameter uniquename="DealId">
+  <description default="The gc_deal (Signed or Awaiting Funding).">
+    <label description="The gc_deal (Signed or Awaiting Funding)." languagecode="1033" />
+  </description>
+  <displayname default="DealId">
+    <label description="DealId" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isoptional>0</isoptional>
+  <name>gc_OpenEscrow.DealId</name>
+  <type>12</type>
+</customapirequestparameter>

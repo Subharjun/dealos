@@ -1,0 +1,18 @@
+<customapi uniquename="gc_InstructRelease">
+  <allowedcustomprocessingsteptype>0</allowedcustomprocessingsteptype>
+  <bindingtype>0</bindingtype>
+  <description default="Mark an escrow release as Instructed after Finance approved its Fund Release task. Re-checks in code: approved task, funded escrow, no hold on the deal. Idempotent.">
+    <label description="Mark an escrow release as Instructed after Finance approved its Fund Release task. Re-checks in code: approved task, funded escrow, no hold on the deal. Idempotent." languagecode="1033" />
+  </description>
+  <displayname default="Instruct fund release">
+    <label description="Instruct fund release" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isfunction>0</isfunction>
+  <isprivate>0</isprivate>
+  <name>gc_InstructRelease</name>
+  <plugintypeid>
+    <plugintypeexportkey>dbea2422-70c1-f111-aaaf-7ced8daf451f</plugintypeexportkey>
+  </plugintypeid>
+  <workflowsdkstepenabled>0</workflowsdkstepenabled>
+</customapi>

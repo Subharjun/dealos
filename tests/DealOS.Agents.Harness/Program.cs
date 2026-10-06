@@ -39,6 +39,19 @@ Check(r4.Errors.Any(e => e.Contains("Claimed")), "requires hedging for claimed v
 var r5 = MessageValidator.Check("Seller states 500 MT copper cathode, 99.99% Cu, CIF basis.", known, new[] { "Seller Mining Ltd" }, false, new[] { "500" }, true);
 Check(r5.Ok, "accepts grounded, hedged teaser");
 
+// Escrow maths (shared by the Payment agent and gc_OpenEscrow): tranches add up exactly and commission + net = gross
+var plan = J.Obj("name", "1.5% seller", "rate_pct", 1.5, "payer", "Seller");
+var tranchesIn = new List<Dictionary<string, object>> { J.Obj("pct", 30.0, "condition", "BL"), J.Obj("pct", 70.0, "condition", "Delivered") };
+var sched = ToolCatalog.ReleaseMath(4500000.01, tranchesIn, plan);
+var rows = J.Arr(sched, "tranches").OfType<Dictionary<string, object>>().ToList();
+decimal Dec(Dictionary<string, object> o, string k) => Convert.ToDecimal(J.Get(o, k));
+Check(rows.Sum(t => Dec(t, "gross")) == 4500000.01m, "release tranches sum to contract value");
+Check(rows.Sum(t => Dec(t, "commission_deducted")) == Dec(sched, "commission_total"), "seller-paid commission fully deducted");
+Check(rows.All(t => Dec(t, "commission_deducted") + Dec(t, "net_to_seller") == Dec(t, "gross")), "commission + net = gross per tranche");
+var buyerPays = ToolCatalog.ReleaseMath(1000, tranchesIn, J.Obj("rate_pct", 2.0, "payer", "Buyer"));
+Check(Dec(buyerPays, "buyer_commission") == 20m && J.Arr(buyerPays, "tranches").OfType<Dictionary<string, object>>().All(t => Dec(t, "commission_deducted") == 0), "buyer-paid commission not deducted from seller");
+Check(Dec(ToolCatalog.ReleaseMath(1000, tranchesIn, null), "commission_total") == 0m, "no plan means zero commission");
+
 // Schemas + manifest
 var manifest = new List<object>();
 foreach (var a in AgentCatalog.All)

@@ -1,0 +1,11 @@
+<customapiresponseproperty uniquename="PaymentId">
+  <description default="The gc_payment.">
+    <label description="The gc_payment." languagecode="1033" />
+  </description>
+  <displayname default="PaymentId">
+    <label description="PaymentId" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <name>gc_OpenEscrow.PaymentId</name>
+  <type>10</type>
+</customapiresponseproperty>

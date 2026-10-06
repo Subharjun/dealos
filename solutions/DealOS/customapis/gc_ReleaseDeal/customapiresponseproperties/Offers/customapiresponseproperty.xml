@@ -1,0 +1,11 @@
+<customapiresponseproperty uniquename="Offers">
+  <description default="Offers rejected.">
+    <label description="Offers rejected." languagecode="1033" />
+  </description>
+  <displayname default="Offers">
+    <label description="Offers" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <name>gc_ReleaseDeal.Offers</name>
+  <type>7</type>
+</customapiresponseproperty>

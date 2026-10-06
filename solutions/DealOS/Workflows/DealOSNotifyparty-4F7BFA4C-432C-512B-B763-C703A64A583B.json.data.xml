@@ -1,0 +1,30 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Workflow WorkflowId="{4f7bfa4c-432c-512b-b763-c703a64a583b}" Name="DealOS | Notify party" Description="Child flow: emails a party (account email, else primary contact) when notifications.email.enabled is true; otherwise records the message in the audit trail. notifications.email.redirect sends everything to one test inbox." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <JsonFileName>/Workflows/DealOSNotifyparty-4F7BFA4C-432C-512B-B763-C703A64A583B.json</JsonFileName>
+  <Type>1</Type>
+  <Subprocess>0</Subprocess>
+  <Category>5</Category>
+  <Mode>0</Mode>
+  <Scope>4</Scope>
+  <OnDemand>0</OnDemand>
+  <TriggerOnCreate>0</TriggerOnCreate>
+  <TriggerOnDelete>0</TriggerOnDelete>
+  <AsyncAutodelete>0</AsyncAutodelete>
+  <SyncWorkflowLogOnFailure>0</SyncWorkflowLogOnFailure>
+  <StateCode>1</StateCode>
+  <StatusCode>2</StatusCode>
+  <RunAs>1</RunAs>
+  <IsTransacted>1</IsTransacted>
+  <IntroducedVersion>1.0.0.0</IntroducedVersion>
+  <IsCustomizable>1</IsCustomizable>
+  <BusinessProcessType>0</BusinessProcessType>
+  <IsCustomProcessingStepAllowedForOtherPublishers>1</IsCustomProcessingStepAllowedForOtherPublishers>
+  <ModernFlowType>0</ModernFlowType>
+  <PrimaryEntity>none</PrimaryEntity>
+  <LocalizedNames>
+    <LocalizedName languagecode="1033" description="DealOS | Notify party" />
+  </LocalizedNames>
+  <Descriptions>
+    <Description languagecode="1033" description="Child flow: emails a party (account email, else primary contact) when notifications.email.enabled is true; otherwise records the message in the audit trail. notifications.email.redirect sends everything to one test inbox." />
+  </Descriptions>
+</Workflow>

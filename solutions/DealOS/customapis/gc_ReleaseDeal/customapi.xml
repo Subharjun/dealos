@@ -1,0 +1,18 @@
+<customapi uniquename="gc_ReleaseDeal">
+  <allowedcustomprocessingsteptype>0</allowedcustomprocessingsteptype>
+  <bindingtype>0</bindingtype>
+  <description default="For a Cancelled deal: make the lots reserved for it Available again and reject its open offers.">
+    <label description="For a Cancelled deal: make the lots reserved for it Available again and reject its open offers." languagecode="1033" />
+  </description>
+  <displayname default="Release cancelled deal">
+    <label description="Release cancelled deal" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isfunction>0</isfunction>
+  <isprivate>0</isprivate>
+  <name>gc_ReleaseDeal</name>
+  <plugintypeid>
+    <plugintypeexportkey>dbea2422-70c1-f111-aaaf-7ced8daf451f</plugintypeexportkey>
+  </plugintypeid>
+  <workflowsdkstepenabled>0</workflowsdkstepenabled>
+</customapi>

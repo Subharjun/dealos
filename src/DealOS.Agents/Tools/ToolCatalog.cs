@@ -108,7 +108,7 @@ namespace DealOS.Agents.Tools
             yield return new Tool
             {
                 Name = "calculate_price_quote",
-                Description = "Deterministic landed-cost engine for an offer. Creates buyer, seller and admin quote views. Pass only cost inputs that appear in the data; omit unknown ones.",
+                Description = "Deterministic landed-cost engine for an offer. Recalculates with the cost inputs from TASK INPUT (the system reads them there; any values you pass are ignored). Refused when TASK INPUT has none.",
                 Writes = true,
                 Parameters = S.Obj(null,
                     "offer_id", S.Str("gc_offer GUID."),
@@ -127,16 +127,22 @@ namespace DealOS.Agents.Tools
                     if (offer == null) throw new ToolRefusal("No gc_offer with id " + offerId + ".");
                     if (offer.GetAttributeValue<EntityReference>("gc_deal") == null || offer.GetAttributeValue<decimal?>("gc_price") == null || offer.GetAttributeValue<decimal?>("gc_quantity") == null)
                         throw new ToolRefusal("The offer needs a deal, price and quantity before it can be priced.");
+                    // Cost inputs come only from the caller's TASK INPUT, never from the model: an unprompted re-price
+                    // with assumed costs would replace the offer's quote.
+                    var input = ctx.Input ?? new Dictionary<string, object>();
+                    var costs = new[] { "freight_per_unit", "insurance_rate_pct", "origin_inland", "loading", "export_clearance", "import_clearance", "destination_inland", "import_tax_pct" };
+                    if (!costs.Any(k => J.Num(input, k) != null))
+                        throw new ToolRefusal("TASK INPUT has no cost inputs, so the quote is not recalculated. Explain the quotes in CONTEXT instead.");
                     var req = new OrganizationRequest("gc_CalculatePriceQuote");
                     req["OfferId"] = offerId;
-                    Map(a, req, "freight_per_unit", "FreightPerUnit");
-                    Map(a, req, "insurance_rate_pct", "InsuranceRatePct");
-                    Map(a, req, "origin_inland", "OriginInland");
-                    Map(a, req, "loading", "Loading");
-                    Map(a, req, "export_clearance", "ExportClearance");
-                    Map(a, req, "import_clearance", "ImportClearance");
-                    Map(a, req, "destination_inland", "DestinationInland");
-                    Map(a, req, "import_tax_pct", "ImportTaxPct");
+                    Map(input, req, "freight_per_unit", "FreightPerUnit");
+                    Map(input, req, "insurance_rate_pct", "InsuranceRatePct");
+                    Map(input, req, "origin_inland", "OriginInland");
+                    Map(input, req, "loading", "Loading");
+                    Map(input, req, "export_clearance", "ExportClearance");
+                    Map(input, req, "import_clearance", "ImportClearance");
+                    Map(input, req, "destination_inland", "DestinationInland");
+                    Map(input, req, "import_tax_pct", "ImportTaxPct");
                     if (ctx.DryRun)
                     {
                         ctx.Actions.Add(J.Obj("action", "calculate_price_quote", "dry_run", true, "detail", J.Obj("offer_id", req["OfferId"].ToString())));
@@ -402,8 +408,13 @@ namespace DealOS.Agents.Tools
             return J.Obj("ok", true, "message_id", ctx.DryRun ? null : msgId.ToString(), "status", "Draft – awaiting human approval", "checks", report.Checks);
         }
 
+        /// <summary>Purposes whose tasks are opened by code with a structured payload that the review-decision flow applies.</summary>
+        private static readonly string[] SystemPurposes = { "Listing Publish", "Tier Upgrade", "Fund Release", "Contract Issue", "Message Send" };
+
         private static object ReviewTask(AgentContext ctx, Dictionary<string, object> a)
         {
+            if (SystemPurposes.Contains(J.Str(a, "purpose") ?? "", StringComparer.OrdinalIgnoreCase))
+                throw new ToolRefusal("The system opens '" + J.Str(a, "purpose") + "' tasks itself from your finish result; do not create them.");
             var id = CreateReviewTask(ctx, J.Str(a, "purpose"), J.Str(a, "kind"), J.Str(a, "title"),
                 J.Obj("details", J.Str(a, "details")), J.Str(a, "assignee_role"), true);
             return J.Obj("ok", true, "review_task_id", id == Guid.Empty ? null : id.ToString());
@@ -559,6 +570,12 @@ namespace DealOS.Agents.Tools
             var pctSum = tranches.Sum(t => J.Num(t, "pct") ?? 0);
             if (tranches.Count == 0 || Math.Abs(pctSum - 100) > 0.01) throw new ToolRefusal("Tranche percentages must sum to 100 (got " + pctSum + ").");
             var plan = ctx.Scratch.ContainsKey("commission_plan") ? (Dictionary<string, object>)ctx.Scratch["commission_plan"] : null;
+            return ReleaseMath(contractValue, tranches, plan);
+        }
+
+        /// <summary>Deterministic tranche and commission maths, shared by the Payment agent and gc_OpenEscrow.</summary>
+        public static Dictionary<string, object> ReleaseMath(double contractValue, List<Dictionary<string, object>> tranches, Dictionary<string, object> plan)
+        {
             var rate = (decimal)(J.Num(plan, "rate_pct") ?? 0);
             var cv = (decimal)contractValue;
             var commission = Math.Round(cv * rate / 100m, 2);

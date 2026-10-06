@@ -1,0 +1,11 @@
+<customapiresponseproperty uniquename="Lots">
+  <description default="Lots freed.">
+    <label description="Lots freed." languagecode="1033" />
+  </description>
+  <displayname default="Lots">
+    <label description="Lots" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <name>gc_ReleaseDeal.Lots</name>
+  <type>7</type>
+</customapiresponseproperty>

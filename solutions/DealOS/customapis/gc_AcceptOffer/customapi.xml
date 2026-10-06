@@ -1,0 +1,18 @@
+<customapi uniquename="gc_AcceptOffer">
+  <allowedcustomprocessingsteptype>0</allowedcustomprocessingsteptype>
+  <bindingtype>0</bindingtype>
+  <description default="Accept an offer: copy its terms to the deal, reserve (or split) the lot, reject the deal's other offers, close competing deals for the same lot or RFQ, and move the deal to Terms Agreed. Idempotent; all or nothing.">
+    <label description="Accept an offer: copy its terms to the deal, reserve (or split) the lot, reject the deal's other offers, close competing deals for the same lot or RFQ, and move the deal to Terms Agreed. Idempotent; all or nothing." languagecode="1033" />
+  </description>
+  <displayname default="Accept offer">
+    <label description="Accept offer" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isfunction>0</isfunction>
+  <isprivate>0</isprivate>
+  <name>gc_AcceptOffer</name>
+  <plugintypeid>
+    <plugintypeexportkey>dbea2422-70c1-f111-aaaf-7ced8daf451f</plugintypeexportkey>
+  </plugintypeid>
+  <workflowsdkstepenabled>0</workflowsdkstepenabled>
+</customapi>

@@ -1,0 +1,181 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_commondataserviceforapps": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "gc_dataverse"
+        },
+        "api": {
+          "name": "shared_commondataserviceforapps"
+        }
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$connections": {
+          "defaultValue": {},
+          "type": "Object"
+        },
+        "$authentication": {
+          "defaultValue": {},
+          "type": "SecureObject"
+        }
+      },
+      "triggers": {
+        "When_a_match_is_proposed": {
+          "type": "OpenApiConnectionWebhook",
+          "inputs": {
+            "host": {
+              "connectionName": "shared_commondataserviceforapps",
+              "operationId": "SubscribeWebhookTrigger",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "subscriptionRequest/message": 1,
+              "subscriptionRequest/entityname": "gc_match",
+              "subscriptionRequest/scope": 4
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        }
+      },
+      "actions": {
+        "Try": {
+          "type": "Scope",
+          "actions": {
+            "Requirement": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "GetItem",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_buyerrequirements",
+                  "recordId": "@{triggerOutputs()?['body/_gc_requirement_value']}",
+                  "$select": "gc_name,_gc_buyer_value"
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {}
+            },
+            "Listing": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "GetItem",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_listings",
+                  "recordId": "@{triggerOutputs()?['body/_gc_listing_value']}",
+                  "$select": "gc_name,_gc_seller_value"
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {
+                "Requirement": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Notify_buyer": {
+              "type": "Workflow",
+              "inputs": {
+                "host": {
+                  "workflowReferenceName": "4f7bfa4c-432c-512b-b763-c703a64a583b"
+                },
+                "body": {
+                  "text": "@{body('Requirement')?['_gc_buyer_value']}",
+                  "text_1": "New verified match for your requirement",
+                  "text_2": "A listing matches your requirement '@{body('Requirement')?['gc_name']}': @{body('Listing')?['gc_name']} (match score @{formatNumber(coalesce(triggerOutputs()?['body/gc_score'], 0), '0')}).\nOpen DealOS to review it and opt in. The seller's identity stays hidden until a contract is signed.",
+                  "text_3": "match.proposed"
+                }
+              },
+              "runAfter": {
+                "Listing": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Notify_seller": {
+              "type": "Workflow",
+              "inputs": {
+                "host": {
+                  "workflowReferenceName": "4f7bfa4c-432c-512b-b763-c703a64a583b"
+                },
+                "body": {
+                  "text": "@{body('Listing')?['_gc_seller_value']}",
+                  "text_1": "A buyer requirement matches your listing",
+                  "text_2": "A buyer is looking for material like your listing '@{body('Listing')?['gc_name']}' (match score @{formatNumber(coalesce(triggerOutputs()?['body/gc_score'], 0), '0')}).\nOpen DealOS to review the requirement and opt in. The buyer's identity stays hidden until a contract is signed.",
+                  "text_3": "match.proposed"
+                }
+              },
+              "runAfter": {
+                "Notify_buyer": [
+                  "Succeeded"
+                ]
+              }
+            }
+          },
+          "runAfter": {}
+        },
+        "Catch": {
+          "type": "Scope",
+          "actions": {
+            "Record_failure": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "CreateRecord",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_flowfailures",
+                  "item/gc_name": "DealOS | Match notifications",
+                  "item/gc_flowname": "DealOS | Match notifications",
+                  "item/gc_runurl": "https://make.powerautomate.com/environments/@{workflow()?['tags']?['environmentName']}/flows/@{workflow()?['name']}/runs/@{workflow()?['run']?['name']}",
+                  "item/gc_step": "Try",
+                  "item/gc_error": "@{take(string(result('Try')), 3900)}",
+                  "item/gc_payload": "@{take(string(triggerOutputs()?['body']), 100000)}",
+                  "item/gc_status": 303300000
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {}
+            },
+            "Fail_run": {
+              "type": "Terminate",
+              "inputs": {
+                "runStatus": "Failed",
+                "runError": {
+                  "code": "DealOSFlowFailure",
+                  "message": "Recorded in Flow failures"
+                }
+              },
+              "runAfter": {
+                "Record_failure": [
+                  "Succeeded"
+                ]
+              }
+            }
+          },
+          "runAfter": {
+            "Try": [
+              "Failed",
+              "TimedOut"
+            ]
+          }
+        }
+      }
+    },
+    "templateName": null
+  },
+  "schemaVersion": "1.0.0.0"
+}

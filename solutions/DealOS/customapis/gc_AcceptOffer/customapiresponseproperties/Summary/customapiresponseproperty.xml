@@ -1,0 +1,11 @@
+<customapiresponseproperty uniquename="Summary">
+  <description default="What happened, for a human.">
+    <label description="What happened, for a human." languagecode="1033" />
+  </description>
+  <displayname default="Summary">
+    <label description="Summary" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <name>gc_AcceptOffer.Summary</name>
+  <type>10</type>
+</customapiresponseproperty>

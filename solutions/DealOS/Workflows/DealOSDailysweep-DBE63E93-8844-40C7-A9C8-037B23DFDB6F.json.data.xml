@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Workflow WorkflowId="{dbe63e93-8844-40c7-a9c8-037b23dfdb6f}" Name="DealOS | Daily sweep" Description="Re-resolves stale evidence and expires old offers." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+<Workflow WorkflowId="{dbe63e93-8844-40c7-a9c8-037b23dfdb6f}" Name="DealOS | Daily sweep" Description="Every day 02:00 UTC: re-resolve evidence for listings with expired facts, expire stale offers." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <JsonFileName>/Workflows/DealOSDailysweep-DBE63E93-8844-40C7-A9C8-037B23DFDB6F.json</JsonFileName>
   <Type>1</Type>
   <Subprocess>0</Subprocess>
@@ -11,8 +11,8 @@
   <TriggerOnDelete>0</TriggerOnDelete>
   <AsyncAutodelete>0</AsyncAutodelete>
   <SyncWorkflowLogOnFailure>0</SyncWorkflowLogOnFailure>
-  <StateCode>0</StateCode>
-  <StatusCode>1</StatusCode>
+  <StateCode>1</StateCode>
+  <StatusCode>2</StatusCode>
   <RunAs>1</RunAs>
   <IsTransacted>1</IsTransacted>
   <IntroducedVersion>1.0.0.0</IntroducedVersion>
@@ -24,6 +24,6 @@
     <LocalizedName languagecode="1033" description="DealOS | Daily sweep" />
   </LocalizedNames>
   <Descriptions>
-    <Description languagecode="1033" description="Re-resolves stale evidence and expires old offers." />
+    <Description languagecode="1033" description="Every day 02:00 UTC: re-resolve evidence for listings with expired facts, expire stale offers." />
   </Descriptions>
 </Workflow>

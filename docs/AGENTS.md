@@ -93,6 +93,9 @@ python3 tools/run_agent.py Negotiation <offer-guid> --input '{"perspective":"buy
 | Money gate | Payment `AfterFinish` | A Fund Release task opens only when the mapped milestones are Verified (or Completed with an evidence document) and no overlay is active. Agents never release money. |
 | Engine numbers | Pricing `AfterFinish` | Landed cost and net payout are overwritten with the values in `gc_pricequote` |
 | Negotiation limits | Negotiation `AfterFinish` | The counter price is clamped to your min/max. An invented Incoterm or payment term is removed. A reply with unknown numbers or party names is dropped. |
+| Risk-flag floor | ListingVerification `AfterFinish` | A listing with any risk-flagged document (prompt injection, tampering) is raised to **Hold** |
+| System-owned approvals | `create_review_task` | The model can't open Listing Publish, Tier Upgrade, Fund Release, Contract Issue or Message Send. Code opens these with structured payloads, which the Review decisions flow applies; Tier Upgrade carries `tier`/`tierValue` |
+| Caller-only cost inputs | `calculate_price_quote` | Re-pricing uses only the cost inputs in the caller's `Input`, never values the model supplies; it is refused when there are none |
 | Prompt injection | All | Documents and messages are wrapped as data. Injection is flagged. No tool can change a status, publish, approve or pay. |
 | Transaction safety | Tools | Model-supplied GUIDs and columns are validated before any Dataverse call. A failing call stops the run with a clear error, because Dataverse rolls back the whole plug-in transaction. |
 | Least data | Read tools | Each agent has a table allow-list. `gc_secret` is never readable. Reads run as the calling user (security roles apply). |
@@ -157,14 +160,5 @@ The first time, `python3 tools/dv.py login` does a device sign-in. The token is 
 1. **The Gemini key is on the free tier.** The limit is 5 requests per minute per model, and the free models frequently return "high demand" 503s. In testing, one run failed after every model in the chain was busy. **Enable billing on the Google AI Studio project before real use.** Also check Google's Gemini API terms on how free-tier content may be used, before sending real deal documents.
 2. **Rotate the API key.** It was pasted into a chat. After you switch to a paid key, run `python3 tools/deploy_agents.py` to store the new one.
 3. **Plug-in limits:** each run gets at most about 100 seconds. Documents are limited to 14 MB, and only PDF, image or text files are supported (convert DOCX/XLSX first).
-4. **Next phase: workflows.** Compose the agents in Power Automate:
-    - listing submitted → DocumentIntelligence (per document) → ListingVerification → approvals
-    - RFQ opened → Matching
-    - offer created → Pricing
-    - Terms Agreed → Compliance → Contract
-    - Signed → Payment
-    - Funded → Logistics
-    - daily → AdminSupervisor digest to Teams
-
-    The existing "Listing verification" flow can then switch from OpenAI to `gc_Agent_DocumentIntelligence`.
+4. **Workflows are built.** 22 flows and 4 operations APIs compose these agents across the whole trade; see [WORKFLOWS.md](WORKFLOWS.md).
 5. **Front-door chat agents:** Buyer Concierge and Seller Assistant, in Copilot Studio (via `pac copilot init/push`), calling these Custom APIs as tools.

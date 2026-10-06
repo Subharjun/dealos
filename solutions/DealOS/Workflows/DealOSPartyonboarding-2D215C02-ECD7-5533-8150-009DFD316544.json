@@ -1,0 +1,577 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_commondataserviceforapps": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "gc_dataverse"
+        },
+        "api": {
+          "name": "shared_commondataserviceforapps"
+        }
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$connections": {
+          "defaultValue": {},
+          "type": "Object"
+        },
+        "$authentication": {
+          "defaultValue": {},
+          "type": "SecureObject"
+        }
+      },
+      "triggers": {
+        "When_a_party_needs_KYB": {
+          "type": "OpenApiConnectionWebhook",
+          "inputs": {
+            "host": {
+              "connectionName": "shared_commondataserviceforapps",
+              "operationId": "SubscribeWebhookTrigger",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "subscriptionRequest/message": 4,
+              "subscriptionRequest/entityname": "account",
+              "subscriptionRequest/scope": 4,
+              "subscriptionRequest/filteringattributes": "gc_partyrole"
+            },
+            "authentication": "@parameters('$authentication')"
+          },
+          "conditions": [
+            {
+              "expression": "@and(or(contains(string(coalesce(triggerOutputs()?['body/gc_partyrole'], '')), '303300000'), contains(string(coalesce(triggerOutputs()?['body/gc_partyrole'], '')), '303300001')), or(empty(triggerOutputs()?['body/gc_kybstatus']), equals(triggerOutputs()?['body/gc_kybstatus'], 303300000)))"
+            }
+          ],
+          "runtimeConfiguration": {
+            "concurrency": {
+              "runs": 1
+            }
+          }
+        }
+      },
+      "actions": {
+        "Try": {
+          "type": "Scope",
+          "actions": {
+            "Mark_in_progress": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "UpdateRecord",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "accounts",
+                  "recordId": "@{triggerOutputs()?['body/accountid']}",
+                  "item/gc_kybstatus": 303300001
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {}
+            },
+            "Seller": {
+              "type": "If",
+              "expression": "@contains(string(coalesce(triggerOutputs()?['body/gc_partyrole'], '')), '303300000')",
+              "actions": {
+                "Run_OnboardingKYB": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_commondataserviceforapps",
+                      "operationId": "PerformUnboundAction",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                    },
+                    "parameters": {
+                      "actionName": "gc_Agent_OnboardingKYB",
+                      "item/Input": "{\"trigger\": \"flow:party-onboarding\"}",
+                      "item/SubjectId": "@{triggerOutputs()?['body/accountid']}"
+                    },
+                    "authentication": "@parameters('$authentication')",
+                    "retryPolicy": {
+                      "type": "none"
+                    }
+                  },
+                  "runAfter": {}
+                },
+                "Check_OnboardingKYB": {
+                  "type": "If",
+                  "expression": "@not(equals(outputs('Run_OnboardingKYB')?['body/Status'], 'Succeeded'))",
+                  "actions": {
+                    "Record_OnboardingKYB_failure": {
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "host": {
+                          "connectionName": "shared_commondataserviceforapps",
+                          "operationId": "CreateRecord",
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                        },
+                        "parameters": {
+                          "entityName": "gc_flowfailures",
+                          "item/gc_name": "DealOS | Party onboarding",
+                          "item/gc_flowname": "DealOS | Party onboarding",
+                          "item/gc_runurl": "https://make.powerautomate.com/environments/@{workflow()?['tags']?['environmentName']}/flows/@{workflow()?['name']}/runs/@{workflow()?['run']?['name']}",
+                          "item/gc_step": "Run_OnboardingKYB",
+                          "item/gc_error": "@{coalesce(outputs('Run_OnboardingKYB')?['body/Summary'], 'agent call failed')}",
+                          "item/gc_payload": "@{take(string(triggerOutputs()?['body']), 100000)}",
+                          "item/gc_status": 303300000
+                        },
+                        "authentication": "@parameters('$authentication')"
+                      },
+                      "runAfter": {}
+                    }
+                  },
+                  "else": {
+                    "actions": {}
+                  },
+                  "runAfter": {
+                    "Run_OnboardingKYB": [
+                      "Succeeded",
+                      "Failed",
+                      "TimedOut"
+                    ]
+                  }
+                },
+                "Parse_OnboardingKYB": {
+                  "type": "ParseJson",
+                  "inputs": {
+                    "content": "@json(coalesce(outputs('Run_OnboardingKYB')?['body/Result'], '{}'))",
+                    "schema": {
+                      "type": "object",
+                      "properties": {
+                        "agent": {
+                          "type": "string"
+                        },
+                        "run_id": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "string"
+                        },
+                        "model": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "error": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "result": {
+                          "type": [
+                            "object",
+                            "null"
+                          ],
+                          "properties": {
+                            "current_tier": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "recommended_tier": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "checks": {
+                              "type": [
+                                "array",
+                                "null"
+                              ],
+                              "items": {
+                                "type": [
+                                  "object",
+                                  "null"
+                                ],
+                                "properties": {
+                                  "check": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "status": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "evidence": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            },
+                            "missing_items": {
+                              "type": [
+                                "array",
+                                "null"
+                              ],
+                              "items": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            },
+                            "risk_flags": {
+                              "type": [
+                                "array",
+                                "null"
+                              ],
+                              "items": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            },
+                            "summary": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "needs_human": {
+                              "type": [
+                                "boolean",
+                                "null"
+                              ]
+                            },
+                            "confidence": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          }
+                        },
+                        "actions": {
+                          "type": [
+                            "array",
+                            "null"
+                          ]
+                        }
+                      }
+                    }
+                  },
+                  "runAfter": {
+                    "Check_OnboardingKYB": [
+                      "Succeeded"
+                    ]
+                  }
+                }
+              },
+              "else": {
+                "actions": {}
+              },
+              "runAfter": {
+                "Mark_in_progress": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Buyer": {
+              "type": "If",
+              "expression": "@contains(string(coalesce(triggerOutputs()?['body/gc_partyrole'], '')), '303300001')",
+              "actions": {
+                "Run_BuyerVerification": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_commondataserviceforapps",
+                      "operationId": "PerformUnboundAction",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                    },
+                    "parameters": {
+                      "actionName": "gc_Agent_BuyerVerification",
+                      "item/Input": "{\"trigger\": \"flow:party-onboarding\"}",
+                      "item/SubjectId": "@{triggerOutputs()?['body/accountid']}"
+                    },
+                    "authentication": "@parameters('$authentication')",
+                    "retryPolicy": {
+                      "type": "none"
+                    }
+                  },
+                  "runAfter": {}
+                },
+                "Check_BuyerVerification": {
+                  "type": "If",
+                  "expression": "@not(equals(outputs('Run_BuyerVerification')?['body/Status'], 'Succeeded'))",
+                  "actions": {
+                    "Record_BuyerVerification_failure": {
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "host": {
+                          "connectionName": "shared_commondataserviceforapps",
+                          "operationId": "CreateRecord",
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                        },
+                        "parameters": {
+                          "entityName": "gc_flowfailures",
+                          "item/gc_name": "DealOS | Party onboarding",
+                          "item/gc_flowname": "DealOS | Party onboarding",
+                          "item/gc_runurl": "https://make.powerautomate.com/environments/@{workflow()?['tags']?['environmentName']}/flows/@{workflow()?['name']}/runs/@{workflow()?['run']?['name']}",
+                          "item/gc_step": "Run_BuyerVerification",
+                          "item/gc_error": "@{coalesce(outputs('Run_BuyerVerification')?['body/Summary'], 'agent call failed')}",
+                          "item/gc_payload": "@{take(string(triggerOutputs()?['body']), 100000)}",
+                          "item/gc_status": 303300000
+                        },
+                        "authentication": "@parameters('$authentication')"
+                      },
+                      "runAfter": {}
+                    }
+                  },
+                  "else": {
+                    "actions": {}
+                  },
+                  "runAfter": {
+                    "Run_BuyerVerification": [
+                      "Succeeded",
+                      "Failed",
+                      "TimedOut"
+                    ]
+                  }
+                },
+                "Parse_BuyerVerification": {
+                  "type": "ParseJson",
+                  "inputs": {
+                    "content": "@json(coalesce(outputs('Run_BuyerVerification')?['body/Result'], '{}'))",
+                    "schema": {
+                      "type": "object",
+                      "properties": {
+                        "agent": {
+                          "type": "string"
+                        },
+                        "run_id": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "string"
+                        },
+                        "model": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "error": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "result": {
+                          "type": [
+                            "object",
+                            "null"
+                          ],
+                          "properties": {
+                            "current_tier": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "recommended_tier": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "checks": {
+                              "type": [
+                                "array",
+                                "null"
+                              ],
+                              "items": {
+                                "type": [
+                                  "object",
+                                  "null"
+                                ],
+                                "properties": {
+                                  "check": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "status": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "evidence": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            },
+                            "missing_items": {
+                              "type": [
+                                "array",
+                                "null"
+                              ],
+                              "items": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            },
+                            "risk_flags": {
+                              "type": [
+                                "array",
+                                "null"
+                              ],
+                              "items": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            },
+                            "summary": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "needs_human": {
+                              "type": [
+                                "boolean",
+                                "null"
+                              ]
+                            },
+                            "confidence": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          }
+                        },
+                        "actions": {
+                          "type": [
+                            "array",
+                            "null"
+                          ]
+                        }
+                      }
+                    }
+                  },
+                  "runAfter": {
+                    "Check_BuyerVerification": [
+                      "Succeeded"
+                    ]
+                  }
+                }
+              },
+              "else": {
+                "actions": {}
+              },
+              "runAfter": {
+                "Seller": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Audit": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "CreateRecord",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_auditevents",
+                  "item/gc_hash": "set-by-invariants-plugin",
+                  "item/gc_name": "party.onboarding",
+                  "item/gc_actor": "flow:party-onboarding",
+                  "item/gc_action": "party.onboarding",
+                  "item/gc_subjecttype": "account",
+                  "item/gc_subjectid": "@{triggerOutputs()?['body/accountid']}",
+                  "item/gc_details": "@{take(string(addProperty(json('{}'), 'roles', string(coalesce(triggerOutputs()?['body/gc_partyrole'], '')))), 100000)}"
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {
+                "Buyer": [
+                  "Succeeded"
+                ]
+              }
+            }
+          },
+          "runAfter": {}
+        },
+        "Catch": {
+          "type": "Scope",
+          "actions": {
+            "Record_failure": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "CreateRecord",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_flowfailures",
+                  "item/gc_name": "DealOS | Party onboarding",
+                  "item/gc_flowname": "DealOS | Party onboarding",
+                  "item/gc_runurl": "https://make.powerautomate.com/environments/@{workflow()?['tags']?['environmentName']}/flows/@{workflow()?['name']}/runs/@{workflow()?['run']?['name']}",
+                  "item/gc_step": "Try",
+                  "item/gc_error": "@{take(string(result('Try')), 3900)}",
+                  "item/gc_payload": "@{take(string(triggerOutputs()?['body']), 100000)}",
+                  "item/gc_status": 303300000
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {}
+            },
+            "Fail_run": {
+              "type": "Terminate",
+              "inputs": {
+                "runStatus": "Failed",
+                "runError": {
+                  "code": "DealOSFlowFailure",
+                  "message": "Recorded in Flow failures"
+                }
+              },
+              "runAfter": {
+                "Record_failure": [
+                  "Succeeded"
+                ]
+              }
+            }
+          },
+          "runAfter": {
+            "Try": [
+              "Failed",
+              "TimedOut"
+            ]
+          }
+        }
+      }
+    },
+    "templateName": null
+  },
+  "schemaVersion": "1.0.0.0"
+}

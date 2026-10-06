@@ -1,0 +1,11 @@
+<customapiresponseproperty uniquename="ClosedDeals">
+  <description default="Competing deals cancelled.">
+    <label description="Competing deals cancelled." languagecode="1033" />
+  </description>
+  <displayname default="ClosedDeals">
+    <label description="ClosedDeals" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <name>gc_AcceptOffer.ClosedDeals</name>
+  <type>7</type>
+</customapiresponseproperty>

@@ -1,0 +1,11 @@
+<customapiresponseproperty uniquename="DealId">
+  <description default="The deal.">
+    <label description="The deal." languagecode="1033" />
+  </description>
+  <displayname default="DealId">
+    <label description="DealId" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <name>gc_AcceptOffer.DealId</name>
+  <type>10</type>
+</customapiresponseproperty>

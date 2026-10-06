@@ -1,0 +1,11 @@
+<customapiresponseproperty uniquename="Status">
+  <description default="Accepted or AlreadyAccepted.">
+    <label description="Accepted or AlreadyAccepted." languagecode="1033" />
+  </description>
+  <displayname default="Status">
+    <label description="Status" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <name>gc_AcceptOffer.Status</name>
+  <type>10</type>
+</customapiresponseproperty>

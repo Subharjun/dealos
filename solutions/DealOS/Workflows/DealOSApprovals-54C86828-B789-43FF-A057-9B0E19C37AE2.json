@@ -46,7 +46,7 @@
               "subscriptionRequest/message": 1,
               "subscriptionRequest/entityname": "gc_reviewtask",
               "subscriptionRequest/scope": 4,
-              "subscriptionRequest/filterexpression": "gc_kind eq 303300000 and gc_status eq 303300000"
+              "subscriptionRequest/filterexpression": "(gc_kind eq 303300000 or gc_kind eq 303300001) and gc_status eq 303300000"
             },
             "authentication": "@parameters('$authentication')"
           }
@@ -227,206 +227,6 @@
                 ]
               }
             },
-            "Apply_decision": {
-              "type": "Switch",
-              "expression": "@triggerOutputs()?['body/gc_purpose']",
-              "cases": {
-                "Listing_publish": {
-                  "case": 303300001,
-                  "actions": {
-                    "Publish_decision": {
-                      "type": "If",
-                      "expression": {
-                        "equals": [
-                          "@body('Ask_staff')?['outcome']",
-                          "Approve"
-                        ]
-                      },
-                      "actions": {
-                        "Publish_listing": {
-                          "type": "OpenApiConnection",
-                          "inputs": {
-                            "host": {
-                              "connectionName": "shared_commondataserviceforapps",
-                              "operationId": "UpdateRecord",
-                              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
-                            },
-                            "parameters": {
-                              "entityName": "gc_listings",
-                              "recordId": "@{triggerOutputs()?['body/_gc_listing_value']}",
-                              "item/gc_status": 303300004,
-                              "item/gc_publishedon": "@utcNow()"
-                            },
-                            "authentication": "@parameters('$authentication')"
-                          },
-                          "runAfter": {}
-                        }
-                      },
-                      "else": {
-                        "actions": {
-                          "Back_to_seller": {
-                            "type": "OpenApiConnection",
-                            "inputs": {
-                              "host": {
-                                "connectionName": "shared_commondataserviceforapps",
-                                "operationId": "UpdateRecord",
-                                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
-                              },
-                              "parameters": {
-                                "entityName": "gc_listings",
-                                "recordId": "@{triggerOutputs()?['body/_gc_listing_value']}",
-                                "item/gc_status": 303300003
-                              },
-                              "authentication": "@parameters('$authentication')"
-                            },
-                            "runAfter": {}
-                          }
-                        }
-                      },
-                      "runAfter": {}
-                    }
-                  }
-                },
-                "Send_questions": {
-                  "case": 303300008,
-                  "actions": {
-                    "Send_decision": {
-                      "type": "If",
-                      "expression": {
-                        "equals": [
-                          "@body('Ask_staff')?['outcome']",
-                          "Approve"
-                        ]
-                      },
-                      "actions": {
-                        "Mark_ready_to_send": {
-                          "type": "OpenApiConnection",
-                          "inputs": {
-                            "host": {
-                              "connectionName": "shared_commondataserviceforapps",
-                              "operationId": "UpdateRecord",
-                              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
-                            },
-                            "parameters": {
-                              "entityName": "gc_generatedmessages",
-                              "recordId": "@{json(coalesce(triggerOutputs()?['body/gc_payload'], '{}'))?['messageId']}",
-                              "item/gc_status": 303300001
-                            },
-                            "authentication": "@parameters('$authentication')"
-                          },
-                          "runAfter": {}
-                        },
-                        "Log_questions": {
-                          "type": "Foreach",
-                          "foreach": "@json(coalesce(triggerOutputs()?['body/gc_payload'], '{}'))?['asks']",
-                          "actions": {
-                            "Log_question": {
-                              "type": "OpenApiConnection",
-                              "inputs": {
-                                "host": {
-                                  "connectionName": "shared_commondataserviceforapps",
-                                  "operationId": "CreateRecord",
-                                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
-                                },
-                                "parameters": {
-                                  "entityName": "gc_questions",
-                                  "item/gc_name": "@{items('Log_questions')?['key']}",
-                                  "item/gc_listing@odata.bind": "gc_listings(@{triggerOutputs()?['body/_gc_listing_value']})",
-                                  "item/gc_attributekey": "@{items('Log_questions')?['key']}",
-                                  "item/gc_kind": "@items('Log_questions')?['kindValue']",
-                                  "item/gc_recipient@odata.bind": "accounts(@{triggerOutputs()?['body/_gc_account_value']})",
-                                  "item/gc_askedon": "@utcNow()",
-                                  "item/gc_isfollowup": "@items('Log_questions')?['followUp']"
-                                },
-                                "authentication": "@parameters('$authentication')"
-                              },
-                              "runAfter": {}
-                            }
-                          },
-                          "runAfter": {
-                            "Mark_ready_to_send": [
-                              "Succeeded"
-                            ]
-                          }
-                        },
-                        "Listing_needs_info": {
-                          "type": "OpenApiConnection",
-                          "inputs": {
-                            "host": {
-                              "connectionName": "shared_commondataserviceforapps",
-                              "operationId": "UpdateRecord",
-                              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
-                            },
-                            "parameters": {
-                              "entityName": "gc_listings",
-                              "recordId": "@{triggerOutputs()?['body/_gc_listing_value']}",
-                              "item/gc_status": 303300003
-                            },
-                            "authentication": "@parameters('$authentication')"
-                          },
-                          "runAfter": {
-                            "Log_questions": [
-                              "Succeeded"
-                            ]
-                          }
-                        },
-                        "Note_manual_send": {
-                          "type": "OpenApiConnection",
-                          "inputs": {
-                            "host": {
-                              "connectionName": "shared_commondataserviceforapps",
-                              "operationId": "UpdateRecord",
-                              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
-                            },
-                            "parameters": {
-                              "entityName": "gc_reviewtasks",
-                              "recordId": "@{triggerOutputs()?['body/gc_reviewtaskid']}",
-                              "item/gc_decisionreason": "@{concat(coalesce(body('Ask_staff')?['responses']?[0]?['comments'], ''), ' | Approved: send the message (Generated messages) to the seller by hand; email is not configured yet.')}"
-                            },
-                            "authentication": "@parameters('$authentication')"
-                          },
-                          "runAfter": {
-                            "Listing_needs_info": [
-                              "Succeeded"
-                            ]
-                          }
-                        }
-                      },
-                      "else": {
-                        "actions": {
-                          "Mark_rejected": {
-                            "type": "OpenApiConnection",
-                            "inputs": {
-                              "host": {
-                                "connectionName": "shared_commondataserviceforapps",
-                                "operationId": "UpdateRecord",
-                                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
-                              },
-                              "parameters": {
-                                "entityName": "gc_generatedmessages",
-                                "recordId": "@{json(coalesce(triggerOutputs()?['body/gc_payload'], '{}'))?['messageId']}",
-                                "item/gc_status": 303300002
-                              },
-                              "authentication": "@parameters('$authentication')"
-                            },
-                            "runAfter": {}
-                          }
-                        }
-                      },
-                      "runAfter": {}
-                    }
-                  }
-                }
-              },
-              "default": {
-                "actions": {}
-              },
-              "runAfter": {
-                "Link_decider": [
-                  "Succeeded"
-                ]
-              }
-            },
             "Audit": {
               "type": "OpenApiConnection",
               "inputs": {
@@ -441,12 +241,13 @@
                   "item/gc_action": "@{concat('review.', toLower(body('Ask_staff')?['outcome']))}",
                   "item/gc_subjecttype": "gc_reviewtask",
                   "item/gc_subjectid": "@{triggerOutputs()?['body/gc_reviewtaskid']}",
-                  "item/gc_details": "@{string(addProperty(json('{}'), 'purpose', triggerOutputs()?['body/gc_purpose']))}"
+                  "item/gc_details": "@{string(addProperty(json('{}'), 'purpose', triggerOutputs()?['body/gc_purpose']))}",
+                  "item/gc_hash": "set-by-invariants-plugin"
                 },
                 "authentication": "@parameters('$authentication')"
               },
               "runAfter": {
-                "Apply_decision": [
+                "Link_decider": [
                   "Succeeded"
                 ]
               }

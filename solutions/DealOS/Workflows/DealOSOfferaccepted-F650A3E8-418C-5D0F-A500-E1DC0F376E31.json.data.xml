@@ -1,0 +1,30 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Workflow WorkflowId="{f650a3e8-418c-5d0f-a500-e1dc0f376e31}" Name="DealOS | Offer accepted" Description="Offer set to Accepted (staff or portal) → gc_AcceptOffer: terms to deal, lot reserved, competing deals closed, Terms Agreed. If refused, the offer goes back to Open and a Deal Manager task explains why." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <JsonFileName>/Workflows/DealOSOfferaccepted-F650A3E8-418C-5D0F-A500-E1DC0F376E31.json</JsonFileName>
+  <Type>1</Type>
+  <Subprocess>0</Subprocess>
+  <Category>5</Category>
+  <Mode>0</Mode>
+  <Scope>4</Scope>
+  <OnDemand>0</OnDemand>
+  <TriggerOnCreate>0</TriggerOnCreate>
+  <TriggerOnDelete>0</TriggerOnDelete>
+  <AsyncAutodelete>0</AsyncAutodelete>
+  <SyncWorkflowLogOnFailure>0</SyncWorkflowLogOnFailure>
+  <StateCode>1</StateCode>
+  <StatusCode>2</StatusCode>
+  <RunAs>1</RunAs>
+  <IsTransacted>1</IsTransacted>
+  <IntroducedVersion>1.0.0.0</IntroducedVersion>
+  <IsCustomizable>1</IsCustomizable>
+  <BusinessProcessType>0</BusinessProcessType>
+  <IsCustomProcessingStepAllowedForOtherPublishers>1</IsCustomProcessingStepAllowedForOtherPublishers>
+  <ModernFlowType>0</ModernFlowType>
+  <PrimaryEntity>none</PrimaryEntity>
+  <LocalizedNames>
+    <LocalizedName languagecode="1033" description="DealOS | Offer accepted" />
+  </LocalizedNames>
+  <Descriptions>
+    <Description languagecode="1033" description="Offer set to Accepted (staff or portal) → gc_AcceptOffer: terms to deal, lot reserved, competing deals closed, Terms Agreed. If refused, the offer goes back to Open and a Deal Manager task explains why." />
+  </Descriptions>
+</Workflow>

@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Workflow WorkflowId="{54c86828-b789-43ff-a057-9b0e19c37ae2}" Name="DealOS | Approvals" Description="Teams/Outlook approval for every review task; applies the decision." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+<Workflow WorkflowId="{54c86828-b789-43ff-a057-9b0e19c37ae2}" Name="DealOS | Approvals" Description="Review task opened (Approval or Review) → Teams/Outlook approval to the role's assignee → decision recorded on the task. The Review decisions flow applies it." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <JsonFileName>/Workflows/DealOSApprovals-54C86828-B789-43FF-A057-9B0E19C37AE2.json</JsonFileName>
   <Type>1</Type>
   <Subprocess>0</Subprocess>
@@ -11,8 +11,8 @@
   <TriggerOnDelete>0</TriggerOnDelete>
   <AsyncAutodelete>0</AsyncAutodelete>
   <SyncWorkflowLogOnFailure>0</SyncWorkflowLogOnFailure>
-  <StateCode>0</StateCode>
-  <StatusCode>1</StatusCode>
+  <StateCode>1</StateCode>
+  <StatusCode>2</StatusCode>
   <RunAs>1</RunAs>
   <IsTransacted>1</IsTransacted>
   <IntroducedVersion>1.0.0.0</IntroducedVersion>
@@ -24,6 +24,6 @@
     <LocalizedName languagecode="1033" description="DealOS | Approvals" />
   </LocalizedNames>
   <Descriptions>
-    <Description languagecode="1033" description="Teams/Outlook approval for every review task; applies the decision." />
+    <Description languagecode="1033" description="Review task opened (Approval or Review) → Teams/Outlook approval to the role's assignee → decision recorded on the task. The Review decisions flow applies it." />
   </Descriptions>
 </Workflow>

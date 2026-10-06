@@ -1,0 +1,18 @@
+<customapi uniquename="gc_OpenEscrow">
+  <allowedcustomprocessingsteptype>0</allowedcustomprocessingsteptype>
+  <bindingtype>0</bindingtype>
+  <description default="Open escrow for a signed deal: one payment (Awaiting Funding) and release tranches with commission from the deal's commission plan and the escrow.default_schedule setting. Idempotent.">
+    <label description="Open escrow for a signed deal: one payment (Awaiting Funding) and release tranches with commission from the deal's commission plan and the escrow.default_schedule setting. Idempotent." languagecode="1033" />
+  </description>
+  <displayname default="Open escrow">
+    <label description="Open escrow" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isfunction>0</isfunction>
+  <isprivate>0</isprivate>
+  <name>gc_OpenEscrow</name>
+  <plugintypeid>
+    <plugintypeexportkey>dbea2422-70c1-f111-aaaf-7ced8daf451f</plugintypeexportkey>
+  </plugintypeid>
+  <workflowsdkstepenabled>0</workflowsdkstepenabled>
+</customapi>

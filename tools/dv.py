@@ -4,11 +4,12 @@ Auth: OAuth device-code flow (Azure CLI public client), refresh token cached in
 .dv_token.json at the repo root (gitignored, mode 600).
 
 Usage:
-  python3 tools/dv.py login              # one-time device sign-in
+  python3 tools/dv.py login              # browser sign-in (auth code + PKCE on localhost; works with security defaults / MFA)
+  python3 tools/dv.py login --device     # device-code sign-in (blocked by tenant security defaults)
   python3 tools/dv.py get  "<path>"      # e.g. gc_listings?$top=1
   python3 tools/dv.py post "<path>" '<json>'
 """
-import json, os, sys, time, urllib.parse, urllib.request, urllib.error
+import base64, hashlib, http.server, json, os, secrets, sys, time, urllib.parse, urllib.request, urllib.error, webbrowser
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TOKEN_FILE = os.path.join(ROOT, ".dv_token.json")
@@ -33,6 +34,48 @@ def _save(tok):
     fd = os.open(TOKEN_FILE, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
     with os.fdopen(fd, "w") as f:
         json.dump(tok, f)
+
+
+def login_browser(timeout=300):
+    """Authorization code + PKCE with a localhost redirect, as `az login` does. Security defaults allow it (with MFA)."""
+    verifier = secrets.token_urlsafe(64)
+    challenge = base64.urlsafe_b64encode(hashlib.sha256(verifier.encode()).digest()).rstrip(b"=").decode()
+    state = secrets.token_urlsafe(16)
+    result = {}
+
+    class Handler(http.server.BaseHTTPRequestHandler):
+        def do_GET(self):
+            q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+            if q.get("state", [None])[0] == state:
+                result.update({k: v[0] for k, v in q.items()})
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html")
+            self.end_headers()
+            self.wfile.write(b"<p>DealOS dev sign-in finished. You can close this tab.</p>")
+
+        def log_message(self, *args):
+            pass
+
+    server = http.server.HTTPServer(("localhost", 0), Handler)
+    server.timeout = 5
+    redirect = f"http://localhost:{server.server_port}"
+    url = f"{AUTH}/authorize?" + urllib.parse.urlencode({
+        "client_id": CLIENT_ID, "response_type": "code", "redirect_uri": redirect, "scope": SCOPE, "state": state,
+        "code_challenge": challenge, "code_challenge_method": "S256", "prompt": "select_account"})
+    print("Opening the browser to sign in. If it does not open, visit:\n" + url, flush=True)
+    webbrowser.open(url)
+    deadline = time.time() + timeout
+    while not result and time.time() < deadline:
+        server.handle_request()
+    server.server_close()
+    if "code" not in result:
+        sys.exit(f"sign-in failed: {result.get('error', 'timed out')}: {result.get('error_description', '')}")
+    tok = _post_form(f"{AUTH}/token", {"grant_type": "authorization_code", "client_id": CLIENT_ID, "code": result["code"],
+                                       "redirect_uri": redirect, "code_verifier": verifier, "scope": SCOPE})
+    if "access_token" not in tok:
+        sys.exit(f"token exchange failed: {tok.get('error')}: {tok.get('error_description')}")
+    _save(tok)
+    print("SIGNED IN", flush=True)
 
 
 def login(poll_seconds=900):
@@ -65,7 +108,7 @@ def token():
     new = _post_form(f"{AUTH}/token", {"grant_type": "refresh_token", "client_id": CLIENT_ID,
                                        "refresh_token": tok["refresh_token"], "scope": SCOPE})
     if "access_token" not in new:
-        sys.exit(f"token refresh failed: {new.get('error_description')}")
+        sys.exit(f"token refresh failed: {new.get('error_description')}\nSign in again: python3 tools/dv.py login")
     new.setdefault("refresh_token", tok["refresh_token"])
     _save(new)
     return new["access_token"]
@@ -114,7 +157,7 @@ def delete(path):
 if __name__ == "__main__":
     cmd = sys.argv[1] if len(sys.argv) > 1 else "help"
     if cmd == "login":
-        login()
+        login() if "--device" in sys.argv else login_browser()
     elif cmd in ("get", "delete"):
         s, b = request(cmd.upper(), sys.argv[2])
         print(s); print(json.dumps(b, indent=2)[:20000])

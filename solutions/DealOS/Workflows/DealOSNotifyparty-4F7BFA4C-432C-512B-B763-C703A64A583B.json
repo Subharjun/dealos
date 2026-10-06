@@ -1,0 +1,316 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_commondataserviceforapps": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "gc_dataverse"
+        },
+        "api": {
+          "name": "shared_commondataserviceforapps"
+        }
+      },
+      "shared_office365": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "gc_outlook"
+        },
+        "api": {
+          "name": "shared_office365"
+        }
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$connections": {
+          "defaultValue": {},
+          "type": "Object"
+        },
+        "$authentication": {
+          "defaultValue": {},
+          "type": "SecureObject"
+        }
+      },
+      "triggers": {
+        "manual": {
+          "type": "Request",
+          "kind": "Button",
+          "inputs": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "text": {
+                  "title": "AccountId",
+                  "type": "string",
+                  "x-ms-dynamically-added": true,
+                  "description": "Party (account) to notify",
+                  "x-ms-content-hint": "TEXT"
+                },
+                "text_1": {
+                  "title": "Subject",
+                  "type": "string",
+                  "x-ms-dynamically-added": true,
+                  "description": "Email subject",
+                  "x-ms-content-hint": "TEXT"
+                },
+                "text_2": {
+                  "title": "Body",
+                  "type": "string",
+                  "x-ms-dynamically-added": true,
+                  "description": "Plain-text body",
+                  "x-ms-content-hint": "TEXT"
+                },
+                "text_3": {
+                  "title": "Event",
+                  "type": "string",
+                  "x-ms-dynamically-added": true,
+                  "description": "Event key for the audit trail, e.g. offer.created",
+                  "x-ms-content-hint": "TEXT"
+                }
+              },
+              "required": [
+                "text",
+                "text_1",
+                "text_2",
+                "text_3"
+              ]
+            }
+          }
+        }
+      },
+      "actions": {
+        "Try": {
+          "type": "Scope",
+          "actions": {
+            "Enabled_setting": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "ListRecords",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_platformsettings",
+                  "$select": "gc_value",
+                  "$filter": "gc_key eq 'notifications.email.enabled'",
+                  "$top": 1
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {}
+            },
+            "Redirect_setting": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "ListRecords",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_platformsettings",
+                  "$select": "gc_value",
+                  "$filter": "gc_key eq 'notifications.email.redirect'",
+                  "$top": 1
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {
+                "Enabled_setting": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Party": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "ListRecords",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "accounts",
+                  "$select": "name,emailaddress1",
+                  "$filter": "accountid eq @{coalesce(triggerBody()?['text'], '00000000-0000-0000-0000-000000000000')}",
+                  "$top": 1,
+                  "$expand": "primarycontactid($select=emailaddress1)"
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {
+                "Redirect_setting": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Recipient": {
+              "type": "Compose",
+              "inputs": "@{if(empty(first(outputs('Redirect_setting')?['body/value'])?['gc_value']), coalesce(first(outputs('Party')?['body/value'])?['emailaddress1'], first(outputs('Party')?['body/value'])?['primarycontactid']?['emailaddress1'], ''), first(outputs('Redirect_setting')?['body/value'])?['gc_value'])}",
+              "runAfter": {
+                "Party": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Can_send": {
+              "type": "If",
+              "expression": "@and(equals(toLower(coalesce(first(outputs('Enabled_setting')?['body/value'])?['gc_value'], 'false')), 'true'), not(empty(outputs('Recipient'))))",
+              "actions": {
+                "Send_email": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_office365",
+                      "operationId": "SendEmailV2",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365"
+                    },
+                    "parameters": {
+                      "emailMessage/To": "@{outputs('Recipient')}",
+                      "emailMessage/Subject": "@{triggerBody()?['text_1']}",
+                      "emailMessage/Body": "<p>@{replace(triggerBody()?['text_2'], decodeUriComponent('%0A'), '<br>')}</p><p style=\"color:#666\">DealOS – verified mineral trade. Please do not reply to this email.</p>",
+                      "emailMessage/Importance": "Normal"
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  },
+                  "runAfter": {}
+                },
+                "Audit_sent": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_commondataserviceforapps",
+                      "operationId": "CreateRecord",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                    },
+                    "parameters": {
+                      "entityName": "gc_auditevents",
+                      "item/gc_hash": "set-by-invariants-plugin",
+                      "item/gc_name": "notify.sent",
+                      "item/gc_actor": "flow:notify",
+                      "item/gc_action": "notify.sent",
+                      "item/gc_subjecttype": "account",
+                      "item/gc_subjectid": "@{triggerBody()?['text']}",
+                      "item/gc_details": "@{take(string(addProperty(addProperty(addProperty(json('{}'), 'event', triggerBody()?['text_3']), 'to', outputs('Recipient')), 'subject', triggerBody()?['text_1'])), 100000)}"
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  },
+                  "runAfter": {
+                    "Send_email": [
+                      "Succeeded"
+                    ]
+                  }
+                },
+                "Status_sent": {
+                  "type": "Compose",
+                  "inputs": "sent",
+                  "runAfter": {
+                    "Audit_sent": [
+                      "Succeeded"
+                    ]
+                  }
+                }
+              },
+              "else": {
+                "actions": {
+                  "Audit_recorded": {
+                    "type": "OpenApiConnection",
+                    "inputs": {
+                      "host": {
+                        "connectionName": "shared_commondataserviceforapps",
+                        "operationId": "CreateRecord",
+                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                      },
+                      "parameters": {
+                        "entityName": "gc_auditevents",
+                        "item/gc_hash": "set-by-invariants-plugin",
+                        "item/gc_name": "notify.recorded",
+                        "item/gc_actor": "flow:notify",
+                        "item/gc_action": "notify.recorded",
+                        "item/gc_subjecttype": "account",
+                        "item/gc_subjectid": "@{triggerBody()?['text']}",
+                        "item/gc_details": "@{take(string(addProperty(addProperty(addProperty(addProperty(json('{}'), 'event', triggerBody()?['text_3']), 'to', outputs('Recipient')), 'subject', triggerBody()?['text_1']), 'body', triggerBody()?['text_2'])), 100000)}"
+                      },
+                      "authentication": "@parameters('$authentication')"
+                    },
+                    "runAfter": {}
+                  }
+                }
+              },
+              "runAfter": {
+                "Recipient": [
+                  "Succeeded"
+                ]
+              }
+            }
+          },
+          "runAfter": {}
+        },
+        "Catch": {
+          "type": "Scope",
+          "actions": {
+            "Record_failure": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "CreateRecord",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_flowfailures",
+                  "item/gc_name": "DealOS | Notify party",
+                  "item/gc_flowname": "DealOS | Notify party",
+                  "item/gc_runurl": "https://make.powerautomate.com/environments/@{workflow()?['tags']?['environmentName']}/flows/@{workflow()?['name']}/runs/@{workflow()?['run']?['name']}",
+                  "item/gc_step": "Try",
+                  "item/gc_error": "@{take(string(result('Try')), 3900)}",
+                  "item/gc_payload": "@{take(string(triggerOutputs()?['body']), 100000)}",
+                  "item/gc_status": 303300000
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {}
+            }
+          },
+          "runAfter": {
+            "Try": [
+              "Failed",
+              "TimedOut"
+            ]
+          }
+        },
+        "Respond": {
+          "type": "Response",
+          "kind": "PowerApp",
+          "runAfter": {
+            "Catch": [
+              "Succeeded",
+              "Skipped"
+            ]
+          },
+          "inputs": {
+            "statusCode": 200,
+            "body": {
+              "status": "@{if(equals(result('Try')?[0]?['status'], 'Failed'), 'failed', if(equals(toLower(coalesce(first(outputs('Enabled_setting')?['body/value'])?['gc_value'], 'false')), 'true'), 'sent', 'recorded'))}"
+            },
+            "schema": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "title": "status",
+                  "x-ms-dynamically-added": true,
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "templateName": null
+  },
+  "schemaVersion": "1.0.0.0"
+}

@@ -1,0 +1,12 @@
+<customapirequestparameter uniquename="ReleaseId">
+  <description default="The gc_paymentrelease.">
+    <label description="The gc_paymentrelease." languagecode="1033" />
+  </description>
+  <displayname default="ReleaseId">
+    <label description="ReleaseId" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isoptional>0</isoptional>
+  <name>gc_InstructRelease.ReleaseId</name>
+  <type>12</type>
+</customapirequestparameter>

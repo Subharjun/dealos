@@ -1,0 +1,30 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Workflow WorkflowId="{1788b368-938d-5d2f-a7c6-1c40ef018b46}" Name="DealOS | Daily digest" Description="Every day 03:00 UTC → AdminSupervisor digest (approvals waiting, stuck deals, failures, AI spend) emailed to admin.digest.recipients (default: the approvals.assignees default)." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <JsonFileName>/Workflows/DealOSDailydigest-1788B368-938D-5D2F-A7C6-1C40EF018B46.json</JsonFileName>
+  <Type>1</Type>
+  <Subprocess>0</Subprocess>
+  <Category>5</Category>
+  <Mode>0</Mode>
+  <Scope>4</Scope>
+  <OnDemand>0</OnDemand>
+  <TriggerOnCreate>0</TriggerOnCreate>
+  <TriggerOnDelete>0</TriggerOnDelete>
+  <AsyncAutodelete>0</AsyncAutodelete>
+  <SyncWorkflowLogOnFailure>0</SyncWorkflowLogOnFailure>
+  <StateCode>1</StateCode>
+  <StatusCode>2</StatusCode>
+  <RunAs>1</RunAs>
+  <IsTransacted>1</IsTransacted>
+  <IntroducedVersion>1.0.0.0</IntroducedVersion>
+  <IsCustomizable>1</IsCustomizable>
+  <BusinessProcessType>0</BusinessProcessType>
+  <IsCustomProcessingStepAllowedForOtherPublishers>1</IsCustomProcessingStepAllowedForOtherPublishers>
+  <ModernFlowType>0</ModernFlowType>
+  <PrimaryEntity>none</PrimaryEntity>
+  <LocalizedNames>
+    <LocalizedName languagecode="1033" description="DealOS | Daily digest" />
+  </LocalizedNames>
+  <Descriptions>
+    <Description languagecode="1033" description="Every day 03:00 UTC → AdminSupervisor digest (approvals waiting, stuck deals, failures, AI spend) emailed to admin.digest.recipients (default: the approvals.assignees default)." />
+  </Descriptions>
+</Workflow>

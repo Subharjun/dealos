@@ -1,0 +1,431 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_commondataserviceforapps": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "gc_dataverse"
+        },
+        "api": {
+          "name": "shared_commondataserviceforapps"
+        }
+      },
+      "shared_office365": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "gc_outlook"
+        },
+        "api": {
+          "name": "shared_office365"
+        }
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$connections": {
+          "defaultValue": {},
+          "type": "Object"
+        },
+        "$authentication": {
+          "defaultValue": {},
+          "type": "SecureObject"
+        }
+      },
+      "triggers": {
+        "Every_day_0300_UTC": {
+          "type": "Recurrence",
+          "recurrence": {
+            "frequency": "Day",
+            "interval": 1,
+            "schedule": {
+              "hours": [
+                "3"
+              ]
+            },
+            "timeZone": "UTC"
+          }
+        }
+      },
+      "actions": {
+        "Try": {
+          "type": "Scope",
+          "actions": {
+            "Run_AdminSupervisor": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "PerformUnboundAction",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "actionName": "gc_Agent_AdminSupervisor",
+                  "item/Input": "{\"trigger\": \"flow:daily-digest\"}"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "none"
+                }
+              },
+              "runAfter": {}
+            },
+            "Check_AdminSupervisor": {
+              "type": "If",
+              "expression": "@not(equals(outputs('Run_AdminSupervisor')?['body/Status'], 'Succeeded'))",
+              "actions": {
+                "Record_AdminSupervisor_failure": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_commondataserviceforapps",
+                      "operationId": "CreateRecord",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                    },
+                    "parameters": {
+                      "entityName": "gc_flowfailures",
+                      "item/gc_name": "DealOS | Daily digest",
+                      "item/gc_flowname": "DealOS | Daily digest",
+                      "item/gc_runurl": "https://make.powerautomate.com/environments/@{workflow()?['tags']?['environmentName']}/flows/@{workflow()?['name']}/runs/@{workflow()?['run']?['name']}",
+                      "item/gc_step": "Run_AdminSupervisor",
+                      "item/gc_error": "@{coalesce(outputs('Run_AdminSupervisor')?['body/Summary'], 'agent call failed')}",
+                      "item/gc_payload": "@{take(string(triggerOutputs()?['body']), 100000)}",
+                      "item/gc_status": 303300000
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  },
+                  "runAfter": {}
+                },
+                "Stop_AdminSupervisor_failed": {
+                  "type": "Terminate",
+                  "inputs": {
+                    "runStatus": "Failed",
+                    "runError": {
+                      "code": "DealOSFlowFailure",
+                      "message": "AdminSupervisor agent failed; see Flow failures"
+                    }
+                  },
+                  "runAfter": {
+                    "Record_AdminSupervisor_failure": [
+                      "Succeeded"
+                    ]
+                  }
+                }
+              },
+              "else": {
+                "actions": {}
+              },
+              "runAfter": {
+                "Run_AdminSupervisor": [
+                  "Succeeded",
+                  "Failed",
+                  "TimedOut"
+                ]
+              }
+            },
+            "Parse_AdminSupervisor": {
+              "type": "ParseJson",
+              "inputs": {
+                "content": "@json(coalesce(outputs('Run_AdminSupervisor')?['body/Result'], '{}'))",
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "agent": {
+                      "type": "string"
+                    },
+                    "run_id": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "model": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "error": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "result": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "headline": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "sections": {
+                          "type": [
+                            "array",
+                            "null"
+                          ],
+                          "items": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "properties": {
+                              "title": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "items": {
+                                "type": [
+                                  "array",
+                                  "null"
+                                ],
+                                "items": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "actions": {
+                          "type": [
+                            "array",
+                            "null"
+                          ],
+                          "items": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "properties": {
+                              "action": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "owner_role": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "priority": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          }
+                        },
+                        "summary": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "needs_human": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ]
+                        },
+                        "confidence": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      }
+                    },
+                    "actions": {
+                      "type": [
+                        "array",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              },
+              "runAfter": {
+                "Check_AdminSupervisor": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Section_lines": {
+              "type": "Select",
+              "inputs": {
+                "from": "@coalesce(body('Parse_AdminSupervisor')?['result']?['sections'], json('[]'))",
+                "select": "@concat('<h3>', item()?['title'], '</h3><ul><li>', join(coalesce(item()?['items'], json('[]')), '</li><li>'), '</li></ul>')"
+              },
+              "runAfter": {
+                "Parse_AdminSupervisor": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Action_lines": {
+              "type": "Select",
+              "inputs": {
+                "from": "@coalesce(body('Parse_AdminSupervisor')?['result']?['actions'], json('[]'))",
+                "select": "@concat('<li><b>', item()?['priority'], '</b> – ', item()?['action'], ' (', item()?['owner_role'], ')</li>')"
+              },
+              "runAfter": {
+                "Section_lines": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Recipients_setting": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "ListRecords",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_platformsettings",
+                  "$select": "gc_value",
+                  "$filter": "gc_key eq 'admin.digest.recipients'",
+                  "$top": 1
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {
+                "Action_lines": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Assignee_setting": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "ListRecords",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_platformsettings",
+                  "$select": "gc_value",
+                  "$filter": "gc_key eq 'approvals.assignees'",
+                  "$top": 1
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {
+                "Recipients_setting": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Recipients": {
+              "type": "Compose",
+              "inputs": "@{if(empty(first(outputs('Recipients_setting')?['body/value'])?['gc_value']), coalesce(json(coalesce(first(outputs('Assignee_setting')?['body/value'])?['gc_value'], '{}'))?['default'], ''), first(outputs('Recipients_setting')?['body/value'])?['gc_value'])}",
+              "runAfter": {
+                "Assignee_setting": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Has_recipients": {
+              "type": "If",
+              "expression": "@not(empty(outputs('Recipients')))",
+              "actions": {
+                "Send_digest": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_office365",
+                      "operationId": "SendEmailV2",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365"
+                    },
+                    "parameters": {
+                      "emailMessage/To": "@{outputs('Recipients')}",
+                      "emailMessage/Subject": "DealOS daily digest: @{coalesce(body('Parse_AdminSupervisor')?['result']?['headline'], 'operations')}",
+                      "emailMessage/Body": "<p>@{outputs('Run_AdminSupervisor')?['body/Summary']}</p><h3>Actions</h3><ul>@{join(body('Action_lines'), '')}</ul>@{join(body('Section_lines'), '')}",
+                      "emailMessage/Importance": "Normal"
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  },
+                  "runAfter": {}
+                }
+              },
+              "else": {
+                "actions": {}
+              },
+              "runAfter": {
+                "Recipients": [
+                  "Succeeded"
+                ]
+              }
+            }
+          },
+          "runAfter": {}
+        },
+        "Catch": {
+          "type": "Scope",
+          "actions": {
+            "Record_failure": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "CreateRecord",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_flowfailures",
+                  "item/gc_name": "DealOS | Daily digest",
+                  "item/gc_flowname": "DealOS | Daily digest",
+                  "item/gc_runurl": "https://make.powerautomate.com/environments/@{workflow()?['tags']?['environmentName']}/flows/@{workflow()?['name']}/runs/@{workflow()?['run']?['name']}",
+                  "item/gc_step": "Try",
+                  "item/gc_error": "@{take(string(result('Try')), 3900)}",
+                  "item/gc_payload": "@{take(string(triggerOutputs()?['body']), 100000)}",
+                  "item/gc_status": 303300000
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {}
+            },
+            "Fail_run": {
+              "type": "Terminate",
+              "inputs": {
+                "runStatus": "Failed",
+                "runError": {
+                  "code": "DealOSFlowFailure",
+                  "message": "Recorded in Flow failures"
+                }
+              },
+              "runAfter": {
+                "Record_failure": [
+                  "Succeeded"
+                ]
+              }
+            }
+          },
+          "runAfter": {
+            "Try": [
+              "Failed",
+              "TimedOut"
+            ]
+          }
+        }
+      }
+    },
+    "templateName": null
+  },
+  "schemaVersion": "1.0.0.0"
+}

@@ -10,5 +10,9 @@
       <Description>Runs a DealOS agent</Description>
       <FriendlyName>AgentPlugin</FriendlyName>
     </PluginType>
+    <PluginType AssemblyQualifiedName="DealOS.Agents.Operations.OperationsPlugin, DealOS.Agents, Version=1.0.0.0, Culture=neutral, PublicKeyToken=6a7897f805501b8c" PluginTypeId="dbea2422-70c1-f111-aaaf-7ced8daf451f" Name="DealOS.Agents.Operations.OperationsPlugin">
+      <Description>Deterministic deal operations (accept offer, open escrow)</Description>
+      <FriendlyName>OperationsPlugin</FriendlyName>
+    </PluginType>
   </PluginTypes>
 </PluginAssembly>

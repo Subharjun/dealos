@@ -6,6 +6,8 @@ Steps:
   3. Plug-in assembly DealOS.Agents + plug-in type DealOS.Agents.AgentPlugin
   4. One Custom API per agent (gc_Agent_<Name>) with request parameters and response properties
   5. Agent settings in gc_platformsetting (created only when missing)
+  6. Deterministic operations (plug-in type DealOS.Agents.Operations.OperationsPlugin):
+     gc_AcceptOffer, gc_OpenEscrow, gc_ReleaseDeal, gc_InstructRelease, plus the gc_deal.gc_requirement lookup
 Everything is created inside the DealOS solution.
 
 Usage:
@@ -33,6 +35,13 @@ SETTINGS = [  # key, value, value type label, description
     ("agents.call_timeout_seconds", "45", "Number", "Max seconds for one Gemini call before trying the next model."),
     ("agents.pricing", "{}", "Json", "USD per 1M tokens per model prefix, e.g. {\"gemini-3.5-flash\":[in,out]}; empty = cost not recorded."),
     ("agents.generation_config", "", "Json", "Optional extra Gemini generationConfig merged into every call (e.g. thinkingConfig)."),
+    ("escrow.default_schedule", '[{"pct":30,"condition":"Inspection passed and BL issued"},{"pct":70,"condition":"Delivered and discharge inspection accepted"}]',
+     "Json", "Release tranches gc_OpenEscrow creates: pct must sum to 100; conditions name the milestones."),
+    ("escrow.partner", "Not configured", "Text", "Name of the licensed escrow partner written on new payments."),
+    ("escrow.funding_days", "7", "Number", "Days the buyer has to fund escrow after signing."),
+    ("notifications.email.enabled", "false", "Bool", "true = the Notify party flow emails parties; false = it only records what it would have sent."),
+    ("notifications.email.redirect", "", "Text", "If set, every party email goes to this address instead (testing)."),
+    ("admin.digest.recipients", "", "Text", "Semicolon-separated emails for the daily AdminSupervisor digest; empty = the flow owner's mailbox."),
 ]
 VALUE_TYPES = {"Bool": 303300000, "Number": 303300001, "Text": 303300002, "Json": 303300003}
 
@@ -106,6 +115,7 @@ def ensure_agent_option():
 
 
 def upsert_assembly():
+    """Returns {type name: plugintypeid} for the agent and operations plug-in types."""
     with open(DLL, "rb") as f:
         content = base64.b64encode(f.read()).decode()
     s = ok(*dv.get("pluginassemblies?$select=pluginassemblyid&$filter=name eq 'DealOS.Agents'"), "read assembly")
@@ -120,15 +130,20 @@ def upsert_assembly():
             "culture": "neutral", "description": "DealOS AI agents (Gemini) exposed as gc_Agent_* Custom APIs"}, SOL), "create assembly")
         aid = b["pluginassemblyid"]
         print("+ plug-in assembly registered")
-    s = ok(*dv.get(f"plugintypes?$select=plugintypeid&$filter=typename eq 'DealOS.Agents.AgentPlugin' and _pluginassemblyid_value eq {aid}"), "read type")
-    rows = s.get("value", [])
-    if rows:
-        return rows[0]["plugintypeid"]
-    b = ok(*dv.request("POST", "plugintypes", {
-        "typename": "DealOS.Agents.AgentPlugin", "friendlyname": "AgentPlugin", "name": "DealOS.Agents.AgentPlugin",
-        "description": "Runs a DealOS agent", "pluginassemblyid@odata.bind": f"/pluginassemblies({aid})"}, SOL), "create type")
-    print("+ plug-in type registered")
-    return b["plugintypeid"]
+    types = {}
+    for typename, friendly, desc in [("DealOS.Agents.AgentPlugin", "AgentPlugin", "Runs a DealOS agent"),
+                                     ("DealOS.Agents.Operations.OperationsPlugin", "OperationsPlugin", "Deterministic deal operations (accept offer, open escrow)")]:
+        s = ok(*dv.get(f"plugintypes?$select=plugintypeid&$filter=typename eq '{typename}' and _pluginassemblyid_value eq {aid}"), "read type")
+        rows = s.get("value", [])
+        if rows:
+            types[typename] = rows[0]["plugintypeid"]
+            continue
+        b = ok(*dv.request("POST", "plugintypes", {
+            "typename": typename, "friendlyname": friendly, "name": typename,
+            "description": desc, "pluginassemblyid@odata.bind": f"/pluginassemblies({aid})"}, SOL), "create type " + typename)
+        print(f"+ plug-in type {typename} registered")
+        types[typename] = b["plugintypeid"]
+    return types
 
 
 REQUEST = [  # name, type (0 Boolean, 10 String), description, optional
@@ -182,6 +197,79 @@ def upsert_api(agent, type_id):
             "CustomAPIId@odata.bind": f"/customapis({cid})"}, SOL), f"prop {api}.{name}")
 
 
+# Custom API types: 0 Boolean, 7 Integer, 10 String, 12 Guid
+OPERATIONS = [
+    {"api": "gc_AcceptOffer", "display": "Accept offer",
+     "description": "Accept an offer: copy its terms to the deal, reserve (or split) the lot, reject the deal's other offers, "
+                    "close competing deals for the same lot or RFQ, and move the deal to Terms Agreed. Idempotent; all or nothing.",
+     "request": [("OfferId", 12, "The gc_offer to accept.", False)],
+     "response": [("Status", 10, "Accepted or AlreadyAccepted."), ("DealId", 10, "The deal."), ("Stage", 7, "Deal stage after the call."),
+                  ("ClosedDeals", 7, "Competing deals cancelled."), ("Summary", 10, "What happened, for a human.")]},
+    {"api": "gc_OpenEscrow", "display": "Open escrow",
+     "description": "Open escrow for a signed deal: one payment (Awaiting Funding) and release tranches with commission from the "
+                    "deal's commission plan and the escrow.default_schedule setting. Idempotent.",
+     "request": [("DealId", 12, "The gc_deal (Signed or Awaiting Funding).", False)],
+     "response": [("Status", 10, "Opened or Exists."), ("PaymentId", 10, "The gc_payment."), ("Releases", 7, "Number of release tranches."),
+                  ("Summary", 10, "What happened, for a human.")]},
+    {"api": "gc_ReleaseDeal", "display": "Release cancelled deal",
+     "description": "For a Cancelled deal: make the lots reserved for it Available again and reject its open offers.",
+     "request": [("DealId", 12, "The cancelled gc_deal.", False)],
+     "response": [("Status", 10, "Released."), ("Lots", 7, "Lots freed."), ("Offers", 7, "Offers rejected."), ("Summary", 10, "What happened, for a human.")]},
+    {"api": "gc_InstructRelease", "display": "Instruct fund release",
+     "description": "Mark an escrow release as Instructed after Finance approved its Fund Release task. Re-checks in code: approved task, "
+                    "funded escrow, no hold on the deal. Idempotent.",
+     "request": [("ReleaseId", 12, "The gc_paymentrelease.", False)],
+     "response": [("Status", 10, "Instructed or AlreadyInstructed."), ("Summary", 10, "What happened, for a human.")]},
+]
+
+
+def upsert_operation(op, type_id):
+    api = op["api"]
+    rows = ok(*dv.get(f"customapis?$select=customapiid&$filter=uniquename eq '{api}'"), "read api").get("value", [])
+    if rows:
+        cid = rows[0]["customapiid"]
+        ok(*dv.patch(f"customapis({cid})", {"description": op["description"][:300], "displayname": op["display"],
+                                             "PluginTypeId@odata.bind": f"/plugintypes({type_id})"}), "update api")
+        print(f"= {api}")
+    else:
+        cid = ok(*dv.request("POST", "customapis", {
+            "uniquename": api, "name": api, "displayname": op["display"], "description": op["description"][:300],
+            "bindingtype": 0, "isfunction": False, "isprivate": False, "allowedcustomprocessingsteptype": 0,
+            "PluginTypeId@odata.bind": f"/plugintypes({type_id})"}, SOL), "create api " + api)["customapiid"]
+        print(f"+ {api}")
+    have = {r["uniquename"] for r in ok(*dv.get(f"customapirequestparameters?$select=uniquename&$filter=_customapiid_value eq {cid}"), "read params").get("value", [])}
+    for name, typ, d, optional in op["request"]:
+        if name not in have:
+            ok(*dv.request("POST", "customapirequestparameters", {
+                "uniquename": name, "name": f"{api}.{name}", "displayname": name, "description": d, "type": typ,
+                "isoptional": optional, "CustomAPIId@odata.bind": f"/customapis({cid})"}, SOL), f"param {api}.{name}")
+    have = {r["uniquename"] for r in ok(*dv.get(f"customapiresponseproperties?$select=uniquename&$filter=_customapiid_value eq {cid}"), "read props").get("value", [])}
+    for name, typ, d in op["response"]:
+        if name not in have:
+            ok(*dv.request("POST", "customapiresponseproperties", {
+                "uniquename": name, "name": f"{api}.{name}", "displayname": name, "description": d, "type": typ,
+                "CustomAPIId@odata.bind": f"/customapis({cid})"}, SOL), f"prop {api}.{name}")
+
+
+def ensure_requirement_lookup():
+    """gc_deal.gc_requirement: the buyer RFQ a deal came from, so accepting one seller's offer can close the others."""
+    s, _ = dv.get("EntityDefinitions(LogicalName='gc_deal')/Attributes(LogicalName='gc_requirement')?$select=LogicalName")
+    if s == 200:
+        print("= gc_deal.gc_requirement exists")
+        return
+    ok(*dv.request("POST", "RelationshipDefinitions", {
+        "@odata.type": "Microsoft.Dynamics.CRM.OneToManyRelationshipMetadata",
+        "SchemaName": "gc_buyerrequirement_gc_deal_requirement",
+        "ReferencedEntity": "gc_buyerrequirement", "ReferencedAttribute": "gc_buyerrequirementid", "ReferencingEntity": "gc_deal",
+        "CascadeConfiguration": {"Assign": "NoCascade", "Delete": "RemoveLink", "Merge": "NoCascade", "Reparent": "NoCascade",
+                                 "Share": "NoCascade", "Unshare": "NoCascade"},
+        "Lookup": {"@odata.type": "Microsoft.Dynamics.CRM.LookupAttributeMetadata", "SchemaName": "gc_Requirement",
+                   "DisplayName": label("Buyer requirement"), "Description": label("The RFQ this deal came from (one deal per invited seller)."),
+                   "RequiredLevel": {"Value": "None", "CanBeChanged": True}}}, SOL), "create gc_deal.gc_requirement")
+    ok(*dv.request("POST", "PublishXml", {"ParameterXml": "<importexportxml><entities><entity>gc_deal</entity><entity>gc_buyerrequirement</entity></entities></importexportxml>"}), "publish gc_deal")
+    print("+ gc_deal.gc_requirement lookup created")
+
+
 def ensure_settings():
     for key, value, vtype, desc in SETTINGS:
         s = ok(*dv.get(f"gc_platformsettings?$select=gc_platformsettingid&$filter=gc_key eq '{key}'"), "read setting")
@@ -202,11 +290,14 @@ def main():
     ensure_secret_table()
     upsert_secret("gemini.api_key", env_key())
     ensure_agent_option()
-    type_id = upsert_assembly()
+    types = upsert_assembly()
     for a in agents:
-        upsert_api(a, type_id)
+        upsert_api(a, types["DealOS.Agents.AgentPlugin"])
+    ensure_requirement_lookup()
+    for op in OPERATIONS:
+        upsert_operation(op, types["DealOS.Agents.Operations.OperationsPlugin"])
     ensure_settings()
-    print(f"Deployed {len(agents)} agents.")
+    print(f"Deployed {len(agents)} agents and {len(OPERATIONS)} operations.")
 
 
 if __name__ == "__main__":

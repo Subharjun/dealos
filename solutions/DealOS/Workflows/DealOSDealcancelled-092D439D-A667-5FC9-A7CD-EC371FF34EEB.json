@@ -1,0 +1,252 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_commondataserviceforapps": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "gc_dataverse"
+        },
+        "api": {
+          "name": "shared_commondataserviceforapps"
+        }
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$connections": {
+          "defaultValue": {},
+          "type": "Object"
+        },
+        "$authentication": {
+          "defaultValue": {},
+          "type": "SecureObject"
+        }
+      },
+      "triggers": {
+        "When_a_deal_is_cancelled": {
+          "type": "OpenApiConnectionWebhook",
+          "inputs": {
+            "host": {
+              "connectionName": "shared_commondataserviceforapps",
+              "operationId": "SubscribeWebhookTrigger",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "subscriptionRequest/message": 3,
+              "subscriptionRequest/entityname": "gc_deal",
+              "subscriptionRequest/scope": 4,
+              "subscriptionRequest/filterexpression": "gc_stage eq 303300012",
+              "subscriptionRequest/filteringattributes": "gc_stage"
+            },
+            "authentication": "@parameters('$authentication')"
+          },
+          "runtimeConfiguration": {
+            "concurrency": {
+              "runs": 1
+            }
+          }
+        }
+      },
+      "actions": {
+        "Try": {
+          "type": "Scope",
+          "actions": {
+            "Release_holds": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "PerformUnboundAction",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "actionName": "gc_ReleaseDeal",
+                  "item/DealId": "@{triggerOutputs()?['body/gc_dealid']}"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "none"
+                }
+              },
+              "runAfter": {}
+            },
+            "Funded_escrow": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "ListRecords",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_payments",
+                  "$select": "gc_paymentid,gc_amountfunded",
+                  "$filter": "_gc_deal_value eq @{triggerOutputs()?['body/gc_dealid']} and (gc_state eq 303300001 or gc_state eq 303300002 or gc_state eq 303300003)"
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {
+                "Release_holds": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Refund_needed": {
+              "type": "If",
+              "expression": "@greater(length(outputs('Funded_escrow')?['body/value']), 0)",
+              "actions": {
+                "Refund_task": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_commondataserviceforapps",
+                      "operationId": "CreateRecord",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                    },
+                    "parameters": {
+                      "entityName": "gc_reviewtasks",
+                      "item/gc_name": "@{take(concat('Refund escrow: ', triggerOutputs()?['body/gc_name']), 100)}",
+                      "item/gc_kind": 303300000,
+                      "item/gc_purpose": 303300005,
+                      "item/gc_assigneerole": 303300004,
+                      "item/gc_status": 303300000,
+                      "item/gc_payload": "@{string(addProperty(json('{}'), 'payments', outputs('Funded_escrow')?['body/value']))}",
+                      "item/gc_deal@odata.bind": "gc_deals(@{triggerOutputs()?['body/gc_dealid']})"
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  },
+                  "runAfter": {}
+                }
+              },
+              "else": {
+                "actions": {}
+              },
+              "runAfter": {
+                "Funded_escrow": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Notify_buyer": {
+              "type": "Workflow",
+              "inputs": {
+                "host": {
+                  "workflowReferenceName": "4f7bfa4c-432c-512b-b763-c703a64a583b"
+                },
+                "body": {
+                  "text": "@{triggerOutputs()?['body/_gc_buyer_value']}",
+                  "text_1": "Deal closed",
+                  "text_2": "The deal '@{triggerOutputs()?['body/gc_name']}' has been closed and will not proceed. Any material reserved for it has been released. Contact us in DealOS if you have questions.",
+                  "text_3": "deal.cancelled"
+                }
+              },
+              "runAfter": {
+                "Refund_needed": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Notify_seller": {
+              "type": "Workflow",
+              "inputs": {
+                "host": {
+                  "workflowReferenceName": "4f7bfa4c-432c-512b-b763-c703a64a583b"
+                },
+                "body": {
+                  "text": "@{triggerOutputs()?['body/_gc_seller_value']}",
+                  "text_1": "Deal closed",
+                  "text_2": "The deal '@{triggerOutputs()?['body/gc_name']}' has been closed and will not proceed. Any material reserved for it has been released. Contact us in DealOS if you have questions.",
+                  "text_3": "deal.cancelled"
+                }
+              },
+              "runAfter": {
+                "Notify_buyer": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Audit": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "CreateRecord",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_auditevents",
+                  "item/gc_hash": "set-by-invariants-plugin",
+                  "item/gc_name": "deal.cancelled",
+                  "item/gc_actor": "flow:deal-cancelled",
+                  "item/gc_action": "deal.cancelled",
+                  "item/gc_subjecttype": "gc_deal",
+                  "item/gc_subjectid": "@{triggerOutputs()?['body/gc_dealid']}",
+                  "item/gc_details": "@{take(string(addProperty(json('{}'), 'released', outputs('Release_holds')?['body/Summary'])), 100000)}"
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {
+                "Notify_seller": [
+                  "Succeeded"
+                ]
+              }
+            }
+          },
+          "runAfter": {}
+        },
+        "Catch": {
+          "type": "Scope",
+          "actions": {
+            "Record_failure": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "CreateRecord",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_flowfailures",
+                  "item/gc_name": "DealOS | Deal cancelled",
+                  "item/gc_flowname": "DealOS | Deal cancelled",
+                  "item/gc_runurl": "https://make.powerautomate.com/environments/@{workflow()?['tags']?['environmentName']}/flows/@{workflow()?['name']}/runs/@{workflow()?['run']?['name']}",
+                  "item/gc_step": "Try",
+                  "item/gc_error": "@{take(string(result('Try')), 3900)}",
+                  "item/gc_payload": "@{take(string(triggerOutputs()?['body']), 100000)}",
+                  "item/gc_status": 303300000
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {}
+            },
+            "Fail_run": {
+              "type": "Terminate",
+              "inputs": {
+                "runStatus": "Failed",
+                "runError": {
+                  "code": "DealOSFlowFailure",
+                  "message": "Recorded in Flow failures"
+                }
+              },
+              "runAfter": {
+                "Record_failure": [
+                  "Succeeded"
+                ]
+              }
+            }
+          },
+          "runAfter": {
+            "Try": [
+              "Failed",
+              "TimedOut"
+            ]
+          }
+        }
+      }
+    },
+    "templateName": null
+  },
+  "schemaVersion": "1.0.0.0"
+}

@@ -1,0 +1,30 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Workflow WorkflowId="{0ec3ad54-ab2c-587b-a526-48f3c27db996}" Name="DealOS | Review decisions" Description="Review task Approved or Rejected (via the Approvals flow or directly in the admin app) → apply it: publish listing, send the approved request to the party, set trust tier, clear screening, issue contract, instruct a fund release (gc_InstructRelease), plan a shipment." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <JsonFileName>/Workflows/DealOSReviewdecisions-0EC3AD54-AB2C-587B-A526-48F3C27DB996.json</JsonFileName>
+  <Type>1</Type>
+  <Subprocess>0</Subprocess>
+  <Category>5</Category>
+  <Mode>0</Mode>
+  <Scope>4</Scope>
+  <OnDemand>0</OnDemand>
+  <TriggerOnCreate>0</TriggerOnCreate>
+  <TriggerOnDelete>0</TriggerOnDelete>
+  <AsyncAutodelete>0</AsyncAutodelete>
+  <SyncWorkflowLogOnFailure>0</SyncWorkflowLogOnFailure>
+  <StateCode>1</StateCode>
+  <StatusCode>2</StatusCode>
+  <RunAs>1</RunAs>
+  <IsTransacted>1</IsTransacted>
+  <IntroducedVersion>1.0.0.0</IntroducedVersion>
+  <IsCustomizable>1</IsCustomizable>
+  <BusinessProcessType>0</BusinessProcessType>
+  <IsCustomProcessingStepAllowedForOtherPublishers>1</IsCustomProcessingStepAllowedForOtherPublishers>
+  <ModernFlowType>0</ModernFlowType>
+  <PrimaryEntity>none</PrimaryEntity>
+  <LocalizedNames>
+    <LocalizedName languagecode="1033" description="DealOS | Review decisions" />
+  </LocalizedNames>
+  <Descriptions>
+    <Description languagecode="1033" description="Review task Approved or Rejected (via the Approvals flow or directly in the admin app) → apply it: publish listing, send the approved request to the party, set trust tier, clear screening, issue contract, instruct a fund release (gc_InstructRelease), plan a shipment." />
+  </Descriptions>
+</Workflow>

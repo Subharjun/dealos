@@ -1,0 +1,11 @@
+<customapiresponseproperty uniquename="Status">
+  <description default="Instructed or AlreadyInstructed.">
+    <label description="Instructed or AlreadyInstructed." languagecode="1033" />
+  </description>
+  <displayname default="Status">
+    <label description="Status" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <name>gc_InstructRelease.Status</name>
+  <type>10</type>
+</customapiresponseproperty>

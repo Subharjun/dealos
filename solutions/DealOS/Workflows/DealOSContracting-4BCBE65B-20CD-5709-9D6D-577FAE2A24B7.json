@@ -1,0 +1,432 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_commondataserviceforapps": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "gc_dataverse"
+        },
+        "api": {
+          "name": "shared_commondataserviceforapps"
+        }
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$connections": {
+          "defaultValue": {},
+          "type": "Object"
+        },
+        "$authentication": {
+          "defaultValue": {},
+          "type": "SecureObject"
+        }
+      },
+      "triggers": {
+        "When_contracting_starts": {
+          "type": "OpenApiConnectionWebhook",
+          "inputs": {
+            "host": {
+              "connectionName": "shared_commondataserviceforapps",
+              "operationId": "SubscribeWebhookTrigger",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "subscriptionRequest/message": 3,
+              "subscriptionRequest/entityname": "gc_deal",
+              "subscriptionRequest/scope": 4,
+              "subscriptionRequest/filterexpression": "gc_stage eq 303300004",
+              "subscriptionRequest/filteringattributes": "gc_stage"
+            },
+            "authentication": "@parameters('$authentication')"
+          },
+          "runtimeConfiguration": {
+            "concurrency": {
+              "runs": 1
+            }
+          }
+        }
+      },
+      "actions": {
+        "Try": {
+          "type": "Scope",
+          "actions": {
+            "Run_Contract": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "PerformUnboundAction",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "actionName": "gc_Agent_Contract",
+                  "item/Input": "{\"trigger\": \"flow:contracting\"}",
+                  "item/SubjectId": "@{triggerOutputs()?['body/gc_dealid']}"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "none"
+                }
+              },
+              "runAfter": {}
+            },
+            "Check_Contract": {
+              "type": "If",
+              "expression": "@not(equals(outputs('Run_Contract')?['body/Status'], 'Succeeded'))",
+              "actions": {
+                "Record_Contract_failure": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_commondataserviceforapps",
+                      "operationId": "CreateRecord",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                    },
+                    "parameters": {
+                      "entityName": "gc_flowfailures",
+                      "item/gc_name": "DealOS | Contracting",
+                      "item/gc_flowname": "DealOS | Contracting",
+                      "item/gc_runurl": "https://make.powerautomate.com/environments/@{workflow()?['tags']?['environmentName']}/flows/@{workflow()?['name']}/runs/@{workflow()?['run']?['name']}",
+                      "item/gc_step": "Run_Contract",
+                      "item/gc_error": "@{coalesce(outputs('Run_Contract')?['body/Summary'], 'agent call failed')}",
+                      "item/gc_payload": "@{take(string(triggerOutputs()?['body']), 100000)}",
+                      "item/gc_status": 303300000
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  },
+                  "runAfter": {}
+                },
+                "Stop_Contract_failed": {
+                  "type": "Terminate",
+                  "inputs": {
+                    "runStatus": "Failed",
+                    "runError": {
+                      "code": "DealOSFlowFailure",
+                      "message": "Contract agent failed; see Flow failures"
+                    }
+                  },
+                  "runAfter": {
+                    "Record_Contract_failure": [
+                      "Succeeded"
+                    ]
+                  }
+                }
+              },
+              "else": {
+                "actions": {}
+              },
+              "runAfter": {
+                "Run_Contract": [
+                  "Succeeded",
+                  "Failed",
+                  "TimedOut"
+                ]
+              }
+            },
+            "Parse_Contract": {
+              "type": "ParseJson",
+              "inputs": {
+                "content": "@json(coalesce(outputs('Run_Contract')?['body/Result'], '{}'))",
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "agent": {
+                      "type": "string"
+                    },
+                    "run_id": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "model": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "error": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "result": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "term_sheet": {
+                          "type": [
+                            "object",
+                            "null"
+                          ],
+                          "properties": {
+                            "seller": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "buyer": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "commodity": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "specification": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "quantity": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "price": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "incoterm": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "payment_terms": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "inspection": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "delivery": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "documents": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "title_and_risk": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "governing_law": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "dispute_resolution": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          }
+                        },
+                        "missing_terms": {
+                          "type": [
+                            "array",
+                            "null"
+                          ],
+                          "items": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        },
+                        "nonstandard_clauses": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ]
+                        },
+                        "contract_created": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ]
+                        },
+                        "summary": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "needs_human": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ]
+                        },
+                        "confidence": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      }
+                    },
+                    "actions": {
+                      "type": [
+                        "array",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              },
+              "runAfter": {
+                "Check_Contract": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Not_drafted": {
+              "type": "If",
+              "expression": "@not(equals(body('Parse_Contract')?['result']?['contract_created'], true))",
+              "actions": {
+                "Missing_terms_task": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_commondataserviceforapps",
+                      "operationId": "CreateRecord",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                    },
+                    "parameters": {
+                      "entityName": "gc_reviewtasks",
+                      "item/gc_name": "@{take(concat('Contract not drafted: ', triggerOutputs()?['body/gc_name']), 100)}",
+                      "item/gc_kind": 303300001,
+                      "item/gc_purpose": 303300009,
+                      "item/gc_assigneerole": 303300002,
+                      "item/gc_status": 303300000,
+                      "item/gc_payload": "@{string(addProperty(addProperty(json('{}'), 'summary', outputs('Run_Contract')?['body/Summary']), 'missing', body('Parse_Contract')?['result']?['missing_terms']))}",
+                      "item/gc_deal@odata.bind": "gc_deals(@{triggerOutputs()?['body/gc_dealid']})"
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  },
+                  "runAfter": {}
+                }
+              },
+              "else": {
+                "actions": {}
+              },
+              "runAfter": {
+                "Parse_Contract": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Audit": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "CreateRecord",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_auditevents",
+                  "item/gc_hash": "set-by-invariants-plugin",
+                  "item/gc_name": "deal.contract_drafted",
+                  "item/gc_actor": "flow:contracting",
+                  "item/gc_action": "deal.contract_drafted",
+                  "item/gc_subjecttype": "gc_deal",
+                  "item/gc_subjectid": "@{triggerOutputs()?['body/gc_dealid']}",
+                  "item/gc_details": "@{take(string(addProperty(json('{}'), 'summary', outputs('Run_Contract')?['body/Summary'])), 100000)}"
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {
+                "Not_drafted": [
+                  "Succeeded"
+                ]
+              }
+            }
+          },
+          "runAfter": {}
+        },
+        "Catch": {
+          "type": "Scope",
+          "actions": {
+            "Record_failure": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "CreateRecord",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_flowfailures",
+                  "item/gc_name": "DealOS | Contracting",
+                  "item/gc_flowname": "DealOS | Contracting",
+                  "item/gc_runurl": "https://make.powerautomate.com/environments/@{workflow()?['tags']?['environmentName']}/flows/@{workflow()?['name']}/runs/@{workflow()?['run']?['name']}",
+                  "item/gc_step": "Try",
+                  "item/gc_error": "@{take(string(result('Try')), 3900)}",
+                  "item/gc_payload": "@{take(string(triggerOutputs()?['body']), 100000)}",
+                  "item/gc_status": 303300000
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {}
+            },
+            "Fail_run": {
+              "type": "Terminate",
+              "inputs": {
+                "runStatus": "Failed",
+                "runError": {
+                  "code": "DealOSFlowFailure",
+                  "message": "Recorded in Flow failures"
+                }
+              },
+              "runAfter": {
+                "Record_failure": [
+                  "Succeeded"
+                ]
+              }
+            }
+          },
+          "runAfter": {
+            "Try": [
+              "Failed",
+              "TimedOut"
+            ]
+          }
+        }
+      }
+    },
+    "templateName": null
+  },
+  "schemaVersion": "1.0.0.0"
+}
