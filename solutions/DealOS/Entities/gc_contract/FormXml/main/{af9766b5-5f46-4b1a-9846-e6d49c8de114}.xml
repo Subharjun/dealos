@@ -1,0 +1,103 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<forms xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <systemform>
+    <formid>{af9766b5-5f46-4b1a-9846-e6d49c8de114}</formid>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <FormPresentation>1</FormPresentation>
+    <FormActivationState>1</FormActivationState>
+    <form>
+      <tabs>
+        <tab name="general" id="{555e8574-7b9c-4413-adf0-85c2c76de482}" IsUserDefined="0" verticallayout="true" expanded="true">
+          <labels>
+            <label description="General" languagecode="1033" />
+          </labels>
+          <columns>
+            <column width="100%">
+              <sections>
+                <section name="details" showlabel="true" showbar="false" id="{3dfdd4cf-7b39-480f-accd-d73c81bd08b2}" IsUserDefined="0" columns="11">
+                  <labels>
+                    <label description="Details" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row>
+                      <cell id="{db051abc-ef75-41da-b120-b62981b7b546}">
+                        <labels>
+                          <label description="Name" languagecode="1033" />
+                        </labels>
+                        <control id="gc_name" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_name" />
+                      </cell>
+                      <cell id="{996c6699-24f7-45b6-a175-85cb6983af45}">
+                        <labels>
+                          <label description="Deal" languagecode="1033" />
+                        </labels>
+                        <control id="gc_deal" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="gc_deal" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{53315369-c9be-4710-af7f-1119121c11df}">
+                        <labels>
+                          <label description="Template version" languagecode="1033" />
+                        </labels>
+                        <control id="gc_templateversion" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_templateversion" />
+                      </cell>
+                      <cell id="{1232f310-6c84-41bc-85b4-cb5570ec5dae}">
+                        <labels>
+                          <label description="Has non-standard clauses" languagecode="1033" />
+                        </labels>
+                        <control id="gc_nonstandardclauses" classid="{67FAC785-CD58-4f9f-ABB3-4B7DDC6ED5ED}" datafieldname="gc_nonstandardclauses" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{37116f00-f60b-4b20-b9d9-77b4c5a5fa1e}">
+                        <labels>
+                          <label description="Status" languagecode="1033" />
+                        </labels>
+                        <control id="gc_status" classid="{3EF39988-22BB-4f0b-BBBE-64B5A3748AEE}" datafieldname="gc_status" />
+                      </cell>
+                      <cell id="{d28e8e80-17a2-42de-8b3e-c526ac27f277}">
+                        <labels>
+                          <label description="E-signature provider" languagecode="1033" />
+                        </labels>
+                        <control id="gc_esignprovider" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_esignprovider" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{a0fbf1d0-9038-43db-b8f6-0fd11b3f5a6a}">
+                        <labels>
+                          <label description="Envelope ID" languagecode="1033" />
+                        </labels>
+                        <control id="gc_envelopeid" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_envelopeid" />
+                      </cell>
+                      <cell id="{27188989-c2d1-478a-8f0c-4167a479bda0}">
+                        <labels>
+                          <label description="Contract document" languagecode="1033" />
+                        </labels>
+                        <control id="gc_document" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="gc_document" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{f4378bd2-fbbe-47bf-a715-9b96d0ac7569}">
+                        <labels>
+                          <label description="Signed on" languagecode="1033" />
+                        </labels>
+                        <control id="gc_signedon" classid="{5B773807-9FB2-42db-97C3-7A91EFF8ADFF}" datafieldname="gc_signedon" />
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+              </sections>
+            </column>
+          </columns>
+        </tab>
+      </tabs>
+    </form>
+    <IsCustomizable>1</IsCustomizable>
+    <CanBeDeleted>1</CanBeDeleted>
+    <LocalizedNames>
+      <LocalizedName description="Information" languagecode="1033" />
+    </LocalizedNames>
+    <Descriptions>
+      <Description description="A form for this entity." languagecode="1033" />
+    </Descriptions>
+  </systemform>
+</forms>

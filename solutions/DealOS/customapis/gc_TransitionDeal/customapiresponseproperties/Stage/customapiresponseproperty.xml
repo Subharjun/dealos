@@ -1,0 +1,11 @@
+<customapiresponseproperty uniquename="Stage">
+  <description default="Stage">
+    <label description="Stage" languagecode="1033" />
+  </description>
+  <displayname default="Stage">
+    <label description="Stage" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <name>gc_TransitionDeal.Stage</name>
+  <type>7</type>
+</customapiresponseproperty>

@@ -1,0 +1,11 @@
+<customapiresponseproperty uniquename="Failures">
+  <description default="Failures">
+    <label description="Failures" languagecode="1033" />
+  </description>
+  <displayname default="Failures">
+    <label description="Failures" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <name>gc_TransitionDeal.Failures</name>
+  <type>10</type>
+</customapiresponseproperty>

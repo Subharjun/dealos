@@ -1,0 +1,103 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<forms xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <systemform>
+    <formid>{c66b0bf1-1090-4871-a3a7-c47c44e83725}</formid>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <FormPresentation>1</FormPresentation>
+    <FormActivationState>1</FormActivationState>
+    <form>
+      <tabs>
+        <tab name="general" id="{e4e2bae8-cacc-43c5-8210-18e266df5083}" IsUserDefined="0" verticallayout="true" expanded="true">
+          <labels>
+            <label description="General" languagecode="1033" />
+          </labels>
+          <columns>
+            <column width="100%">
+              <sections>
+                <section name="details" showlabel="true" showbar="false" id="{ec27c4b0-769a-4bd2-a65d-68f9a5650e99}" IsUserDefined="0" columns="11">
+                  <labels>
+                    <label description="Details" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row>
+                      <cell id="{4efad626-5da1-499c-9db2-85007868ad63}">
+                        <labels>
+                          <label description="Name" languagecode="1033" />
+                        </labels>
+                        <control id="gc_name" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_name" />
+                      </cell>
+                      <cell id="{13df3173-af9d-4d29-b2ee-602fb56948ed}">
+                        <labels>
+                          <label description="Company" languagecode="1033" />
+                        </labels>
+                        <control id="gc_account" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="gc_account" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{e1da5b2b-007a-4f0b-85a0-4afb8bf4f108}">
+                        <labels>
+                          <label description="Person" languagecode="1033" />
+                        </labels>
+                        <control id="gc_contact" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="gc_contact" />
+                      </cell>
+                      <cell id="{38305e82-0a69-4e52-b424-9508fabfc2bd}">
+                        <labels>
+                          <label description="Check type" languagecode="1033" />
+                        </labels>
+                        <control id="gc_checktype" classid="{3EF39988-22BB-4f0b-BBBE-64B5A3748AEE}" datafieldname="gc_checktype" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{8820cdd0-c521-435f-bf2f-3be164090c66}">
+                        <labels>
+                          <label description="Provider" languagecode="1033" />
+                        </labels>
+                        <control id="gc_provider" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_provider" />
+                      </cell>
+                      <cell id="{9cdea628-51fd-4701-942b-fd7bec35d190}">
+                        <labels>
+                          <label description="Provider reference" languagecode="1033" />
+                        </labels>
+                        <control id="gc_providerref" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_providerref" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{69c27402-c784-40bc-a5c9-7ca3ae5eccdf}">
+                        <labels>
+                          <label description="Result" languagecode="1033" />
+                        </labels>
+                        <control id="gc_result" classid="{3EF39988-22BB-4f0b-BBBE-64B5A3748AEE}" datafieldname="gc_result" />
+                      </cell>
+                      <cell id="{9a360faf-c272-4d94-b424-f5313543fe46}">
+                        <labels>
+                          <label description="Report document" languagecode="1033" />
+                        </labels>
+                        <control id="gc_reportdocument" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="gc_reportdocument" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{36821d79-e1a8-4527-8071-381f5e81f474}">
+                        <labels>
+                          <label description="Checked on" languagecode="1033" />
+                        </labels>
+                        <control id="gc_checkedon" classid="{5B773807-9FB2-42db-97C3-7A91EFF8ADFF}" datafieldname="gc_checkedon" />
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+              </sections>
+            </column>
+          </columns>
+        </tab>
+      </tabs>
+    </form>
+    <IsCustomizable>1</IsCustomizable>
+    <CanBeDeleted>1</CanBeDeleted>
+    <LocalizedNames>
+      <LocalizedName description="Information" languagecode="1033" />
+    </LocalizedNames>
+    <Descriptions>
+      <Description description="A form for this entity." languagecode="1033" />
+    </Descriptions>
+  </systemform>
+</forms>

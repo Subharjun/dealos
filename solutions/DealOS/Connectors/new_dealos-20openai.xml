@@ -1,0 +1,12 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Connector xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <connectorid>fad0f388-c5c0-f111-aaaf-7ced8daf451f</connectorid>
+  <description></description>
+  <displayname>DealOS OpenAI</displayname>
+  <iconbrandcolor>#10a37f</iconbrandcolor>
+  <name>new_dealos-20openai</name>
+  <connectortype>1</connectortype>
+  <openapidefinition>/Connector/new_dealos-20openai_openapidefinition.json</openapidefinition>
+  <connectionparameters>/Connector/new_dealos-20openai_connectionparameters.json</connectionparameters>
+  <policytemplateinstances>/Connector/new_dealos-20openai_policytemplateinstances.json</policytemplateinstances>
+</Connector>

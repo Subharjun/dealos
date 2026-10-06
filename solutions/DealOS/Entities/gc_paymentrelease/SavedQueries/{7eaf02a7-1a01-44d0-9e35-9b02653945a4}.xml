@@ -1,0 +1,51 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<savedqueries xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <savedquery>
+    <IsCustomizable>1</IsCustomizable>
+    <CanBeDeleted>0</CanBeDeleted>
+    <isquickfindquery>0</isquickfindquery>
+    <isprivate>0</isprivate>
+    <isdefault>1</isdefault>
+    <savedqueryid>{7eaf02a7-1a01-44d0-9e35-9b02653945a4}</savedqueryid>
+    <layoutxml>
+      <grid name="resultset" jump="gc_name" select="1" icon="1" preview="1">
+        <row name="result" id="gc_paymentreleaseid">
+          <cell name="gc_name" width="200" />
+          <cell name="gc_payment" width="140" />
+          <cell name="gc_sequence" width="140" />
+          <cell name="gc_pct" width="140" />
+          <cell name="gc_amount" width="140" />
+          <cell name="gc_status" width="140" />
+          <cell name="gc_commissionamount" width="140" />
+          <cell name="gc_netamount" width="140" />
+          <cell name="createdon" width="140" />
+        </row>
+      </grid>
+    </layoutxml>
+    <querytype>0</querytype>
+    <fetchxml>
+      <fetch version="1.0" mapping="logical">
+        <entity name="gc_paymentrelease">
+          <attribute name="gc_name" />
+          <attribute name="gc_payment" />
+          <attribute name="gc_sequence" />
+          <attribute name="gc_pct" />
+          <attribute name="gc_amount" />
+          <attribute name="gc_status" />
+          <attribute name="gc_commissionamount" />
+          <attribute name="gc_netamount" />
+          <attribute name="createdon" />
+          <attribute name="gc_paymentreleaseid" />
+          <order attribute="createdon" descending="true" />
+          <filter type="and">
+            <condition attribute="statecode" operator="eq" value="0" />
+          </filter>
+        </entity>
+      </fetch>
+    </fetchxml>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <LocalizedNames>
+      <LocalizedName description="Active Payment releases" languagecode="1033" />
+    </LocalizedNames>
+  </savedquery>
+</savedqueries>

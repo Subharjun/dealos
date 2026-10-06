@@ -1,0 +1,18 @@
+<customapi uniquename="gc_Agent_Compliance">
+  <allowedcustomprocessingsteptype>0</allowedcustomprocessingsteptype>
+  <bindingtype>0</bindingtype>
+  <description default="Pre-contract compliance gate: party tiers, screening, FATF/CAHRA countries, controlled commodities and permits; returns Clear / Refer / Block with evidence.">
+    <label description="Pre-contract compliance gate: party tiers, screening, FATF/CAHRA countries, controlled commodities and permits; returns Clear / Refer / Block with evidence." languagecode="1033" />
+  </description>
+  <displayname default="Agent: Compliance">
+    <label description="Agent: Compliance" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isfunction>0</isfunction>
+  <isprivate>0</isprivate>
+  <name>gc_Agent_Compliance</name>
+  <plugintypeid>
+    <plugintypeexportkey>80e9c839-6ac1-f111-aaaf-7ced8daf451f</plugintypeexportkey>
+  </plugintypeid>
+  <workflowsdkstepenabled>0</workflowsdkstepenabled>
+</customapi>

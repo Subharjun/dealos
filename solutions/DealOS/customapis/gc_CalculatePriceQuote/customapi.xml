@@ -1,0 +1,18 @@
+<customapi uniquename="gc_CalculatePriceQuote">
+  <allowedcustomprocessingsteptype>0</allowedcustomprocessingsteptype>
+  <bindingtype>0</bindingtype>
+  <description default="Price an offer: duties, freight, insurance, commission; stores seller, buyer and admin views.">
+    <label description="Price an offer: duties, freight, insurance, commission; stores seller, buyer and admin views." languagecode="1033" />
+  </description>
+  <displayname default="CalculatePriceQuote">
+    <label description="CalculatePriceQuote" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isfunction>0</isfunction>
+  <isprivate>0</isprivate>
+  <name>gc_CalculatePriceQuote</name>
+  <plugintypeid>
+    <plugintypeexportkey>aff1218a-c7c0-f111-aaaf-7ced8daf451f</plugintypeexportkey>
+  </plugintypeid>
+  <workflowsdkstepenabled>0</workflowsdkstepenabled>
+</customapi>

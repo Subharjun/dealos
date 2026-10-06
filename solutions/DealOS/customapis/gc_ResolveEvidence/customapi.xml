@@ -1,0 +1,18 @@
+<customapi uniquename="gc_ResolveEvidence">
+  <allowedcustomprocessingsteptype>0</allowedcustomprocessingsteptype>
+  <bindingtype>0</bindingtype>
+  <description default="Rebuild facts, conflicts and listing badge for one subject from the assertion ledger.">
+    <label description="Rebuild facts, conflicts and listing badge for one subject from the assertion ledger." languagecode="1033" />
+  </description>
+  <displayname default="ResolveEvidence">
+    <label description="ResolveEvidence" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isfunction>0</isfunction>
+  <isprivate>0</isprivate>
+  <name>gc_ResolveEvidence</name>
+  <plugintypeid>
+    <plugintypeexportkey>b0f1218a-c7c0-f111-aaaf-7ced8daf451f</plugintypeexportkey>
+  </plugintypeid>
+  <workflowsdkstepenabled>0</workflowsdkstepenabled>
+</customapi>

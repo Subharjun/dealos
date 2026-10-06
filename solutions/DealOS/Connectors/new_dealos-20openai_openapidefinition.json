@@ -1,0 +1,137 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "DealOS OpenAI",
+    "description": "OpenAI API for DealOS agent flows (document extraction, classification, message drafting). The API key is stored in the connection, never in a flow. Every call is logged by the calling flow to gc_modelcall.",
+    "version": "1.0"
+  },
+  "host": "api.openai.com",
+  "basePath": "/v1",
+  "schemes": ["https"],
+  "consumes": ["application/json"],
+  "produces": ["application/json"],
+  "securityDefinitions": {
+    "api_key": { "type": "apiKey", "in": "header", "name": "Authorization" }
+  },
+  "security": [{ "api_key": [] }],
+  "paths": {
+    "/responses": {
+      "post": {
+        "operationId": "CreateResponse",
+        "summary": "Create a model response",
+        "description": "Responses API. Accepts text, images and PDF files (input_file with base64 file_data). Use text.format json_schema with strict=true for structured extraction.",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "required": ["model", "input"],
+              "properties": {
+                "model": { "type": "string", "x-ms-summary": "Model", "description": "Pinned model snapshot, e.g. gpt-5.5-2026-04-23 (see gc_platformsetting ai.model.*)" },
+                "instructions": { "type": "string", "x-ms-summary": "Instructions", "description": "System instructions" },
+                "input": { "type": "array", "x-ms-summary": "Input", "description": "Input items (role + content parts)", "items": { "type": "object" } },
+                "text": { "type": "object", "x-ms-summary": "Text format", "description": "{\"format\":{\"type\":\"json_schema\",\"name\":…,\"schema\":…,\"strict\":true}}" },
+                "max_output_tokens": { "type": "integer", "x-ms-summary": "Max output tokens" },
+                "store": { "type": "boolean", "x-ms-summary": "Store", "description": "Keep false: documents are confidential", "default": false }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "id": { "type": "string", "x-ms-summary": "Response ID" },
+                "model": { "type": "string", "x-ms-summary": "Model" },
+                "status": { "type": "string", "x-ms-summary": "Status" },
+                "output": {
+                  "type": "array",
+                  "x-ms-summary": "Output",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "type": { "type": "string" },
+                      "content": {
+                        "type": "array",
+                        "items": { "type": "object", "properties": { "type": { "type": "string" }, "text": { "type": "string" } } }
+                      }
+                    }
+                  }
+                },
+                "usage": {
+                  "type": "object",
+                  "properties": {
+                    "input_tokens": { "type": "integer", "x-ms-summary": "Input tokens" },
+                    "output_tokens": { "type": "integer", "x-ms-summary": "Output tokens" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/chat/completions": {
+      "post": {
+        "operationId": "CreateChatCompletion",
+        "summary": "Create a chat completion",
+        "description": "Chat Completions API for short text tasks (classification, message drafting).",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "required": ["model", "messages"],
+              "properties": {
+                "model": { "type": "string", "x-ms-summary": "Model" },
+                "messages": {
+                  "type": "array",
+                  "x-ms-summary": "Messages",
+                  "items": {
+                    "type": "object",
+                    "properties": { "role": { "type": "string", "enum": ["system", "developer", "user", "assistant"] }, "content": { "type": "string" } }
+                  }
+                },
+                "response_format": { "type": "object", "x-ms-summary": "Response format" },
+                "max_completion_tokens": { "type": "integer", "x-ms-summary": "Max completion tokens" },
+                "store": { "type": "boolean", "default": false }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "id": { "type": "string" },
+                "model": { "type": "string" },
+                "choices": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "finish_reason": { "type": "string" },
+                      "message": { "type": "object", "properties": { "role": { "type": "string" }, "content": { "type": "string" }, "refusal": { "type": "string" } } }
+                    }
+                  }
+                },
+                "usage": {
+                  "type": "object",
+                  "properties": { "prompt_tokens": { "type": "integer" }, "completion_tokens": { "type": "integer" } }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

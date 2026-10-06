@@ -1,0 +1,12 @@
+<customapirequestparameter uniquename="DealId">
+  <description default="DealId">
+    <label description="DealId" languagecode="1033" />
+  </description>
+  <displayname default="DealId">
+    <label description="DealId" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isoptional>0</isoptional>
+  <name>gc_TransitionDeal.DealId</name>
+  <type>12</type>
+</customapirequestparameter>

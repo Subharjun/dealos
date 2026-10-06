@@ -1,0 +1,18 @@
+<customapi uniquename="gc_Agent_Payment">
+  <allowedcustomprocessingsteptype>0</allowedcustomprocessingsteptype>
+  <bindingtype>0</bindingtype>
+  <description default="Proposes the escrow release schedule with commission (deterministic maths) and checks which releases have verified milestones; opens Fund Release approvals for Finance only when evidence exists.">
+    <label description="Proposes the escrow release schedule with commission (deterministic maths) and checks which releases have verified milestones; opens Fund Release approvals for Finance only when evidence exists." languagecode="1033" />
+  </description>
+  <displayname default="Agent: Payment &amp; Escrow">
+    <label description="Agent: Payment &amp; Escrow" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isfunction>0</isfunction>
+  <isprivate>0</isprivate>
+  <name>gc_Agent_Payment</name>
+  <plugintypeid>
+    <plugintypeexportkey>80e9c839-6ac1-f111-aaaf-7ced8daf451f</plugintypeexportkey>
+  </plugintypeid>
+  <workflowsdkstepenabled>0</workflowsdkstepenabled>
+</customapi>

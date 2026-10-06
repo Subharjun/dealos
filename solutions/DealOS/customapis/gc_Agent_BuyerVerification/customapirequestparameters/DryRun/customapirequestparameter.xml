@@ -1,0 +1,12 @@
+<customapirequestparameter uniquename="DryRun">
+  <description default="True: run the agent but do not write records (actions are reported only).">
+    <label description="True: run the agent but do not write records (actions are reported only)." languagecode="1033" />
+  </description>
+  <displayname default="DryRun">
+    <label description="DryRun" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isoptional>1</isoptional>
+  <name>gc_Agent_BuyerVerification.DryRun</name>
+  <type>0</type>
+</customapirequestparameter>

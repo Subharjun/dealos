@@ -1,0 +1,18 @@
+<customapi uniquename="gc_Agent_ListingVerification">
+  <allowedcustomprocessingsteptype>0</allowedcustomprocessingsteptype>
+  <bindingtype>0</bindingtype>
+  <description default="DD1 for a listing: reviews evidence, asks the seller only for blocking gaps (never twice), drafts an anonymous market teaser and recommends publishing.">
+    <label description="DD1 for a listing: reviews evidence, asks the seller only for blocking gaps (never twice), drafts an anonymous market teaser and recommends publishing." languagecode="1033" />
+  </description>
+  <displayname default="Agent: Listing Verification">
+    <label description="Agent: Listing Verification" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isfunction>0</isfunction>
+  <isprivate>0</isprivate>
+  <name>gc_Agent_ListingVerification</name>
+  <plugintypeid>
+    <plugintypeexportkey>80e9c839-6ac1-f111-aaaf-7ced8daf451f</plugintypeexportkey>
+  </plugintypeid>
+  <workflowsdkstepenabled>0</workflowsdkstepenabled>
+</customapi>

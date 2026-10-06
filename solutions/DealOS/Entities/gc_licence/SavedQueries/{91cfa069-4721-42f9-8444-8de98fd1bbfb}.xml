@@ -1,0 +1,51 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<savedqueries xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <savedquery>
+    <IsCustomizable>1</IsCustomizable>
+    <CanBeDeleted>0</CanBeDeleted>
+    <isquickfindquery>0</isquickfindquery>
+    <isprivate>0</isprivate>
+    <isdefault>1</isdefault>
+    <savedqueryid>{91cfa069-4721-42f9-8444-8de98fd1bbfb}</savedqueryid>
+    <layoutxml>
+      <grid name="resultset" jump="gc_name" select="1" icon="1" preview="1">
+        <row name="result" id="gc_licenceid">
+          <cell name="gc_name" width="200" />
+          <cell name="gc_asset" width="140" />
+          <cell name="gc_holder" width="140" />
+          <cell name="gc_licencenumber" width="140" />
+          <cell name="gc_licencetype" width="140" />
+          <cell name="gc_issuingauthority" width="140" />
+          <cell name="gc_country" width="140" />
+          <cell name="gc_expireson" width="140" />
+          <cell name="createdon" width="140" />
+        </row>
+      </grid>
+    </layoutxml>
+    <querytype>0</querytype>
+    <fetchxml>
+      <fetch version="1.0" mapping="logical">
+        <entity name="gc_licence">
+          <attribute name="gc_name" />
+          <attribute name="gc_asset" />
+          <attribute name="gc_holder" />
+          <attribute name="gc_licencenumber" />
+          <attribute name="gc_licencetype" />
+          <attribute name="gc_issuingauthority" />
+          <attribute name="gc_country" />
+          <attribute name="gc_expireson" />
+          <attribute name="createdon" />
+          <attribute name="gc_licenceid" />
+          <order attribute="createdon" descending="true" />
+          <filter type="and">
+            <condition attribute="statecode" operator="eq" value="0" />
+          </filter>
+        </entity>
+      </fetch>
+    </fetchxml>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <LocalizedNames>
+      <LocalizedName description="Active Licences" languagecode="1033" />
+    </LocalizedNames>
+  </savedquery>
+</savedqueries>

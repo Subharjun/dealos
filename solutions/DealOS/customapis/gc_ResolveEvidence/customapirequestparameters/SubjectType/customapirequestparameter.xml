@@ -1,0 +1,12 @@
+<customapirequestparameter uniquename="SubjectType">
+  <description default="SubjectType">
+    <label description="SubjectType" languagecode="1033" />
+  </description>
+  <displayname default="SubjectType">
+    <label description="SubjectType" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isoptional>0</isoptional>
+  <name>gc_ResolveEvidence.SubjectType</name>
+  <type>7</type>
+</customapirequestparameter>

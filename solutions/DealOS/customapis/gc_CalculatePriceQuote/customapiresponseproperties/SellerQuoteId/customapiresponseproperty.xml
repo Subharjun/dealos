@@ -1,0 +1,11 @@
+<customapiresponseproperty uniquename="SellerQuoteId">
+  <description default="SellerQuoteId">
+    <label description="SellerQuoteId" languagecode="1033" />
+  </description>
+  <displayname default="SellerQuoteId">
+    <label description="SellerQuoteId" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <name>gc_CalculatePriceQuote.SellerQuoteId</name>
+  <type>12</type>
+</customapiresponseproperty>

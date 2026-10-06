@@ -1,0 +1,104 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<forms xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <systemform>
+    <formid>{20b4bbf6-21f3-47a1-8ada-d39dde82722d}</formid>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <FormPresentation>1</FormPresentation>
+    <FormActivationState>1</FormActivationState>
+    <form>
+      <tabs>
+        <tab name="general" id="{67249648-152d-44a3-bd9b-890e95e1b470}" IsUserDefined="0" verticallayout="true" expanded="true">
+          <labels>
+            <label description="General" languagecode="1033" />
+          </labels>
+          <columns>
+            <column width="100%">
+              <sections>
+                <section name="details" showlabel="true" showbar="false" id="{c9d7790e-e328-4017-a299-c4b08ad11281}" IsUserDefined="0" columns="11">
+                  <labels>
+                    <label description="Details" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row>
+                      <cell id="{98a5de90-1368-4c9f-8cd3-5fa1751a1517}">
+                        <labels>
+                          <label description="Name" languagecode="1033" />
+                        </labels>
+                        <control id="gc_name" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_name" />
+                      </cell>
+                      <cell id="{7057bdaa-2cbf-4b2e-83cf-2c071aab16be}">
+                        <labels>
+                          <label description="Flow name" languagecode="1033" />
+                        </labels>
+                        <control id="gc_flowname" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_flowname" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{4d679a3c-fa2b-44fe-ae18-65f0d8b78ccd}">
+                        <labels>
+                          <label description="Run URL" languagecode="1033" />
+                        </labels>
+                        <control id="gc_runurl" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_runurl" />
+                      </cell>
+                      <cell id="{06a92b52-25ce-496e-a0f5-4585ff96e7bc}">
+                        <labels>
+                          <label description="Failed step" languagecode="1033" />
+                        </labels>
+                        <control id="gc_step" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_step" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{a01fbb4c-7d86-42b1-96d2-2b3db36b5236}">
+                        <labels>
+                          <label description="Status" languagecode="1033" />
+                        </labels>
+                        <control id="gc_status" classid="{3EF39988-22BB-4f0b-BBBE-64B5A3748AEE}" datafieldname="gc_status" />
+                      </cell>
+                      <cell id="{07458dbd-3f14-40f0-8ccd-bfa58e99b930}">
+                        <labels>
+                          <label description="Replayed on" languagecode="1033" />
+                        </labels>
+                        <control id="gc_replayedon" classid="{5B773807-9FB2-42db-97C3-7A91EFF8ADFF}" datafieldname="gc_replayedon" />
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+                <section name="data" showlabel="true" showbar="false" id="{2992e1de-4c6f-4b19-abea-e103da1ca0f9}" IsUserDefined="0" columns="1">
+                  <labels>
+                    <label description="Data" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row>
+                      <cell id="{5d49a20a-294a-4404-9c4d-22bbcb8d68f8}" colspan="2">
+                        <labels>
+                          <label description="Error" languagecode="1033" />
+                        </labels>
+                        <control id="gc_error" classid="{E0DECE4B-6FC8-4a8f-A065-082708572369}" datafieldname="gc_error" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{d1354aa6-7bc9-4d11-9b93-d6e80a12172f}" colspan="2">
+                        <labels>
+                          <label description="Payload (JSON)" languagecode="1033" />
+                        </labels>
+                        <control id="gc_payload" classid="{E0DECE4B-6FC8-4a8f-A065-082708572369}" datafieldname="gc_payload" />
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+              </sections>
+            </column>
+          </columns>
+        </tab>
+      </tabs>
+    </form>
+    <IsCustomizable>1</IsCustomizable>
+    <CanBeDeleted>1</CanBeDeleted>
+    <LocalizedNames>
+      <LocalizedName description="Information" languagecode="1033" />
+    </LocalizedNames>
+    <Descriptions>
+      <Description description="A form for this entity." languagecode="1033" />
+    </Descriptions>
+  </systemform>
+</forms>

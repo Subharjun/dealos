@@ -1,0 +1,12 @@
+<customapirequestparameter uniquename="TargetStage">
+  <description default="TargetStage">
+    <label description="TargetStage" languagecode="1033" />
+  </description>
+  <displayname default="TargetStage">
+    <label description="TargetStage" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isoptional>0</isoptional>
+  <name>gc_TransitionDeal.TargetStage</name>
+  <type>7</type>
+</customapirequestparameter>

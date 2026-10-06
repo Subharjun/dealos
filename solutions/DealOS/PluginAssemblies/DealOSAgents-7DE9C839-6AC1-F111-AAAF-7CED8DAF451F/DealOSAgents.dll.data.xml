@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<PluginAssembly FullName="DealOS.Agents, Version=1.0.0.0, Culture=neutral, PublicKeyToken=6a7897f805501b8c" PluginAssemblyId="7de9c839-6ac1-f111-aaaf-7ced8daf451f" CustomizationLevel="1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Description>DealOS AI agents (Gemini) exposed as gc_Agent_* Custom APIs</Description>
+  <IsolationMode>2</IsolationMode>
+  <SourceType>0</SourceType>
+  <IntroducedVersion>1.0.0.0</IntroducedVersion>
+  <FileName>/PluginAssemblies/DealOSAgents-7DE9C839-6AC1-F111-AAAF-7CED8DAF451F/DealOSAgents.dll</FileName>
+  <PluginTypes>
+    <PluginType AssemblyQualifiedName="DealOS.Agents.AgentPlugin, DealOS.Agents, Version=1.0.0.0, Culture=neutral, PublicKeyToken=6a7897f805501b8c" PluginTypeId="80e9c839-6ac1-f111-aaaf-7ced8daf451f" Name="DealOS.Agents.AgentPlugin">
+      <Description>Runs a DealOS agent</Description>
+      <FriendlyName>AgentPlugin</FriendlyName>
+    </PluginType>
+  </PluginTypes>
+</PluginAssembly>

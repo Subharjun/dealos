@@ -1,0 +1,90 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<forms xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <systemform>
+    <formid>{caf968b5-692d-46f2-896b-7b7281b5eea9}</formid>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <FormPresentation>1</FormPresentation>
+    <FormActivationState>1</FormActivationState>
+    <form>
+      <tabs>
+        <tab name="general" id="{b93e5393-33fc-4a04-a29c-c4f100d9196c}" IsUserDefined="0" verticallayout="true" expanded="true">
+          <labels>
+            <label description="General" languagecode="1033" />
+          </labels>
+          <columns>
+            <column width="100%">
+              <sections>
+                <section name="details" showlabel="true" showbar="false" id="{61f6401b-ae05-4fde-b16a-520729c663b0}" IsUserDefined="0" columns="11">
+                  <labels>
+                    <label description="Details" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row>
+                      <cell id="{a9722a82-b86a-4bbb-b382-f5969e9a1a4a}">
+                        <labels>
+                          <label description="Name" languagecode="1033" />
+                        </labels>
+                        <control id="gc_name" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_name" />
+                      </cell>
+                      <cell id="{6f3a1365-138b-486a-bc36-2b756118393d}">
+                        <labels>
+                          <label description="Document" languagecode="1033" />
+                        </labels>
+                        <control id="gc_document" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="gc_document" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{95e4e610-3176-4033-b504-81f994e1c628}">
+                        <labels>
+                          <label description="Page" languagecode="1033" />
+                        </labels>
+                        <control id="gc_pageno" classid="{C6D124CA-7EDA-4a60-AEA9-7FB8D318B68F}" datafieldname="gc_pageno" />
+                      </cell>
+                      <cell id="{608d0a1d-1bfa-4c73-b887-8046f0e65bbb}">
+                        <labels>
+                          <label description="OCR confidence" languagecode="1033" />
+                        </labels>
+                        <control id="gc_ocrconfidence" classid="{C3EFE0C3-0EC6-42be-8349-CBD9079DFD8E}" datafieldname="gc_ocrconfidence" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{12491428-1f1f-4fc0-b05b-6a9a599ef5c5}">
+                        <labels>
+                          <label description="Extractor" languagecode="1033" />
+                        </labels>
+                        <control id="gc_extractor" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_extractor" />
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+                <section name="data" showlabel="true" showbar="false" id="{a8c5d3e7-0564-47f7-8955-695e80c4e967}" IsUserDefined="0" columns="1">
+                  <labels>
+                    <label description="Data" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row>
+                      <cell id="{e495e137-b04c-4476-9c8e-f50cfc70e28c}" colspan="2">
+                        <labels>
+                          <label description="Text" languagecode="1033" />
+                        </labels>
+                        <control id="gc_text" classid="{E0DECE4B-6FC8-4a8f-A065-082708572369}" datafieldname="gc_text" />
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+              </sections>
+            </column>
+          </columns>
+        </tab>
+      </tabs>
+    </form>
+    <IsCustomizable>1</IsCustomizable>
+    <CanBeDeleted>1</CanBeDeleted>
+    <LocalizedNames>
+      <LocalizedName description="Information" languagecode="1033" />
+    </LocalizedNames>
+    <Descriptions>
+      <Description description="A form for this entity." languagecode="1033" />
+    </Descriptions>
+  </systemform>
+</forms>

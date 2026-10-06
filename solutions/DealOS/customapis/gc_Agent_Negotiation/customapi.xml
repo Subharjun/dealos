@@ -1,0 +1,18 @@
+<customapi uniquename="gc_Agent_Negotiation">
+  <allowedcustomprocessingsteptype>0</allowedcustomprocessingsteptype>
+  <bindingtype>0</bindingtype>
+  <description default="Advises the buyer or seller on an offer (accept / counter / reject / wait), proposes a counter within the user's limits and drafts a reply. Never sends or accepts.">
+    <label description="Advises the buyer or seller on an offer (accept / counter / reject / wait), proposes a counter within the user's limits and drafts a reply. Never sends or accepts." languagecode="1033" />
+  </description>
+  <displayname default="Agent: Negotiation">
+    <label description="Agent: Negotiation" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isfunction>0</isfunction>
+  <isprivate>0</isprivate>
+  <name>gc_Agent_Negotiation</name>
+  <plugintypeid>
+    <plugintypeexportkey>80e9c839-6ac1-f111-aaaf-7ced8daf451f</plugintypeexportkey>
+  </plugintypeid>
+  <workflowsdkstepenabled>0</workflowsdkstepenabled>
+</customapi>

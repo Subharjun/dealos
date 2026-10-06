@@ -1,0 +1,104 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<forms xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <systemform>
+    <formid>{a2741531-458b-4968-8ef9-f57e86d3b1c8}</formid>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <FormPresentation>1</FormPresentation>
+    <FormActivationState>1</FormActivationState>
+    <form>
+      <tabs>
+        <tab name="general" id="{a28db591-8f3b-4eb7-9f91-6cd4fb557d44}" IsUserDefined="0" verticallayout="true" expanded="true">
+          <labels>
+            <label description="General" languagecode="1033" />
+          </labels>
+          <columns>
+            <column width="100%">
+              <sections>
+                <section name="details" showlabel="true" showbar="false" id="{d403102c-9579-4a29-841b-f9d788950846}" IsUserDefined="0" columns="11">
+                  <labels>
+                    <label description="Details" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row>
+                      <cell id="{27028a1f-420c-4d31-ab3d-24f56273fa20}">
+                        <labels>
+                          <label description="Name" languagecode="1033" />
+                        </labels>
+                        <control id="gc_name" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_name" />
+                      </cell>
+                      <cell id="{e13eb445-11d1-4e1a-bdcf-6c3b26d9f37b}">
+                        <labels>
+                          <label description="Listing" languagecode="1033" />
+                        </labels>
+                        <control id="gc_listing" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="gc_listing" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{98b09132-56b3-4146-b7f2-0fabfbeff171}">
+                        <labels>
+                          <label description="Buyer requirement" languagecode="1033" />
+                        </labels>
+                        <control id="gc_requirement" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="gc_requirement" />
+                      </cell>
+                      <cell id="{bb0a328a-3cc3-4e51-b84f-e16c0a607584}">
+                        <labels>
+                          <label description="Score" languagecode="1033" />
+                        </labels>
+                        <control id="gc_score" classid="{C3EFE0C3-0EC6-42be-8349-CBD9079DFD8E}" datafieldname="gc_score" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{9508bcad-8cd6-4bf0-9c9e-957d7b51c930}">
+                        <labels>
+                          <label description="Buyer opted in" languagecode="1033" />
+                        </labels>
+                        <control id="gc_buyeroptin" classid="{67FAC785-CD58-4f9f-ABB3-4B7DDC6ED5ED}" datafieldname="gc_buyeroptin" />
+                      </cell>
+                      <cell id="{48c78ef4-9ba6-44ac-ab6f-f6ed003245ed}">
+                        <labels>
+                          <label description="Seller opted in" languagecode="1033" />
+                        </labels>
+                        <control id="gc_selleroptin" classid="{67FAC785-CD58-4f9f-ABB3-4B7DDC6ED5ED}" datafieldname="gc_selleroptin" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{17c94c4f-4098-41ca-9e6d-07a6a9a42c06}">
+                        <labels>
+                          <label description="Status" languagecode="1033" />
+                        </labels>
+                        <control id="gc_status" classid="{3EF39988-22BB-4f0b-BBBE-64B5A3748AEE}" datafieldname="gc_status" />
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+                <section name="data" showlabel="true" showbar="false" id="{ac6c7df5-56f3-4f29-ae2d-bdfe2f0373e3}" IsUserDefined="0" columns="1">
+                  <labels>
+                    <label description="Data" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row>
+                      <cell id="{5cdff28c-290c-4840-890f-d4e42feebca4}" colspan="2">
+                        <labels>
+                          <label description="Explanation (JSON)" languagecode="1033" />
+                        </labels>
+                        <control id="gc_explanation" classid="{E0DECE4B-6FC8-4a8f-A065-082708572369}" datafieldname="gc_explanation" />
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+              </sections>
+            </column>
+          </columns>
+        </tab>
+      </tabs>
+    </form>
+    <IsCustomizable>1</IsCustomizable>
+    <CanBeDeleted>1</CanBeDeleted>
+    <LocalizedNames>
+      <LocalizedName description="Information" languagecode="1033" />
+    </LocalizedNames>
+    <Descriptions>
+      <Description description="A form for this entity." languagecode="1033" />
+    </Descriptions>
+  </systemform>
+</forms>

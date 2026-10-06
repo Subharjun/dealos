@@ -1,0 +1,51 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<savedqueries xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <savedquery>
+    <IsCustomizable>1</IsCustomizable>
+    <CanBeDeleted>0</CanBeDeleted>
+    <isquickfindquery>0</isquickfindquery>
+    <isprivate>0</isprivate>
+    <isdefault>1</isdefault>
+    <savedqueryid>{b85f0f2d-1ad6-4d14-8b78-405de65e96c7}</savedqueryid>
+    <layoutxml>
+      <grid name="resultset" jump="gc_name" select="1" icon="1" preview="1">
+        <row name="result" id="gc_partylinkid">
+          <cell name="gc_name" width="200" />
+          <cell name="gc_fromaccount" width="140" />
+          <cell name="gc_fromcontact" width="140" />
+          <cell name="gc_toaccount" width="140" />
+          <cell name="gc_tocontact" width="140" />
+          <cell name="gc_kind" width="140" />
+          <cell name="gc_deal" width="140" />
+          <cell name="gc_mandatedocument" width="140" />
+          <cell name="createdon" width="140" />
+        </row>
+      </grid>
+    </layoutxml>
+    <querytype>0</querytype>
+    <fetchxml>
+      <fetch version="1.0" mapping="logical">
+        <entity name="gc_partylink">
+          <attribute name="gc_name" />
+          <attribute name="gc_fromaccount" />
+          <attribute name="gc_fromcontact" />
+          <attribute name="gc_toaccount" />
+          <attribute name="gc_tocontact" />
+          <attribute name="gc_kind" />
+          <attribute name="gc_deal" />
+          <attribute name="gc_mandatedocument" />
+          <attribute name="createdon" />
+          <attribute name="gc_partylinkid" />
+          <order attribute="createdon" descending="true" />
+          <filter type="and">
+            <condition attribute="statecode" operator="eq" value="0" />
+          </filter>
+        </entity>
+      </fetch>
+    </fetchxml>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <LocalizedNames>
+      <LocalizedName description="Active Party links" languagecode="1033" />
+    </LocalizedNames>
+  </savedquery>
+</savedqueries>

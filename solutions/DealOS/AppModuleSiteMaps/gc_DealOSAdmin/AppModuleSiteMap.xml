@@ -1,0 +1,154 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<AppModuleSiteMap xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <SiteMapUniqueName>gc_DealOSAdmin</SiteMapUniqueName>
+  <EnableCollapsibleGroups>False</EnableCollapsibleGroups>
+  <ShowHome>True</ShowHome>
+  <ShowPinned>True</ShowPinned>
+  <ShowRecents>True</ShowRecents>
+  <SiteMap IntroducedVersion="7.0.0.0">
+    <Area Id="verification" ShowGroups="true">
+      <Titles>
+        <Title LCID="1033" Title="Verification" />
+      </Titles>
+      <Group Id="verification_0" IsProfile="false">
+        <Titles>
+          <Title LCID="1033" Title="Listings &amp; evidence" />
+        </Titles>
+        <SubArea Id="sa_gc_listing" Entity="gc_listing" />
+        <SubArea Id="sa_gc_document" Entity="gc_document" />
+        <SubArea Id="sa_gc_fact" Entity="gc_fact" />
+        <SubArea Id="sa_gc_conflict" Entity="gc_conflict" />
+        <SubArea Id="sa_gc_assertion" Entity="gc_assertion" />
+        <SubArea Id="sa_gc_verification" Entity="gc_verification" />
+      </Group>
+      <Group Id="verification_1" IsProfile="false">
+        <Titles>
+          <Title LCID="1033" Title="Work queue" />
+        </Titles>
+        <SubArea Id="sa_gc_reviewtask" Entity="gc_reviewtask" />
+        <SubArea Id="sa_gc_question" Entity="gc_question" />
+        <SubArea Id="sa_gc_generatedmessage" Entity="gc_generatedmessage" />
+      </Group>
+    </Area>
+    <Area Id="parties" ShowGroups="true">
+      <Titles>
+        <Title LCID="1033" Title="Parties" />
+      </Titles>
+      <Group Id="parties_0" IsProfile="false">
+        <Titles>
+          <Title LCID="1033" Title="Companies &amp; people" />
+        </Titles>
+        <SubArea Id="sa_account" Entity="account" />
+        <SubArea Id="sa_contact" Entity="contact" />
+        <SubArea Id="sa_gc_partylink" Entity="gc_partylink" />
+      </Group>
+      <Group Id="parties_1" IsProfile="false">
+        <Titles>
+          <Title LCID="1033" Title="Checks" />
+        </Titles>
+        <SubArea Id="sa_gc_kyccheck" Entity="gc_kyccheck" />
+        <SubArea Id="sa_gc_screening" Entity="gc_screening" />
+      </Group>
+      <Group Id="parties_2" IsProfile="false">
+        <Titles>
+          <Title LCID="1033" Title="Assets" />
+        </Titles>
+        <SubArea Id="sa_gc_asset" Entity="gc_asset" />
+        <SubArea Id="sa_gc_licence" Entity="gc_licence" />
+        <SubArea Id="sa_gc_lot" Entity="gc_lot" />
+      </Group>
+    </Area>
+    <Area Id="deals" ShowGroups="true">
+      <Titles>
+        <Title LCID="1033" Title="Deals" />
+      </Titles>
+      <Group Id="deals_0" IsProfile="false">
+        <Titles>
+          <Title LCID="1033" Title="Market" />
+        </Titles>
+        <SubArea Id="sa_gc_buyerrequirement" Entity="gc_buyerrequirement" />
+        <SubArea Id="sa_gc_match" Entity="gc_match" />
+      </Group>
+      <Group Id="deals_1" IsProfile="false">
+        <Titles>
+          <Title LCID="1033" Title="Deals" />
+        </Titles>
+        <SubArea Id="sa_gc_deal" Entity="gc_deal" />
+        <SubArea Id="sa_gc_offer" Entity="gc_offer" />
+        <SubArea Id="sa_gc_pricequote" Entity="gc_pricequote" />
+        <SubArea Id="sa_gc_contract" Entity="gc_contract" />
+        <SubArea Id="sa_gc_dealparty" Entity="gc_dealparty" />
+      </Group>
+      <Group Id="deals_2" IsProfile="false">
+        <Titles>
+          <Title LCID="1033" Title="Money &amp; logistics" />
+        </Titles>
+        <SubArea Id="sa_gc_payment" Entity="gc_payment" />
+        <SubArea Id="sa_gc_paymentrelease" Entity="gc_paymentrelease" />
+        <SubArea Id="sa_gc_shipment" Entity="gc_shipment" />
+        <SubArea Id="sa_gc_milestone" Entity="gc_milestone" />
+      </Group>
+    </Area>
+    <Area Id="rulebook" ShowGroups="true">
+      <Titles>
+        <Title LCID="1033" Title="Rulebook &amp; settings" />
+      </Titles>
+      <Group Id="rulebook_0" IsProfile="false">
+        <Titles>
+          <Title LCID="1033" Title="Country rulebook" />
+        </Titles>
+        <SubArea Id="sa_gc_country" Entity="gc_country" />
+        <SubArea Id="sa_gc_countryrule" Entity="gc_countryrule" />
+        <SubArea Id="sa_gc_tariffrate" Entity="gc_tariffrate" />
+        <SubArea Id="sa_gc_fxrate" Entity="gc_fxrate" />
+      </Group>
+      <Group Id="rulebook_1" IsProfile="false">
+        <Titles>
+          <Title LCID="1033" Title="Catalogue" />
+        </Titles>
+        <SubArea Id="sa_gc_commodity" Entity="gc_commodity" />
+        <SubArea Id="sa_gc_attributedef" Entity="gc_attributedef" />
+      </Group>
+      <Group Id="rulebook_2" IsProfile="false">
+        <Titles>
+          <Title LCID="1033" Title="Platform" />
+        </Titles>
+        <SubArea Id="sa_gc_commissionplan" Entity="gc_commissionplan" />
+        <SubArea Id="sa_gc_platformsetting" Entity="gc_platformsetting" />
+      </Group>
+    </Area>
+    <Area Id="operations" ShowGroups="true">
+      <Titles>
+        <Title LCID="1033" Title="Operations" />
+      </Titles>
+      <Group Id="operations_0" IsProfile="false">
+        <Titles>
+          <Title LCID="1033" Title="Monitoring" />
+        </Titles>
+        <SubArea Id="sa_gc_flowfailure" Entity="gc_flowfailure" />
+        <SubArea Id="sa_gc_agentrun" Entity="gc_agentrun" />
+        <SubArea Id="sa_gc_modelcall" Entity="gc_modelcall" />
+      </Group>
+      <Group Id="operations_1" IsProfile="false">
+        <Titles>
+          <Title LCID="1033" Title="Audit" />
+        </Titles>
+        <SubArea Id="sa_gc_auditevent" Entity="gc_auditevent" />
+        <SubArea Id="sa_gc_stagetransition" Entity="gc_stagetransition" />
+        <SubArea Id="sa_gc_paymentevent" Entity="gc_paymentevent" />
+      </Group>
+      <Group Id="operations_2" IsProfile="false">
+        <Titles>
+          <Title LCID="1033" Title="Content" />
+        </Titles>
+        <SubArea Id="sa_gc_documentpage" Entity="gc_documentpage" />
+        <SubArea Id="sa_gc_conversation" Entity="gc_conversation" />
+        <SubArea Id="sa_gc_message" Entity="gc_message" />
+        <SubArea Id="sa_gc_factsheet" Entity="gc_factsheet" />
+      </Group>
+    </Area>
+  </SiteMap>
+  <LocalizedNames>
+    <LocalizedName description="DealOS Admin" languagecode="1033" />
+  </LocalizedNames>
+</AppModuleSiteMap>

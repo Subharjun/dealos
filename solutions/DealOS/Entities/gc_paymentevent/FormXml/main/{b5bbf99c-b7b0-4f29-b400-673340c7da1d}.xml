@@ -1,0 +1,96 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<forms xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <systemform>
+    <formid>{b5bbf99c-b7b0-4f29-b400-673340c7da1d}</formid>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <FormPresentation>1</FormPresentation>
+    <FormActivationState>1</FormActivationState>
+    <form>
+      <tabs>
+        <tab name="general" id="{c2aa7957-38f0-4e71-bb4f-26b6a4b2bb07}" IsUserDefined="0" verticallayout="true" expanded="true">
+          <labels>
+            <label description="General" languagecode="1033" />
+          </labels>
+          <columns>
+            <column width="100%">
+              <sections>
+                <section name="details" showlabel="true" showbar="false" id="{1588b6e6-1e5e-40af-b6cc-a93c5a4598f5}" IsUserDefined="0" columns="11">
+                  <labels>
+                    <label description="Details" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row>
+                      <cell id="{6a7404c2-30e4-4b8a-889e-046f12e07cba}">
+                        <labels>
+                          <label description="Name" languagecode="1033" />
+                        </labels>
+                        <control id="gc_name" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_name" />
+                      </cell>
+                      <cell id="{f66b2cc1-0a23-4c65-8d8b-31ad2373209d}">
+                        <labels>
+                          <label description="Payment" languagecode="1033" />
+                        </labels>
+                        <control id="gc_payment" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="gc_payment" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{58ea4da6-48eb-4c8f-88e2-2740298e44c1}">
+                        <labels>
+                          <label description="Event type" languagecode="1033" />
+                        </labels>
+                        <control id="gc_eventtype" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_eventtype" />
+                      </cell>
+                      <cell id="{b058b456-6d48-4dd9-a7de-35331abddd01}">
+                        <labels>
+                          <label description="External event ID" languagecode="1033" />
+                        </labels>
+                        <control id="gc_externalid" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_externalid" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{e75a0bb6-9f14-41c0-ad5f-86b3597a90b9}">
+                        <labels>
+                          <label description="Signature valid" languagecode="1033" />
+                        </labels>
+                        <control id="gc_signaturevalid" classid="{67FAC785-CD58-4f9f-ABB3-4B7DDC6ED5ED}" datafieldname="gc_signaturevalid" />
+                      </cell>
+                      <cell id="{0a6b2c3d-5dbe-4490-a460-558648172039}">
+                        <labels>
+                          <label description="Received on" languagecode="1033" />
+                        </labels>
+                        <control id="gc_receivedon" classid="{5B773807-9FB2-42db-97C3-7A91EFF8ADFF}" datafieldname="gc_receivedon" />
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+                <section name="data" showlabel="true" showbar="false" id="{a7efaaf5-721d-4947-aae8-03f36d2486f4}" IsUserDefined="0" columns="1">
+                  <labels>
+                    <label description="Data" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row>
+                      <cell id="{d3b66748-85d0-4364-b91d-fa4b796a2290}" colspan="2">
+                        <labels>
+                          <label description="Payload (JSON)" languagecode="1033" />
+                        </labels>
+                        <control id="gc_payload" classid="{E0DECE4B-6FC8-4a8f-A065-082708572369}" datafieldname="gc_payload" />
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+              </sections>
+            </column>
+          </columns>
+        </tab>
+      </tabs>
+    </form>
+    <IsCustomizable>1</IsCustomizable>
+    <CanBeDeleted>1</CanBeDeleted>
+    <LocalizedNames>
+      <LocalizedName description="Information" languagecode="1033" />
+    </LocalizedNames>
+    <Descriptions>
+      <Description description="A form for this entity." languagecode="1033" />
+    </Descriptions>
+  </systemform>
+</forms>

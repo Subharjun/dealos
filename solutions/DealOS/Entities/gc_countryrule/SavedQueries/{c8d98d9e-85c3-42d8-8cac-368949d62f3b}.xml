@@ -1,0 +1,51 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<savedqueries xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <savedquery>
+    <IsCustomizable>1</IsCustomizable>
+    <CanBeDeleted>0</CanBeDeleted>
+    <isquickfindquery>0</isquickfindquery>
+    <isprivate>0</isprivate>
+    <isdefault>1</isdefault>
+    <savedqueryid>{c8d98d9e-85c3-42d8-8cac-368949d62f3b}</savedqueryid>
+    <layoutxml>
+      <grid name="resultset" jump="gc_name" select="1" icon="1" preview="1">
+        <row name="result" id="gc_countryruleid">
+          <cell name="gc_name" width="200" />
+          <cell name="gc_country" width="140" />
+          <cell name="gc_section" width="140" />
+          <cell name="gc_rulekey" width="140" />
+          <cell name="gc_commodity" width="140" />
+          <cell name="gc_hscode" width="140" />
+          <cell name="gc_effectivefrom" width="140" />
+          <cell name="gc_effectiveto" width="140" />
+          <cell name="createdon" width="140" />
+        </row>
+      </grid>
+    </layoutxml>
+    <querytype>0</querytype>
+    <fetchxml>
+      <fetch version="1.0" mapping="logical">
+        <entity name="gc_countryrule">
+          <attribute name="gc_name" />
+          <attribute name="gc_country" />
+          <attribute name="gc_section" />
+          <attribute name="gc_rulekey" />
+          <attribute name="gc_commodity" />
+          <attribute name="gc_hscode" />
+          <attribute name="gc_effectivefrom" />
+          <attribute name="gc_effectiveto" />
+          <attribute name="createdon" />
+          <attribute name="gc_countryruleid" />
+          <order attribute="createdon" descending="true" />
+          <filter type="and">
+            <condition attribute="statecode" operator="eq" value="0" />
+          </filter>
+        </entity>
+      </fetch>
+    </fetchxml>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <LocalizedNames>
+      <LocalizedName description="Active Country rules" languagecode="1033" />
+    </LocalizedNames>
+  </savedquery>
+</savedqueries>

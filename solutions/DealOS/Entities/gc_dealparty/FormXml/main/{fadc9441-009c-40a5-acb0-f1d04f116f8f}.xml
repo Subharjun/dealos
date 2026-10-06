@@ -1,0 +1,81 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<forms xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <systemform>
+    <formid>{fadc9441-009c-40a5-acb0-f1d04f116f8f}</formid>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <FormPresentation>1</FormPresentation>
+    <FormActivationState>1</FormActivationState>
+    <form>
+      <tabs>
+        <tab name="general" id="{a63e3b0c-354f-40a1-a46c-c39f1d2c3411}" IsUserDefined="0" verticallayout="true" expanded="true">
+          <labels>
+            <label description="General" languagecode="1033" />
+          </labels>
+          <columns>
+            <column width="100%">
+              <sections>
+                <section name="details" showlabel="true" showbar="false" id="{a7eb3177-8fa9-4f9b-abf0-0e5a6e27c8b3}" IsUserDefined="0" columns="11">
+                  <labels>
+                    <label description="Details" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row>
+                      <cell id="{e71f502e-e7d0-4cb2-a15e-e7fa5548f2e4}">
+                        <labels>
+                          <label description="Name" languagecode="1033" />
+                        </labels>
+                        <control id="gc_name" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_name" />
+                      </cell>
+                      <cell id="{b150b66d-095c-4759-a2b4-f6ad322cc62a}">
+                        <labels>
+                          <label description="Deal" languagecode="1033" />
+                        </labels>
+                        <control id="gc_deal" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="gc_deal" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{5e3ea664-178d-4334-ac77-ffbe54979409}">
+                        <labels>
+                          <label description="Company" languagecode="1033" />
+                        </labels>
+                        <control id="gc_account" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="gc_account" />
+                      </cell>
+                      <cell id="{2f1c1c35-c9a0-4c85-a351-bb8b0530b6f1}">
+                        <labels>
+                          <label description="Person" languagecode="1033" />
+                        </labels>
+                        <control id="gc_contact" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="gc_contact" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{c9b6363b-a617-4cbf-ac13-fa0660599510}">
+                        <labels>
+                          <label description="Role" languagecode="1033" />
+                        </labels>
+                        <control id="gc_role" classid="{3EF39988-22BB-4f0b-BBBE-64B5A3748AEE}" datafieldname="gc_role" />
+                      </cell>
+                      <cell id="{54a3bec4-451b-4c76-8241-7b70a811b5d8}">
+                        <labels>
+                          <label description="Disclosed to counterparty" languagecode="1033" />
+                        </labels>
+                        <control id="gc_disclosedtocounterparty" classid="{67FAC785-CD58-4f9f-ABB3-4B7DDC6ED5ED}" datafieldname="gc_disclosedtocounterparty" />
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+              </sections>
+            </column>
+          </columns>
+        </tab>
+      </tabs>
+    </form>
+    <IsCustomizable>1</IsCustomizable>
+    <CanBeDeleted>1</CanBeDeleted>
+    <LocalizedNames>
+      <LocalizedName description="Information" languagecode="1033" />
+    </LocalizedNames>
+    <Descriptions>
+      <Description description="A form for this entity." languagecode="1033" />
+    </Descriptions>
+  </systemform>
+</forms>

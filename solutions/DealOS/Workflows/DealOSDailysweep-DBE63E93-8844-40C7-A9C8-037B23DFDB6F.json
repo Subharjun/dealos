@@ -1,0 +1,208 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_commondataserviceforapps": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "gc_dataverse"
+        },
+        "api": {
+          "name": "shared_commondataserviceforapps"
+        }
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$connections": {
+          "defaultValue": {},
+          "type": "Object"
+        },
+        "$authentication": {
+          "defaultValue": {},
+          "type": "SecureObject"
+        }
+      },
+      "triggers": {
+        "Every_day_0200_UTC": {
+          "type": "Recurrence",
+          "recurrence": {
+            "frequency": "Day",
+            "interval": 1,
+            "schedule": {
+              "hours": [
+                "2"
+              ]
+            },
+            "timeZone": "UTC"
+          }
+        }
+      },
+      "actions": {
+        "Try": {
+          "type": "Scope",
+          "actions": {
+            "Expired_facts": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "ListRecords",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_facts",
+                  "$select": "_gc_listing_value",
+                  "$filter": "gc_freshnessexpireson lt @{utcNow()} and gc_status ne 303300005 and gc_status ne 303300006 and _gc_listing_value ne null"
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {}
+            },
+            "Listing_ids": {
+              "type": "Select",
+              "inputs": {
+                "from": "@outputs('Expired_facts')?['body/value']",
+                "select": "@item()?['_gc_listing_value']"
+              },
+              "runAfter": {
+                "Expired_facts": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Recheck_listings": {
+              "type": "Foreach",
+              "foreach": "@union(body('Listing_ids'), body('Listing_ids'))",
+              "actions": {
+                "Recheck": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_commondataserviceforapps",
+                      "operationId": "PerformUnboundAction",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                    },
+                    "parameters": {
+                      "actionName": "gc_ResolveEvidence",
+                      "item/SubjectType": 303300004,
+                      "item/SubjectId": "@{items('Recheck_listings')}"
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  },
+                  "runAfter": {}
+                }
+              },
+              "runAfter": {
+                "Listing_ids": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Stale_offers": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "ListRecords",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_offers",
+                  "$select": "gc_offerid",
+                  "$filter": "gc_validuntil lt @{utcNow()} and gc_status eq 303300000"
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {
+                "Recheck_listings": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Expire_offers": {
+              "type": "Foreach",
+              "foreach": "@outputs('Stale_offers')?['body/value']",
+              "actions": {
+                "Expire": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_commondataserviceforapps",
+                      "operationId": "UpdateRecord",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                    },
+                    "parameters": {
+                      "entityName": "gc_offers",
+                      "recordId": "@items('Expire_offers')?['gc_offerid']",
+                      "item/gc_status": 303300004
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  },
+                  "runAfter": {}
+                }
+              },
+              "runAfter": {
+                "Stale_offers": [
+                  "Succeeded"
+                ]
+              }
+            }
+          },
+          "runAfter": {}
+        },
+        "Catch": {
+          "type": "Scope",
+          "actions": {
+            "Record_failure": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "CreateRecord",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_flowfailures",
+                  "item/gc_name": "DealOS | Daily sweep",
+                  "item/gc_flowname": "DealOS | Daily sweep",
+                  "item/gc_runurl": "https://make.powerautomate.com/environments/@{workflow()?['tags']?['environmentName']}/flows/@{workflow()?['name']}/runs/@{workflow()?['run']?['name']}",
+                  "item/gc_step": "Try",
+                  "item/gc_error": "@{take(string(result('Try')), 3900)}",
+                  "item/gc_payload": "@{take(string(triggerOutputs()?['body']), 100000)}",
+                  "item/gc_status": 303300000
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {}
+            },
+            "Fail_run": {
+              "type": "Terminate",
+              "inputs": {
+                "runStatus": "Failed",
+                "runError": {
+                  "code": "DealOSFlowFailure",
+                  "message": "Recorded in Flow failures"
+                }
+              },
+              "runAfter": {
+                "Record_failure": [
+                  "Succeeded"
+                ]
+              }
+            }
+          },
+          "runAfter": {
+            "Try": [
+              "Failed",
+              "TimedOut"
+            ]
+          }
+        }
+      }
+    },
+    "templateName": null
+  },
+  "schemaVersion": "1.0.0.0"
+}

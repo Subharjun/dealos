@@ -1,0 +1,160 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<forms xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <systemform>
+    <formid>{81c65c7f-86a1-4796-9532-57290a03757d}</formid>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <FormPresentation>1</FormPresentation>
+    <FormActivationState>1</FormActivationState>
+    <form>
+      <tabs>
+        <tab name="general" id="{8e5c4340-330a-495b-a3c7-3c771f1223e3}" IsUserDefined="0" verticallayout="true" expanded="true">
+          <labels>
+            <label description="General" languagecode="1033" />
+          </labels>
+          <columns>
+            <column width="100%">
+              <sections>
+                <section name="details" showlabel="true" showbar="false" id="{56e2fa58-e4c3-4267-93c3-ad06f9d58bec}" IsUserDefined="0" columns="11">
+                  <labels>
+                    <label description="Details" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row>
+                      <cell id="{7bb38236-dcca-40a4-b1ae-bc7eff46a548}">
+                        <labels>
+                          <label description="Name" languagecode="1033" />
+                        </labels>
+                        <control id="gc_name" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_name" />
+                      </cell>
+                      <cell id="{78e81858-f60a-4007-963c-04d0b3fe9216}">
+                        <labels>
+                          <label description="Country" languagecode="1033" />
+                        </labels>
+                        <control id="gc_country" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="gc_country" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{068c54d4-de18-45d1-be10-35576f40510f}">
+                        <labels>
+                          <label description="Section" languagecode="1033" />
+                        </labels>
+                        <control id="gc_section" classid="{3EF39988-22BB-4f0b-BBBE-64B5A3748AEE}" datafieldname="gc_section" />
+                      </cell>
+                      <cell id="{dd5152c8-1fdc-4207-8c21-b2b0c61f2c7e}">
+                        <labels>
+                          <label description="Rule key" languagecode="1033" />
+                        </labels>
+                        <control id="gc_rulekey" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_rulekey" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{edfcceb9-ae24-4675-a7a4-86fb71420291}">
+                        <labels>
+                          <label description="Commodity" languagecode="1033" />
+                        </labels>
+                        <control id="gc_commodity" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="gc_commodity" />
+                      </cell>
+                      <cell id="{cefe96d5-a5cb-4990-af43-44b8b30704ab}">
+                        <labels>
+                          <label description="HS code" languagecode="1033" />
+                        </labels>
+                        <control id="gc_hscode" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_hscode" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{a68705e4-0386-4587-b3b6-21c3a729b1ce}">
+                        <labels>
+                          <label description="Effective from" languagecode="1033" />
+                        </labels>
+                        <control id="gc_effectivefrom" classid="{5B773807-9FB2-42db-97C3-7A91EFF8ADFF}" datafieldname="gc_effectivefrom" />
+                      </cell>
+                      <cell id="{4422ac3b-f381-4712-b91e-59ef2cd45165}">
+                        <labels>
+                          <label description="Effective to" languagecode="1033" />
+                        </labels>
+                        <control id="gc_effectiveto" classid="{5B773807-9FB2-42db-97C3-7A91EFF8ADFF}" datafieldname="gc_effectiveto" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{bd49a206-af7f-4127-810f-d4960d29565a}">
+                        <labels>
+                          <label description="Source URL" languagecode="1033" />
+                        </labels>
+                        <control id="gc_sourceurl" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_sourceurl" />
+                      </cell>
+                      <cell id="{79042cbc-fe2e-4f69-b798-508b46231e0a}">
+                        <labels>
+                          <label description="Last reviewed on" languagecode="1033" />
+                        </labels>
+                        <control id="gc_lastreviewedon" classid="{5B773807-9FB2-42db-97C3-7A91EFF8ADFF}" datafieldname="gc_lastreviewedon" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{cd0959d8-4fcb-4d49-8683-092602a034e0}">
+                        <labels>
+                          <label description="Reviewer" languagecode="1033" />
+                        </labels>
+                        <control id="gc_reviewer" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="gc_reviewer" />
+                      </cell>
+                      <cell id="{378fc124-c88f-4fdb-8fb6-777b2371592a}">
+                        <labels>
+                          <label description="Review window (days)" languagecode="1033" />
+                        </labels>
+                        <control id="gc_reviewwindowdays" classid="{C6D124CA-7EDA-4a60-AEA9-7FB8D318B68F}" datafieldname="gc_reviewwindowdays" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{8c15b980-06fc-458d-8618-40059030f85b}">
+                        <labels>
+                          <label description="Status" languagecode="1033" />
+                        </labels>
+                        <control id="gc_status" classid="{3EF39988-22BB-4f0b-BBBE-64B5A3748AEE}" datafieldname="gc_status" />
+                      </cell>
+                      <cell id="{bcc404bb-d4d1-4d19-a2c0-d1cc4ccc4938}">
+                        <labels>
+                          <label description="Sample (unverified) entry" languagecode="1033" />
+                        </labels>
+                        <control id="gc_issample" classid="{67FAC785-CD58-4f9f-ABB3-4B7DDC6ED5ED}" datafieldname="gc_issample" />
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+                <section name="data" showlabel="true" showbar="false" id="{fbaa1a58-1298-4609-9b80-bc41006ebaec}" IsUserDefined="0" columns="1">
+                  <labels>
+                    <label description="Data" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row>
+                      <cell id="{2b4686fd-0fee-4912-b8e0-420de5db002f}" colspan="2">
+                        <labels>
+                          <label description="Value (JSON)" languagecode="1033" />
+                        </labels>
+                        <control id="gc_value" classid="{E0DECE4B-6FC8-4a8f-A065-082708572369}" datafieldname="gc_value" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{02def2f9-9ae8-4c39-9904-6ceaf7be8b19}" colspan="2">
+                        <labels>
+                          <label description="Summary" languagecode="1033" />
+                        </labels>
+                        <control id="gc_summary" classid="{E0DECE4B-6FC8-4a8f-A065-082708572369}" datafieldname="gc_summary" />
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+              </sections>
+            </column>
+          </columns>
+        </tab>
+      </tabs>
+    </form>
+    <IsCustomizable>1</IsCustomizable>
+    <CanBeDeleted>1</CanBeDeleted>
+    <LocalizedNames>
+      <LocalizedName description="Information" languagecode="1033" />
+    </LocalizedNames>
+    <Descriptions>
+      <Description description="A form for this entity." languagecode="1033" />
+    </Descriptions>
+  </systemform>
+</forms>

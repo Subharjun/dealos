@@ -1,0 +1,510 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_commondataserviceforapps": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "gc_dataverse"
+        },
+        "api": {
+          "name": "shared_commondataserviceforapps"
+        }
+      },
+      "shared_approvals": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "gc_approvals"
+        },
+        "api": {
+          "name": "shared_approvals"
+        }
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$connections": {
+          "defaultValue": {},
+          "type": "Object"
+        },
+        "$authentication": {
+          "defaultValue": {},
+          "type": "SecureObject"
+        }
+      },
+      "triggers": {
+        "When_a_review_task_is_created": {
+          "type": "OpenApiConnectionWebhook",
+          "inputs": {
+            "host": {
+              "connectionName": "shared_commondataserviceforapps",
+              "operationId": "SubscribeWebhookTrigger",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "subscriptionRequest/message": 1,
+              "subscriptionRequest/entityname": "gc_reviewtask",
+              "subscriptionRequest/scope": 4,
+              "subscriptionRequest/filterexpression": "gc_kind eq 303300000 and gc_status eq 303300000"
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        }
+      },
+      "actions": {
+        "Try": {
+          "type": "Scope",
+          "actions": {
+            "Role_names": {
+              "type": "Compose",
+              "inputs": {
+                "303300000": "SuperAdmin",
+                "303300001": "VerificationOfficer",
+                "303300002": "DealManager",
+                "303300003": "ComplianceOfficer",
+                "303300004": "Finance",
+                "303300005": "LogisticsCoordinator",
+                "303300006": "Support"
+              },
+              "runAfter": {}
+            },
+            "Assignee_setting": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "ListRecords",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_platformsettings",
+                  "$select": "gc_value",
+                  "$filter": "gc_key eq 'approvals.assignees'"
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {
+                "Role_names": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Assignees": {
+              "type": "Compose",
+              "inputs": "@{coalesce(json(coalesce(first(outputs('Assignee_setting')?['body/value'])?['gc_value'], '{}'))?[outputs('Role_names')?[string(triggerOutputs()?['body/gc_assigneerole'])]], json(coalesce(first(outputs('Assignee_setting')?['body/value'])?['gc_value'], '{}'))?['default'])}",
+              "runAfter": {
+                "Assignee_setting": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Base_url": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "ListRecords",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_platformsettings",
+                  "$select": "gc_value",
+                  "$filter": "gc_key eq 'app.base_url'"
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {
+                "Assignees": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Ask_staff": {
+              "type": "OpenApiConnectionWebhook",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_approvals",
+                  "operationId": "StartAndWaitForAnApproval",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_approvals"
+                },
+                "parameters": {
+                  "approvalType": "Basic",
+                  "WebhookApprovalCreationInput/title": "DealOS: @{triggerOutputs()?['body/gc_name']}",
+                  "WebhookApprovalCreationInput/assignedTo": "@{outputs('Assignees')}",
+                  "WebhookApprovalCreationInput/details": "Purpose: @{triggerOutputs()?['body/gc_purpose@OData.Community.Display.V1.FormattedValue']}\n\n@{triggerOutputs()?['body/gc_payload']}",
+                  "WebhookApprovalCreationInput/itemLink": "@{first(outputs('Base_url')?['body/value'])?['gc_value']}/main.aspx?pagetype=entityrecord&etn=gc_reviewtask&id=@{triggerOutputs()?['body/gc_reviewtaskid']}",
+                  "WebhookApprovalCreationInput/itemLinkDescription": "Open the review task",
+                  "WebhookApprovalCreationInput/enableNotifications": true,
+                  "WebhookApprovalCreationInput/enableReassignment": true
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {
+                "Base_url": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Responder": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "ListRecords",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "systemusers",
+                  "$select": "systemuserid",
+                  "$top": 1,
+                  "$filter": "internalemailaddress eq '@{body('Ask_staff')?['responses']?[0]?['responder']?['email']}'"
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {
+                "Ask_staff": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Record_decision": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "UpdateRecord",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_reviewtasks",
+                  "recordId": "@{triggerOutputs()?['body/gc_reviewtaskid']}",
+                  "item/gc_status": "@if(equals(body('Ask_staff')?['outcome'], 'Approve'), 303300001, 303300002)",
+                  "item/gc_decisionreason": "@{body('Ask_staff')?['responses']?[0]?['comments']}",
+                  "item/gc_approvalid": "@{body('Ask_staff')?['name']}"
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {
+                "Responder": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Link_decider": {
+              "type": "If",
+              "expression": {
+                "greater": [
+                  "@length(outputs('Responder')?['body/value'])",
+                  0
+                ]
+              },
+              "actions": {
+                "Set_decider": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_commondataserviceforapps",
+                      "operationId": "UpdateRecord",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                    },
+                    "parameters": {
+                      "entityName": "gc_reviewtasks",
+                      "recordId": "@{triggerOutputs()?['body/gc_reviewtaskid']}",
+                      "item/gc_decidedby@odata.bind": "systemusers(@{first(outputs('Responder')?['body/value'])?['systemuserid']})"
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  },
+                  "runAfter": {}
+                }
+              },
+              "else": {
+                "actions": {}
+              },
+              "runAfter": {
+                "Record_decision": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Apply_decision": {
+              "type": "Switch",
+              "expression": "@triggerOutputs()?['body/gc_purpose']",
+              "cases": {
+                "Listing_publish": {
+                  "case": 303300001,
+                  "actions": {
+                    "Publish_decision": {
+                      "type": "If",
+                      "expression": {
+                        "equals": [
+                          "@body('Ask_staff')?['outcome']",
+                          "Approve"
+                        ]
+                      },
+                      "actions": {
+                        "Publish_listing": {
+                          "type": "OpenApiConnection",
+                          "inputs": {
+                            "host": {
+                              "connectionName": "shared_commondataserviceforapps",
+                              "operationId": "UpdateRecord",
+                              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                            },
+                            "parameters": {
+                              "entityName": "gc_listings",
+                              "recordId": "@{triggerOutputs()?['body/_gc_listing_value']}",
+                              "item/gc_status": 303300004,
+                              "item/gc_publishedon": "@utcNow()"
+                            },
+                            "authentication": "@parameters('$authentication')"
+                          },
+                          "runAfter": {}
+                        }
+                      },
+                      "else": {
+                        "actions": {
+                          "Back_to_seller": {
+                            "type": "OpenApiConnection",
+                            "inputs": {
+                              "host": {
+                                "connectionName": "shared_commondataserviceforapps",
+                                "operationId": "UpdateRecord",
+                                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                              },
+                              "parameters": {
+                                "entityName": "gc_listings",
+                                "recordId": "@{triggerOutputs()?['body/_gc_listing_value']}",
+                                "item/gc_status": 303300003
+                              },
+                              "authentication": "@parameters('$authentication')"
+                            },
+                            "runAfter": {}
+                          }
+                        }
+                      },
+                      "runAfter": {}
+                    }
+                  }
+                },
+                "Send_questions": {
+                  "case": 303300008,
+                  "actions": {
+                    "Send_decision": {
+                      "type": "If",
+                      "expression": {
+                        "equals": [
+                          "@body('Ask_staff')?['outcome']",
+                          "Approve"
+                        ]
+                      },
+                      "actions": {
+                        "Mark_ready_to_send": {
+                          "type": "OpenApiConnection",
+                          "inputs": {
+                            "host": {
+                              "connectionName": "shared_commondataserviceforapps",
+                              "operationId": "UpdateRecord",
+                              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                            },
+                            "parameters": {
+                              "entityName": "gc_generatedmessages",
+                              "recordId": "@{json(coalesce(triggerOutputs()?['body/gc_payload'], '{}'))?['messageId']}",
+                              "item/gc_status": 303300001
+                            },
+                            "authentication": "@parameters('$authentication')"
+                          },
+                          "runAfter": {}
+                        },
+                        "Log_questions": {
+                          "type": "Foreach",
+                          "foreach": "@json(coalesce(triggerOutputs()?['body/gc_payload'], '{}'))?['asks']",
+                          "actions": {
+                            "Log_question": {
+                              "type": "OpenApiConnection",
+                              "inputs": {
+                                "host": {
+                                  "connectionName": "shared_commondataserviceforapps",
+                                  "operationId": "CreateRecord",
+                                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                                },
+                                "parameters": {
+                                  "entityName": "gc_questions",
+                                  "item/gc_name": "@{items('Log_questions')?['key']}",
+                                  "item/gc_listing@odata.bind": "gc_listings(@{triggerOutputs()?['body/_gc_listing_value']})",
+                                  "item/gc_attributekey": "@{items('Log_questions')?['key']}",
+                                  "item/gc_kind": "@items('Log_questions')?['kindValue']",
+                                  "item/gc_recipient@odata.bind": "accounts(@{triggerOutputs()?['body/_gc_account_value']})",
+                                  "item/gc_askedon": "@utcNow()",
+                                  "item/gc_isfollowup": "@items('Log_questions')?['followUp']"
+                                },
+                                "authentication": "@parameters('$authentication')"
+                              },
+                              "runAfter": {}
+                            }
+                          },
+                          "runAfter": {
+                            "Mark_ready_to_send": [
+                              "Succeeded"
+                            ]
+                          }
+                        },
+                        "Listing_needs_info": {
+                          "type": "OpenApiConnection",
+                          "inputs": {
+                            "host": {
+                              "connectionName": "shared_commondataserviceforapps",
+                              "operationId": "UpdateRecord",
+                              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                            },
+                            "parameters": {
+                              "entityName": "gc_listings",
+                              "recordId": "@{triggerOutputs()?['body/_gc_listing_value']}",
+                              "item/gc_status": 303300003
+                            },
+                            "authentication": "@parameters('$authentication')"
+                          },
+                          "runAfter": {
+                            "Log_questions": [
+                              "Succeeded"
+                            ]
+                          }
+                        },
+                        "Note_manual_send": {
+                          "type": "OpenApiConnection",
+                          "inputs": {
+                            "host": {
+                              "connectionName": "shared_commondataserviceforapps",
+                              "operationId": "UpdateRecord",
+                              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                            },
+                            "parameters": {
+                              "entityName": "gc_reviewtasks",
+                              "recordId": "@{triggerOutputs()?['body/gc_reviewtaskid']}",
+                              "item/gc_decisionreason": "@{concat(coalesce(body('Ask_staff')?['responses']?[0]?['comments'], ''), ' | Approved: send the message (Generated messages) to the seller by hand; email is not configured yet.')}"
+                            },
+                            "authentication": "@parameters('$authentication')"
+                          },
+                          "runAfter": {
+                            "Listing_needs_info": [
+                              "Succeeded"
+                            ]
+                          }
+                        }
+                      },
+                      "else": {
+                        "actions": {
+                          "Mark_rejected": {
+                            "type": "OpenApiConnection",
+                            "inputs": {
+                              "host": {
+                                "connectionName": "shared_commondataserviceforapps",
+                                "operationId": "UpdateRecord",
+                                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                              },
+                              "parameters": {
+                                "entityName": "gc_generatedmessages",
+                                "recordId": "@{json(coalesce(triggerOutputs()?['body/gc_payload'], '{}'))?['messageId']}",
+                                "item/gc_status": 303300002
+                              },
+                              "authentication": "@parameters('$authentication')"
+                            },
+                            "runAfter": {}
+                          }
+                        }
+                      },
+                      "runAfter": {}
+                    }
+                  }
+                }
+              },
+              "default": {
+                "actions": {}
+              },
+              "runAfter": {
+                "Link_decider": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Audit": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "CreateRecord",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_auditevents",
+                  "item/gc_actor": "user:@{body('Ask_staff')?['responses']?[0]?['responder']?['email']}",
+                  "item/gc_action": "@{concat('review.', toLower(body('Ask_staff')?['outcome']))}",
+                  "item/gc_subjecttype": "gc_reviewtask",
+                  "item/gc_subjectid": "@{triggerOutputs()?['body/gc_reviewtaskid']}",
+                  "item/gc_details": "@{string(addProperty(json('{}'), 'purpose', triggerOutputs()?['body/gc_purpose']))}"
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {
+                "Apply_decision": [
+                  "Succeeded"
+                ]
+              }
+            }
+          },
+          "runAfter": {}
+        },
+        "Catch": {
+          "type": "Scope",
+          "actions": {
+            "Record_failure": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "CreateRecord",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_flowfailures",
+                  "item/gc_name": "DealOS | Approvals",
+                  "item/gc_flowname": "DealOS | Approvals",
+                  "item/gc_runurl": "https://make.powerautomate.com/environments/@{workflow()?['tags']?['environmentName']}/flows/@{workflow()?['name']}/runs/@{workflow()?['run']?['name']}",
+                  "item/gc_step": "Try",
+                  "item/gc_error": "@{take(string(result('Try')), 3900)}",
+                  "item/gc_payload": "@{take(string(triggerOutputs()?['body']), 100000)}",
+                  "item/gc_status": 303300000
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {}
+            },
+            "Fail_run": {
+              "type": "Terminate",
+              "inputs": {
+                "runStatus": "Failed",
+                "runError": {
+                  "code": "DealOSFlowFailure",
+                  "message": "Recorded in Flow failures"
+                }
+              },
+              "runAfter": {
+                "Record_failure": [
+                  "Succeeded"
+                ]
+              }
+            }
+          },
+          "runAfter": {
+            "Try": [
+              "Failed",
+              "TimedOut"
+            ]
+          }
+        }
+      }
+    },
+    "templateName": null
+  },
+  "schemaVersion": "1.0.0.0"
+}

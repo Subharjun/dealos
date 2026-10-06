@@ -1,0 +1,18 @@
+<customapi uniquename="gc_Agent_DocumentIntelligence">
+  <allowedcustomprocessingsteptype>0</allowedcustomprocessingsteptype>
+  <bindingtype>0</bindingtype>
+  <description default="Classifies an uploaded document and extracts printed values as evidence assertions with page and verbatim quote, then re-resolves evidence.">
+    <label description="Classifies an uploaded document and extracts printed values as evidence assertions with page and verbatim quote, then re-resolves evidence." languagecode="1033" />
+  </description>
+  <displayname default="Agent: Document Intelligence">
+    <label description="Agent: Document Intelligence" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isfunction>0</isfunction>
+  <isprivate>0</isprivate>
+  <name>gc_Agent_DocumentIntelligence</name>
+  <plugintypeid>
+    <plugintypeexportkey>80e9c839-6ac1-f111-aaaf-7ced8daf451f</plugintypeexportkey>
+  </plugintypeid>
+  <workflowsdkstepenabled>0</workflowsdkstepenabled>
+</customapi>

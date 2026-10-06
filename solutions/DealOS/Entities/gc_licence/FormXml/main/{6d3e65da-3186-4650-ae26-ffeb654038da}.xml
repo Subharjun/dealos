@@ -1,0 +1,95 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<forms xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <systemform>
+    <formid>{6d3e65da-3186-4650-ae26-ffeb654038da}</formid>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <FormPresentation>1</FormPresentation>
+    <FormActivationState>1</FormActivationState>
+    <form>
+      <tabs>
+        <tab name="general" id="{7e5a71b4-a1ea-427a-9833-9d3ab31cf2aa}" IsUserDefined="0" verticallayout="true" expanded="true">
+          <labels>
+            <label description="General" languagecode="1033" />
+          </labels>
+          <columns>
+            <column width="100%">
+              <sections>
+                <section name="details" showlabel="true" showbar="false" id="{c5976827-90d6-4fd9-b07d-0e2d22ccc06a}" IsUserDefined="0" columns="11">
+                  <labels>
+                    <label description="Details" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row>
+                      <cell id="{3ba099ee-b02d-4d98-a8fb-fe05edbdb4f7}">
+                        <labels>
+                          <label description="Name" languagecode="1033" />
+                        </labels>
+                        <control id="gc_name" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_name" />
+                      </cell>
+                      <cell id="{e14617a9-e367-4da9-9c84-fa6ce74b1ab6}">
+                        <labels>
+                          <label description="Asset" languagecode="1033" />
+                        </labels>
+                        <control id="gc_asset" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="gc_asset" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{71161c8e-6a92-4fe9-839e-a13aaad3a1fc}">
+                        <labels>
+                          <label description="Holder" languagecode="1033" />
+                        </labels>
+                        <control id="gc_holder" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="gc_holder" />
+                      </cell>
+                      <cell id="{ef9ed54d-acd1-4c9a-a8b0-05fd291356ba}">
+                        <labels>
+                          <label description="Licence number" languagecode="1033" />
+                        </labels>
+                        <control id="gc_licencenumber" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_licencenumber" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{9fd5d987-0afe-4a00-b54d-c7cc34c093d6}">
+                        <labels>
+                          <label description="Licence type" languagecode="1033" />
+                        </labels>
+                        <control id="gc_licencetype" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_licencetype" />
+                      </cell>
+                      <cell id="{bc684052-9c11-432f-b985-66aa21c76b57}">
+                        <labels>
+                          <label description="Issuing authority" languagecode="1033" />
+                        </labels>
+                        <control id="gc_issuingauthority" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_issuingauthority" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{1eedab79-74f1-4213-96ec-8c90d02ecd61}">
+                        <labels>
+                          <label description="Country" languagecode="1033" />
+                        </labels>
+                        <control id="gc_country" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="gc_country" />
+                      </cell>
+                      <cell id="{6af3c5fb-93e2-4e26-bda0-adf5ebd4ecdf}">
+                        <labels>
+                          <label description="Expires on" languagecode="1033" />
+                        </labels>
+                        <control id="gc_expireson" classid="{5B773807-9FB2-42db-97C3-7A91EFF8ADFF}" datafieldname="gc_expireson" />
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+              </sections>
+            </column>
+          </columns>
+        </tab>
+      </tabs>
+    </form>
+    <IsCustomizable>1</IsCustomizable>
+    <CanBeDeleted>1</CanBeDeleted>
+    <LocalizedNames>
+      <LocalizedName description="Information" languagecode="1033" />
+    </LocalizedNames>
+    <Descriptions>
+      <Description description="A form for this entity." languagecode="1033" />
+    </Descriptions>
+  </systemform>
+</forms>

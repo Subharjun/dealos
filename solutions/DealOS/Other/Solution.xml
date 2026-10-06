@@ -1,0 +1,187 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ImportExportXml version="9.2.26093.139" SolutionPackageVersion="9.2" languagecode="1033" generatedBy="CrmLive" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" OrganizationVersion="9.2.26093.139" OrganizationSchemaType="Standard" CRMServerServiceabilityVersion="9.2.26093.00139">
+  <SolutionManifest>
+    <UniqueName>DealOS</UniqueName>
+    <LocalizedNames>
+      <LocalizedName description="DealOS" languagecode="1033" />
+    </LocalizedNames>
+    <Descriptions />
+    <Version>1.0.0.0</Version>
+    <Managed>0</Managed>
+    <Publisher>
+      <UniqueName>Gigacore</UniqueName>
+      <LocalizedNames>
+        <LocalizedName description="Gigacore" languagecode="1033" />
+      </LocalizedNames>
+      <Descriptions>
+        <Description description="Gigacore" languagecode="1033" />
+      </Descriptions>
+      <EMailAddress xsi:nil="true"></EMailAddress>
+      <SupportingWebsiteUrl xsi:nil="true"></SupportingWebsiteUrl>
+      <CustomizationPrefix>gc</CustomizationPrefix>
+      <CustomizationOptionValuePrefix>30330</CustomizationOptionValuePrefix>
+      <Addresses>
+        <Address>
+          <AddressNumber>1</AddressNumber>
+          <AddressTypeCode>1</AddressTypeCode>
+          <City xsi:nil="true"></City>
+          <County xsi:nil="true"></County>
+          <Country xsi:nil="true"></Country>
+          <Fax xsi:nil="true"></Fax>
+          <FreightTermsCode xsi:nil="true"></FreightTermsCode>
+          <ImportSequenceNumber xsi:nil="true"></ImportSequenceNumber>
+          <Latitude xsi:nil="true"></Latitude>
+          <Line1 xsi:nil="true"></Line1>
+          <Line2 xsi:nil="true"></Line2>
+          <Line3 xsi:nil="true"></Line3>
+          <Longitude xsi:nil="true"></Longitude>
+          <Name xsi:nil="true"></Name>
+          <PostalCode xsi:nil="true"></PostalCode>
+          <PostOfficeBox xsi:nil="true"></PostOfficeBox>
+          <PrimaryContactName xsi:nil="true"></PrimaryContactName>
+          <ShippingMethodCode>1</ShippingMethodCode>
+          <StateOrProvince xsi:nil="true"></StateOrProvince>
+          <Telephone1 xsi:nil="true"></Telephone1>
+          <Telephone2 xsi:nil="true"></Telephone2>
+          <Telephone3 xsi:nil="true"></Telephone3>
+          <TimeZoneRuleVersionNumber xsi:nil="true"></TimeZoneRuleVersionNumber>
+          <UPSZone xsi:nil="true"></UPSZone>
+          <UTCOffset xsi:nil="true"></UTCOffset>
+          <UTCConversionTimeZoneCode xsi:nil="true"></UTCConversionTimeZoneCode>
+        </Address>
+        <Address>
+          <AddressNumber>2</AddressNumber>
+          <AddressTypeCode>1</AddressTypeCode>
+          <City xsi:nil="true"></City>
+          <County xsi:nil="true"></County>
+          <Country xsi:nil="true"></Country>
+          <Fax xsi:nil="true"></Fax>
+          <FreightTermsCode xsi:nil="true"></FreightTermsCode>
+          <ImportSequenceNumber xsi:nil="true"></ImportSequenceNumber>
+          <Latitude xsi:nil="true"></Latitude>
+          <Line1 xsi:nil="true"></Line1>
+          <Line2 xsi:nil="true"></Line2>
+          <Line3 xsi:nil="true"></Line3>
+          <Longitude xsi:nil="true"></Longitude>
+          <Name xsi:nil="true"></Name>
+          <PostalCode xsi:nil="true"></PostalCode>
+          <PostOfficeBox xsi:nil="true"></PostOfficeBox>
+          <PrimaryContactName xsi:nil="true"></PrimaryContactName>
+          <ShippingMethodCode>1</ShippingMethodCode>
+          <StateOrProvince xsi:nil="true"></StateOrProvince>
+          <Telephone1 xsi:nil="true"></Telephone1>
+          <Telephone2 xsi:nil="true"></Telephone2>
+          <Telephone3 xsi:nil="true"></Telephone3>
+          <TimeZoneRuleVersionNumber xsi:nil="true"></TimeZoneRuleVersionNumber>
+          <UPSZone xsi:nil="true"></UPSZone>
+          <UTCOffset xsi:nil="true"></UTCOffset>
+          <UTCConversionTimeZoneCode xsi:nil="true"></UTCConversionTimeZoneCode>
+        </Address>
+      </Addresses>
+    </Publisher>
+    <RootComponents>
+      <RootComponent type="1" schemaName="account" behavior="1" />
+      <RootComponent type="1" schemaName="contact" behavior="1" />
+      <RootComponent type="1" schemaName="gc_agentrun" behavior="0" />
+      <RootComponent type="1" schemaName="gc_assertion" behavior="0" />
+      <RootComponent type="1" schemaName="gc_asset" behavior="0" />
+      <RootComponent type="1" schemaName="gc_attributedef" behavior="0" />
+      <RootComponent type="1" schemaName="gc_auditevent" behavior="0" />
+      <RootComponent type="1" schemaName="gc_buyerrequirement" behavior="0" />
+      <RootComponent type="1" schemaName="gc_commissionplan" behavior="0" />
+      <RootComponent type="1" schemaName="gc_commodity" behavior="0" />
+      <RootComponent type="1" schemaName="gc_conflict" behavior="0" />
+      <RootComponent type="1" schemaName="gc_contract" behavior="0" />
+      <RootComponent type="1" schemaName="gc_conversation" behavior="0" />
+      <RootComponent type="1" schemaName="gc_country" behavior="0" />
+      <RootComponent type="1" schemaName="gc_countryrule" behavior="0" />
+      <RootComponent type="1" schemaName="gc_deal" behavior="0" />
+      <RootComponent type="1" schemaName="gc_dealparty" behavior="0" />
+      <RootComponent type="1" schemaName="gc_document" behavior="0" />
+      <RootComponent type="1" schemaName="gc_documentpage" behavior="0" />
+      <RootComponent type="1" schemaName="gc_fact" behavior="0" />
+      <RootComponent type="1" schemaName="gc_factsheet" behavior="0" />
+      <RootComponent type="1" schemaName="gc_flowfailure" behavior="0" />
+      <RootComponent type="1" schemaName="gc_fxrate" behavior="0" />
+      <RootComponent type="1" schemaName="gc_generatedmessage" behavior="0" />
+      <RootComponent type="1" schemaName="gc_kyccheck" behavior="0" />
+      <RootComponent type="1" schemaName="gc_licence" behavior="0" />
+      <RootComponent type="1" schemaName="gc_listing" behavior="0" />
+      <RootComponent type="1" schemaName="gc_lot" behavior="0" />
+      <RootComponent type="1" schemaName="gc_match" behavior="0" />
+      <RootComponent type="1" schemaName="gc_message" behavior="0" />
+      <RootComponent type="1" schemaName="gc_milestone" behavior="0" />
+      <RootComponent type="1" schemaName="gc_modelcall" behavior="0" />
+      <RootComponent type="1" schemaName="gc_offer" behavior="0" />
+      <RootComponent type="1" schemaName="gc_partylink" behavior="0" />
+      <RootComponent type="1" schemaName="gc_payment" behavior="0" />
+      <RootComponent type="1" schemaName="gc_paymentevent" behavior="0" />
+      <RootComponent type="1" schemaName="gc_paymentrelease" behavior="0" />
+      <RootComponent type="1" schemaName="gc_platformsetting" behavior="0" />
+      <RootComponent type="1" schemaName="gc_pricequote" behavior="0" />
+      <RootComponent type="1" schemaName="gc_question" behavior="0" />
+      <RootComponent type="1" schemaName="gc_reviewtask" behavior="0" />
+      <RootComponent type="1" schemaName="gc_screening" behavior="0" />
+      <RootComponent type="1" schemaName="gc_secret" behavior="0" />
+      <RootComponent type="1" schemaName="gc_shipment" behavior="0" />
+      <RootComponent type="1" schemaName="gc_stagetransition" behavior="0" />
+      <RootComponent type="1" schemaName="gc_tariffrate" behavior="0" />
+      <RootComponent type="1" schemaName="gc_verification" behavior="0" />
+      <RootComponent type="1" schemaName="systemuser" behavior="1" />
+      <RootComponent type="29" id="{02bdd963-de7f-412e-829d-b86ad5bb05ff}" behavior="0" />
+      <RootComponent type="29" id="{54c86828-b789-43ff-a057-9b0e19c37ae2}" behavior="0" />
+      <RootComponent type="29" id="{dbe63e93-8844-40c7-a9c8-037b23dfdb6f}" behavior="0" />
+      <RootComponent type="29" id="{e1ef2b29-ffd9-40ad-8640-6dbc3b362d18}" behavior="0" />
+      <RootComponent type="372" id="{fad0f388-c5c0-f111-aaaf-7ced8daf451f}" schemaName="new_dealos-20openai" behavior="0" />
+      <RootComponent type="62" schemaName="gc_DealOSAdmin" behavior="0" />
+      <RootComponent type="80" schemaName="gc_DealOSAdmin" behavior="0" />
+      <RootComponent type="9" schemaName="gc_adminrole" behavior="0" />
+      <RootComponent type="9" schemaName="gc_agent" behavior="0" />
+      <RootComponent type="9" schemaName="gc_dealstage" behavior="0" />
+      <RootComponent type="9" schemaName="gc_doctype" behavior="0" />
+      <RootComponent type="9" schemaName="gc_incoterm" behavior="0" />
+      <RootComponent type="9" schemaName="gc_partyrole" behavior="0" />
+      <RootComponent type="9" schemaName="gc_paymentterms" behavior="0" />
+      <RootComponent type="9" schemaName="gc_provenanceclass" behavior="0" />
+      <RootComponent type="9" schemaName="gc_quantityunit" behavior="0" />
+      <RootComponent type="9" schemaName="gc_recordstatus" behavior="0" />
+      <RootComponent type="9" schemaName="gc_subjecttype" behavior="0" />
+      <RootComponent type="91" id="{7de9c839-6ac1-f111-aaaf-7ced8daf451f}" schemaName="DealOS.Agents, Version=1.0.0.0, Culture=neutral, PublicKeyToken=6a7897f805501b8c" behavior="0" />
+      <RootComponent type="91" id="{aaf1218a-c7c0-f111-aaaf-7ced8daf451f}" schemaName="DealOS.Plugins, Version=1.0.0.0, Culture=neutral, PublicKeyToken=2148fe5c80f36046" behavior="0" />
+      <RootComponent type="92" id="{22af4090-c7c0-f111-aaaf-7ced8daf451f}" behavior="0" />
+      <RootComponent type="92" id="{b1f1218a-c7c0-f111-aaaf-7ced8daf451f}" behavior="0" />
+      <RootComponent type="92" id="{b4f1218a-c7c0-f111-aaaf-7ced8daf451f}" behavior="0" />
+      <RootComponent type="92" id="{b7f1218a-c7c0-f111-aaaf-7ced8daf451f}" behavior="0" />
+      <RootComponent type="92" id="{baf1218a-c7c0-f111-aaaf-7ced8daf451f}" behavior="0" />
+      <RootComponent type="92" id="{bdf1218a-c7c0-f111-aaaf-7ced8daf451f}" behavior="0" />
+      <RootComponent type="92" id="{c0f1218a-c7c0-f111-aaaf-7ced8daf451f}" behavior="0" />
+      <RootComponent type="92" id="{c3ae4090-c7c0-f111-aaaf-7ced8daf451f}" behavior="0" />
+      <RootComponent type="92" id="{c3f1218a-c7c0-f111-aaaf-7ced8daf451f}" behavior="0" />
+      <RootComponent type="92" id="{c6ae4090-c7c0-f111-aaaf-7ced8daf451f}" behavior="0" />
+      <RootComponent type="92" id="{c6f1218a-c7c0-f111-aaaf-7ced8daf451f}" behavior="0" />
+      <RootComponent type="92" id="{c9f1218a-c7c0-f111-aaaf-7ced8daf451f}" behavior="0" />
+      <RootComponent type="92" id="{ccf1218a-c7c0-f111-aaaf-7ced8daf451f}" behavior="0" />
+      <RootComponent type="92" id="{cff1218a-c7c0-f111-aaaf-7ced8daf451f}" behavior="0" />
+      <RootComponent type="92" id="{d2f1218a-c7c0-f111-aaaf-7ced8daf451f}" behavior="0" />
+      <RootComponent type="92" id="{d5f1218a-c7c0-f111-aaaf-7ced8daf451f}" behavior="0" />
+    </RootComponents>
+    <MissingDependencies>
+      <MissingDependency>
+        <Required type="1" schemaName="systemuser" displayName="SystemUser" parentSchemaName="" solution="msdyn_PowerAdminSettingsEmail (2.2.3538.1)" />
+        <Dependent type="1" schemaName="systemuser" displayName="SystemUser" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="61" schemaName="msdyn_/Images/AppModule_Default_Icon.png" displayName="msdyn_/Images/AppModule_Default_Icon.png" solution="AppModuleWebResources (2.5)">
+          <package appName="AppModule Web Resources Package" version="2.5">AppModuleWebResources (2.5)</package>
+        </Required>
+        <Dependent type="80" schemaName="gc_DealOSAdmin" displayName="DealOS Admin" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="SettingDefinition" displayName="AppChannel" solution="msdyn_AppFrameworkInfraExtensions (1.0.0.20)" id.uniquename="AppChannel">
+          <package appName="PowerAppsAppFramework Package" version="1.0.0.26">PowerAppsAppFramework_Anchor (1.0.0.26)</package>
+        </Required>
+        <Dependent type="AppSetting" displayName="parentappmoduleid.uniquename=gc_DealOSAdmin,settingdefinitionid.uniquename=AppChannel" id.parentappmoduleid.uniquename="gc_DealOSAdmin" id.settingdefinitionid.uniquename="AppChannel" />
+      </MissingDependency>
+    </MissingDependencies>
+  </SolutionManifest>
+</ImportExportXml>

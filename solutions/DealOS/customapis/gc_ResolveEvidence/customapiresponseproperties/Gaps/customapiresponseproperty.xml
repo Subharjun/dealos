@@ -1,0 +1,11 @@
+<customapiresponseproperty uniquename="Gaps">
+  <description default="Gaps">
+    <label description="Gaps" languagecode="1033" />
+  </description>
+  <displayname default="Gaps">
+    <label description="Gaps" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <name>gc_ResolveEvidence.Gaps</name>
+  <type>10</type>
+</customapiresponseproperty>

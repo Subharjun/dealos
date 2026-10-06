@@ -1,0 +1,51 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<savedqueries xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <savedquery>
+    <IsCustomizable>1</IsCustomizable>
+    <CanBeDeleted>0</CanBeDeleted>
+    <isquickfindquery>0</isquickfindquery>
+    <isprivate>0</isprivate>
+    <isdefault>1</isdefault>
+    <savedqueryid>{a525f0e6-2341-443b-810d-d25e458f1e10}</savedqueryid>
+    <layoutxml>
+      <grid name="resultset" jump="gc_name" select="1" icon="1" preview="1">
+        <row name="result" id="gc_commissionplanid">
+          <cell name="gc_name" width="200" />
+          <cell name="gc_ratepct" width="140" />
+          <cell name="gc_base" width="140" />
+          <cell name="gc_payer" width="140" />
+          <cell name="gc_sellersharepct" width="140" />
+          <cell name="gc_minamount" width="140" />
+          <cell name="gc_maxamount" width="140" />
+          <cell name="gc_currency" width="140" />
+          <cell name="createdon" width="140" />
+        </row>
+      </grid>
+    </layoutxml>
+    <querytype>0</querytype>
+    <fetchxml>
+      <fetch version="1.0" mapping="logical">
+        <entity name="gc_commissionplan">
+          <attribute name="gc_name" />
+          <attribute name="gc_ratepct" />
+          <attribute name="gc_base" />
+          <attribute name="gc_payer" />
+          <attribute name="gc_sellersharepct" />
+          <attribute name="gc_minamount" />
+          <attribute name="gc_maxamount" />
+          <attribute name="gc_currency" />
+          <attribute name="createdon" />
+          <attribute name="gc_commissionplanid" />
+          <order attribute="createdon" descending="true" />
+          <filter type="and">
+            <condition attribute="statecode" operator="eq" value="0" />
+          </filter>
+        </entity>
+      </fetch>
+    </fetchxml>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <LocalizedNames>
+      <LocalizedName description="Active Commission plans" languagecode="1033" />
+    </LocalizedNames>
+  </savedquery>
+</savedqueries>

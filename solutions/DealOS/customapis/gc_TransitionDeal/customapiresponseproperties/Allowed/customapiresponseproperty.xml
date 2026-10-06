@@ -1,0 +1,11 @@
+<customapiresponseproperty uniquename="Allowed">
+  <description default="Allowed">
+    <label description="Allowed" languagecode="1033" />
+  </description>
+  <displayname default="Allowed">
+    <label description="Allowed" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <name>gc_TransitionDeal.Allowed</name>
+  <type>0</type>
+</customapiresponseproperty>

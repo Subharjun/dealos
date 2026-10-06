@@ -1,0 +1,12 @@
+<customapirequestparameter uniquename="InsuranceRatePct">
+  <description default="InsuranceRatePct">
+    <label description="InsuranceRatePct" languagecode="1033" />
+  </description>
+  <displayname default="InsuranceRatePct">
+    <label description="InsuranceRatePct" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isoptional>1</isoptional>
+  <name>gc_CalculatePriceQuote.InsuranceRatePct</name>
+  <type>2</type>
+</customapirequestparameter>

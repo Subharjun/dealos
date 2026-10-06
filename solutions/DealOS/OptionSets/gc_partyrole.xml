@@ -1,0 +1,37 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<optionset Name="gc_partyrole" localizedName="Party role" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <OptionSetType>picklist</OptionSetType>
+  <IsGlobal>1</IsGlobal>
+  <IntroducedVersion>1.0.0.0</IntroducedVersion>
+  <IsCustomizable>1</IsCustomizable>
+  <displaynames>
+    <displayname description="Party role" languagecode="1033" />
+  </displaynames>
+  <options>
+    <option value="303300000" ExternalValue="" IsHidden="0">
+      <labels>
+        <label description="Seller" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="303300001" ExternalValue="" IsHidden="0">
+      <labels>
+        <label description="Buyer" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="303300002" ExternalValue="" IsHidden="0">
+      <labels>
+        <label description="Intermediary" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="303300003" ExternalValue="" IsHidden="0">
+      <labels>
+        <label description="Service Partner" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="303300004" ExternalValue="" IsHidden="0">
+      <labels>
+        <label description="Platform" languagecode="1033" />
+      </labels>
+    </option>
+  </options>
+</optionset>

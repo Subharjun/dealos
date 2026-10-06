@@ -1,0 +1,96 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<forms xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <systemform>
+    <formid>{93072e15-1a08-43f8-803a-4ab5f4d25df0}</formid>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <FormPresentation>1</FormPresentation>
+    <FormActivationState>1</FormActivationState>
+    <form>
+      <tabs>
+        <tab name="general" id="{090fd101-0650-4beb-9b58-88e7002f150c}" IsUserDefined="0" verticallayout="true" expanded="true">
+          <labels>
+            <label description="General" languagecode="1033" />
+          </labels>
+          <columns>
+            <column width="100%">
+              <sections>
+                <section name="details" showlabel="true" showbar="false" id="{60b13560-71ce-4bb9-abf4-4e18f92272ff}" IsUserDefined="0" columns="11">
+                  <labels>
+                    <label description="Details" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row>
+                      <cell id="{d9a9cb24-b593-4e58-88ec-c91dbc44774c}">
+                        <labels>
+                          <label description="Name" languagecode="1033" />
+                        </labels>
+                        <control id="gc_name" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_name" />
+                      </cell>
+                      <cell id="{8d7a90a8-3e84-4d90-8f01-31d11ab9f570}">
+                        <labels>
+                          <label description="Listing" languagecode="1033" />
+                        </labels>
+                        <control id="gc_listing" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="gc_listing" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{aba7c597-a22e-4264-9978-bc674e4ba50d}">
+                        <labels>
+                          <label description="Deal" languagecode="1033" />
+                        </labels>
+                        <control id="gc_deal" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="gc_deal" />
+                      </cell>
+                      <cell id="{7116d836-2206-4622-8d70-6bea0e999509}">
+                        <labels>
+                          <label description="Kind" languagecode="1033" />
+                        </labels>
+                        <control id="gc_kind" classid="{3EF39988-22BB-4f0b-BBBE-64B5A3748AEE}" datafieldname="gc_kind" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{bc8b84a8-9629-4659-a56f-864813b5ed10}">
+                        <labels>
+                          <label description="Policy version" languagecode="1033" />
+                        </labels>
+                        <control id="gc_policyversion" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_policyversion" />
+                      </cell>
+                      <cell id="{8bc8601a-225e-48ac-8ab4-da0cd6a1953c}">
+                        <labels>
+                          <label description="Agent run" languagecode="1033" />
+                        </labels>
+                        <control id="gc_agentrun" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="gc_agentrun" />
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+                <section name="data" showlabel="true" showbar="false" id="{f8595e15-19d9-431d-82c1-b2f484633b5e}" IsUserDefined="0" columns="1">
+                  <labels>
+                    <label description="Data" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row>
+                      <cell id="{5c476247-7ac5-4d6a-b7a7-2e01e3278d79}" colspan="2">
+                        <labels>
+                          <label description="Content (JSON)" languagecode="1033" />
+                        </labels>
+                        <control id="gc_content" classid="{E0DECE4B-6FC8-4a8f-A065-082708572369}" datafieldname="gc_content" />
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+              </sections>
+            </column>
+          </columns>
+        </tab>
+      </tabs>
+    </form>
+    <IsCustomizable>1</IsCustomizable>
+    <CanBeDeleted>1</CanBeDeleted>
+    <LocalizedNames>
+      <LocalizedName description="Information" languagecode="1033" />
+    </LocalizedNames>
+    <Descriptions>
+      <Description description="A form for this entity." languagecode="1033" />
+    </Descriptions>
+  </systemform>
+</forms>

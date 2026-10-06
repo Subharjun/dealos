@@ -1,0 +1,51 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<savedqueries xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <savedquery>
+    <IsCustomizable>1</IsCustomizable>
+    <CanBeDeleted>0</CanBeDeleted>
+    <isquickfindquery>0</isquickfindquery>
+    <isprivate>0</isprivate>
+    <isdefault>1</isdefault>
+    <savedqueryid>{659d2ee6-001a-4ea1-9817-9c3d27c8125b}</savedqueryid>
+    <layoutxml>
+      <grid name="resultset" jump="gc_name" select="1" icon="1" preview="1">
+        <row name="result" id="gc_shipmentid">
+          <cell name="gc_name" width="200" />
+          <cell name="gc_deal" width="140" />
+          <cell name="gc_mode" width="140" />
+          <cell name="gc_scope" width="140" />
+          <cell name="gc_originport" width="140" />
+          <cell name="gc_destinationport" width="140" />
+          <cell name="gc_forwarder" width="140" />
+          <cell name="gc_blnumber" width="140" />
+          <cell name="createdon" width="140" />
+        </row>
+      </grid>
+    </layoutxml>
+    <querytype>0</querytype>
+    <fetchxml>
+      <fetch version="1.0" mapping="logical">
+        <entity name="gc_shipment">
+          <attribute name="gc_name" />
+          <attribute name="gc_deal" />
+          <attribute name="gc_mode" />
+          <attribute name="gc_scope" />
+          <attribute name="gc_originport" />
+          <attribute name="gc_destinationport" />
+          <attribute name="gc_forwarder" />
+          <attribute name="gc_blnumber" />
+          <attribute name="createdon" />
+          <attribute name="gc_shipmentid" />
+          <order attribute="createdon" descending="true" />
+          <filter type="and">
+            <condition attribute="statecode" operator="eq" value="0" />
+          </filter>
+        </entity>
+      </fetch>
+    </fetchxml>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <LocalizedNames>
+      <LocalizedName description="Active Shipments" languagecode="1033" />
+    </LocalizedNames>
+  </savedquery>
+</savedqueries>

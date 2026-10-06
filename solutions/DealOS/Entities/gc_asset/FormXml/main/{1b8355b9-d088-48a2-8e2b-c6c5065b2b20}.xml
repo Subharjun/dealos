@@ -1,0 +1,89 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<forms xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <systemform>
+    <formid>{1b8355b9-d088-48a2-8e2b-c6c5065b2b20}</formid>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <FormPresentation>1</FormPresentation>
+    <FormActivationState>1</FormActivationState>
+    <form>
+      <tabs>
+        <tab name="general" id="{0f92fdf9-5c0b-43a7-8294-5f2cc975cab3}" IsUserDefined="0" verticallayout="true" expanded="true">
+          <labels>
+            <label description="General" languagecode="1033" />
+          </labels>
+          <columns>
+            <column width="100%">
+              <sections>
+                <section name="details" showlabel="true" showbar="false" id="{70c5de21-5583-4907-92d1-aaf23568b16e}" IsUserDefined="0" columns="11">
+                  <labels>
+                    <label description="Details" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row>
+                      <cell id="{bc7554f4-f071-40d7-981f-cdeb6e3c8f50}">
+                        <labels>
+                          <label description="Name" languagecode="1033" />
+                        </labels>
+                        <control id="gc_name" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_name" />
+                      </cell>
+                      <cell id="{02cd32f8-31aa-45f3-99b3-a42f4604954b}">
+                        <labels>
+                          <label description="Kind" languagecode="1033" />
+                        </labels>
+                        <control id="gc_kind" classid="{3EF39988-22BB-4f0b-BBBE-64B5A3748AEE}" datafieldname="gc_kind" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{abba325c-025c-4e87-bd18-5ae0ac31bef7}">
+                        <labels>
+                          <label description="Owner" languagecode="1033" />
+                        </labels>
+                        <control id="gc_owner" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="gc_owner" />
+                      </cell>
+                      <cell id="{37367a22-35ef-45df-a09c-f6ee6e682637}">
+                        <labels>
+                          <label description="Country" languagecode="1033" />
+                        </labels>
+                        <control id="gc_country" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="gc_country" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{d56b7dcd-72d1-4235-9faf-84ab39e4b899}">
+                        <labels>
+                          <label description="Region / province" languagecode="1033" />
+                        </labels>
+                        <control id="gc_adminregion" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_adminregion" />
+                      </cell>
+                      <cell id="{1b9bfff0-4519-436d-9316-25959d901f14}">
+                        <labels>
+                          <label description="Latitude" languagecode="1033" />
+                        </labels>
+                        <control id="gc_latitude" classid="{C3EFE0C3-0EC6-42be-8349-CBD9079DFD8E}" datafieldname="gc_latitude" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{77232d2c-c702-4794-be89-72a9aef97ebb}">
+                        <labels>
+                          <label description="Longitude" languagecode="1033" />
+                        </labels>
+                        <control id="gc_longitude" classid="{C3EFE0C3-0EC6-42be-8349-CBD9079DFD8E}" datafieldname="gc_longitude" />
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+              </sections>
+            </column>
+          </columns>
+        </tab>
+      </tabs>
+    </form>
+    <IsCustomizable>1</IsCustomizable>
+    <CanBeDeleted>1</CanBeDeleted>
+    <LocalizedNames>
+      <LocalizedName description="Information" languagecode="1033" />
+    </LocalizedNames>
+    <Descriptions>
+      <Description description="A form for this entity." languagecode="1033" />
+    </Descriptions>
+  </systemform>
+</forms>

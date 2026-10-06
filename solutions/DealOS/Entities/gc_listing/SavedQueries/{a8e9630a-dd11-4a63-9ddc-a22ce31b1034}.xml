@@ -1,0 +1,51 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<savedqueries xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <savedquery>
+    <IsCustomizable>1</IsCustomizable>
+    <CanBeDeleted>0</CanBeDeleted>
+    <isquickfindquery>0</isquickfindquery>
+    <isprivate>0</isprivate>
+    <isdefault>1</isdefault>
+    <savedqueryid>{a8e9630a-dd11-4a63-9ddc-a22ce31b1034}</savedqueryid>
+    <layoutxml>
+      <grid name="resultset" jump="gc_name" select="1" icon="1" preview="1">
+        <row name="result" id="gc_listingid">
+          <cell name="gc_name" width="200" />
+          <cell name="gc_seller" width="140" />
+          <cell name="gc_commodity" width="140" />
+          <cell name="gc_asset" width="140" />
+          <cell name="gc_status" width="140" />
+          <cell name="gc_badge" width="140" />
+          <cell name="gc_grade" width="140" />
+          <cell name="gc_quantity" width="140" />
+          <cell name="createdon" width="140" />
+        </row>
+      </grid>
+    </layoutxml>
+    <querytype>0</querytype>
+    <fetchxml>
+      <fetch version="1.0" mapping="logical">
+        <entity name="gc_listing">
+          <attribute name="gc_name" />
+          <attribute name="gc_seller" />
+          <attribute name="gc_commodity" />
+          <attribute name="gc_asset" />
+          <attribute name="gc_status" />
+          <attribute name="gc_badge" />
+          <attribute name="gc_grade" />
+          <attribute name="gc_quantity" />
+          <attribute name="createdon" />
+          <attribute name="gc_listingid" />
+          <order attribute="createdon" descending="true" />
+          <filter type="and">
+            <condition attribute="statecode" operator="eq" value="0" />
+          </filter>
+        </entity>
+      </fetch>
+    </fetchxml>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <LocalizedNames>
+      <LocalizedName description="Active Listings" languagecode="1033" />
+    </LocalizedNames>
+  </savedquery>
+</savedqueries>

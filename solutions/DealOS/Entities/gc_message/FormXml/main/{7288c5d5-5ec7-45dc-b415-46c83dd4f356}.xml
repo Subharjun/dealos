@@ -1,0 +1,112 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<forms xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <systemform>
+    <formid>{7288c5d5-5ec7-45dc-b415-46c83dd4f356}</formid>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <FormPresentation>1</FormPresentation>
+    <FormActivationState>1</FormActivationState>
+    <form>
+      <tabs>
+        <tab name="general" id="{ee4fee06-ecae-49c4-aec2-aa4214e6d152}" IsUserDefined="0" verticallayout="true" expanded="true">
+          <labels>
+            <label description="General" languagecode="1033" />
+          </labels>
+          <columns>
+            <column width="100%">
+              <sections>
+                <section name="details" showlabel="true" showbar="false" id="{87f00b3d-0400-4074-bfce-1c225ca107a5}" IsUserDefined="0" columns="11">
+                  <labels>
+                    <label description="Details" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row>
+                      <cell id="{3105a45c-3836-4553-bb2c-2865d611b243}">
+                        <labels>
+                          <label description="Name" languagecode="1033" />
+                        </labels>
+                        <control id="gc_name" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_name" />
+                      </cell>
+                      <cell id="{92d56b1b-1710-48d4-b181-0b09145ec51f}">
+                        <labels>
+                          <label description="Conversation" languagecode="1033" />
+                        </labels>
+                        <control id="gc_conversation" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="gc_conversation" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{d2a78205-ffca-4193-9790-5589293a2e8c}">
+                        <labels>
+                          <label description="External ID" languagecode="1033" />
+                        </labels>
+                        <control id="gc_externalid" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_externalid" />
+                      </cell>
+                      <cell id="{bce537d3-930e-4db7-8994-1dfed606e6d7}">
+                        <labels>
+                          <label description="Sender label" languagecode="1033" />
+                        </labels>
+                        <control id="gc_senderlabel" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_senderlabel" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{12f3c280-793c-44a3-93a1-ac969834bf5f}">
+                        <labels>
+                          <label description="Sender" languagecode="1033" />
+                        </labels>
+                        <control id="gc_sendercontact" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="gc_sendercontact" />
+                      </cell>
+                      <cell id="{4c60fb03-d4f6-4e4d-9673-5fb9887e6061}">
+                        <labels>
+                          <label description="Sent on" languagecode="1033" />
+                        </labels>
+                        <control id="gc_senton" classid="{5B773807-9FB2-42db-97C3-7A91EFF8ADFF}" datafieldname="gc_senton" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{0a364d31-76eb-4223-9c9a-9fe05dc0727a}">
+                        <labels>
+                          <label description="Sent by platform" languagecode="1033" />
+                        </labels>
+                        <control id="gc_isplatform" classid="{67FAC785-CD58-4f9f-ABB3-4B7DDC6ED5ED}" datafieldname="gc_isplatform" />
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+                <section name="data" showlabel="true" showbar="false" id="{11cf47fe-926f-4299-b998-09ced862ee83}" IsUserDefined="0" columns="1">
+                  <labels>
+                    <label description="Data" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row>
+                      <cell id="{a9696773-53c9-4755-a7a0-b5121e7a5241}" colspan="2">
+                        <labels>
+                          <label description="Text" languagecode="1033" />
+                        </labels>
+                        <control id="gc_text" classid="{E0DECE4B-6FC8-4a8f-A065-082708572369}" datafieldname="gc_text" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{b8abc3b6-3d98-4a60-9477-96b7435c69f9}" colspan="2">
+                        <labels>
+                          <label description="Attachments (JSON)" languagecode="1033" />
+                        </labels>
+                        <control id="gc_attachments" classid="{E0DECE4B-6FC8-4a8f-A065-082708572369}" datafieldname="gc_attachments" />
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+              </sections>
+            </column>
+          </columns>
+        </tab>
+      </tabs>
+    </form>
+    <IsCustomizable>1</IsCustomizable>
+    <CanBeDeleted>1</CanBeDeleted>
+    <LocalizedNames>
+      <LocalizedName description="Information" languagecode="1033" />
+    </LocalizedNames>
+    <Descriptions>
+      <Description description="A form for this entity." languagecode="1033" />
+    </Descriptions>
+  </systemform>
+</forms>

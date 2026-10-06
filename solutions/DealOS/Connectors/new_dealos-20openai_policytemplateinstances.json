@@ -1,0 +1,1 @@
+[{"TemplateId":"setheader","Title":"Bearer authorization","Parameters":{"x-ms-apimTemplateParameter.name":"Authorization","x-ms-apimTemplateParameter.value":"Bearer @connectionParameters('api_key')","x-ms-apimTemplateParameter.existsAction":"override","x-ms-apimTemplate-policySection":"Request"}}]

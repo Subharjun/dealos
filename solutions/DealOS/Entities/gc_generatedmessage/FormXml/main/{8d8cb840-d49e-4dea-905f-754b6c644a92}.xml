@@ -1,0 +1,126 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<forms xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <systemform>
+    <formid>{8d8cb840-d49e-4dea-905f-754b6c644a92}</formid>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <FormPresentation>1</FormPresentation>
+    <FormActivationState>1</FormActivationState>
+    <form>
+      <tabs>
+        <tab name="general" id="{31c22389-bcbe-4aab-be6c-ea0571176f5c}" IsUserDefined="0" verticallayout="true" expanded="true">
+          <labels>
+            <label description="General" languagecode="1033" />
+          </labels>
+          <columns>
+            <column width="100%">
+              <sections>
+                <section name="details" showlabel="true" showbar="false" id="{c2cfe7f2-c382-405a-8a15-8e705e751c31}" IsUserDefined="0" columns="11">
+                  <labels>
+                    <label description="Details" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row>
+                      <cell id="{68c6b0fd-d10f-4821-adf0-f7f43dd44048}">
+                        <labels>
+                          <label description="Name" languagecode="1033" />
+                        </labels>
+                        <control id="gc_name" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_name" />
+                      </cell>
+                      <cell id="{dea0af41-11cf-4361-9b89-5f9af9765b2f}">
+                        <labels>
+                          <label description="Listing" languagecode="1033" />
+                        </labels>
+                        <control id="gc_listing" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="gc_listing" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{4063dbf5-144b-49df-be21-c7dec464cd08}">
+                        <labels>
+                          <label description="Deal" languagecode="1033" />
+                        </labels>
+                        <control id="gc_deal" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="gc_deal" />
+                      </cell>
+                      <cell id="{9e1a4076-8bd8-4a8c-af47-0a886feae98f}">
+                        <labels>
+                          <label description="Kind" languagecode="1033" />
+                        </labels>
+                        <control id="gc_kind" classid="{3EF39988-22BB-4f0b-BBBE-64B5A3748AEE}" datafieldname="gc_kind" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{01aa975c-19ac-44a9-9c4f-35e2cfbcfdfd}">
+                        <labels>
+                          <label description="Fact sheet" languagecode="1033" />
+                        </labels>
+                        <control id="gc_factsheet" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="gc_factsheet" />
+                      </cell>
+                      <cell id="{b1dabc8a-f7d9-463e-ab0a-731dd12ba697}">
+                        <labels>
+                          <label description="Realiser" languagecode="1033" />
+                        </labels>
+                        <control id="gc_realiser" classid="{3EF39988-22BB-4f0b-BBBE-64B5A3748AEE}" datafieldname="gc_realiser" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{9a5799b2-94d4-493c-9854-98359b4ff295}">
+                        <labels>
+                          <label description="Model call" languagecode="1033" />
+                        </labels>
+                        <control id="gc_modelcall" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="gc_modelcall" />
+                      </cell>
+                      <cell id="{fd1739ea-2975-4130-8a0c-535044eed2bb}">
+                        <labels>
+                          <label description="Review task" languagecode="1033" />
+                        </labels>
+                        <control id="gc_reviewtask" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="gc_reviewtask" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{be480e5b-cadf-4dfe-b5bd-1bdeeb7da822}">
+                        <labels>
+                          <label description="Status" languagecode="1033" />
+                        </labels>
+                        <control id="gc_status" classid="{3EF39988-22BB-4f0b-BBBE-64B5A3748AEE}" datafieldname="gc_status" />
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+                <section name="data" showlabel="true" showbar="false" id="{2ec4c3b7-4b20-4711-9e1a-d575c8756d17}" IsUserDefined="0" columns="1">
+                  <labels>
+                    <label description="Data" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row>
+                      <cell id="{849eaac8-0a54-4fc2-94cf-6e6d6ced3c38}" colspan="2">
+                        <labels>
+                          <label description="Text" languagecode="1033" />
+                        </labels>
+                        <control id="gc_text" classid="{E0DECE4B-6FC8-4a8f-A065-082708572369}" datafieldname="gc_text" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{7d1a5d59-9e43-48a1-a5b3-e83ad45ab468}" colspan="2">
+                        <labels>
+                          <label description="Verifier report (JSON)" languagecode="1033" />
+                        </labels>
+                        <control id="gc_verifierreport" classid="{E0DECE4B-6FC8-4a8f-A065-082708572369}" datafieldname="gc_verifierreport" />
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+              </sections>
+            </column>
+          </columns>
+        </tab>
+      </tabs>
+    </form>
+    <IsCustomizable>1</IsCustomizable>
+    <CanBeDeleted>1</CanBeDeleted>
+    <LocalizedNames>
+      <LocalizedName description="Information" languagecode="1033" />
+    </LocalizedNames>
+    <Descriptions>
+      <Description description="A form for this entity." languagecode="1033" />
+    </Descriptions>
+  </systemform>
+</forms>

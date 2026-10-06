@@ -1,0 +1,194 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<forms xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <systemform>
+    <formid>{ca90598c-0e67-4cd2-a3f7-abc8ce984f1e}</formid>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <FormPresentation>1</FormPresentation>
+    <FormActivationState>1</FormActivationState>
+    <form>
+      <tabs>
+        <tab name="general" id="{4b358b54-1f9a-437c-a5cb-c8418f2372b7}" IsUserDefined="0" verticallayout="true" expanded="true">
+          <labels>
+            <label description="General" languagecode="1033" />
+          </labels>
+          <columns>
+            <column width="100%">
+              <sections>
+                <section name="details" showlabel="true" showbar="false" id="{647cd3b9-98aa-4deb-8b39-75572323e6f2}" IsUserDefined="0" columns="11">
+                  <labels>
+                    <label description="Details" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row>
+                      <cell id="{680ef10e-e8d2-4789-9641-4e2d4154eee5}">
+                        <labels>
+                          <label description="Name" languagecode="1033" />
+                        </labels>
+                        <control id="gc_name" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_name" />
+                      </cell>
+                      <cell id="{6888fa08-5bf3-4593-bf0e-ff2a82aca212}">
+                        <labels>
+                          <label description="SHA-256" languagecode="1033" />
+                        </labels>
+                        <control id="gc_sha256" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_sha256" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{1ddbfdf0-bacb-4513-b8a7-c7ce00cef1b0}">
+                        <labels>
+                          <label description="File name" languagecode="1033" />
+                        </labels>
+                        <control id="gc_filename" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_filename" />
+                      </cell>
+                      <cell id="{8aa700bd-4457-4948-9917-4e6211fe4152}">
+                        <labels>
+                          <label description="MIME type" languagecode="1033" />
+                        </labels>
+                        <control id="gc_mimetype" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_mimetype" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{1d9d13de-5ee6-431f-8935-cd01a6a8473d}">
+                        <labels>
+                          <label description="Size (bytes)" languagecode="1033" />
+                        </labels>
+                        <control id="gc_sizebytes" classid="{C6D124CA-7EDA-4a60-AEA9-7FB8D318B68F}" datafieldname="gc_sizebytes" />
+                      </cell>
+                      <cell id="{f1630b37-854c-4fbf-a96a-8ebd004b58fa}">
+                        <labels>
+                          <label description="Company" languagecode="1033" />
+                        </labels>
+                        <control id="gc_account" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="gc_account" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{8728e365-310f-428e-a421-8c267d346957}">
+                        <labels>
+                          <label description="Listing" languagecode="1033" />
+                        </labels>
+                        <control id="gc_listing" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="gc_listing" />
+                      </cell>
+                      <cell id="{d950f9a1-ccfb-48a0-9f88-5b44bfb9b58d}">
+                        <labels>
+                          <label description="Deal" languagecode="1033" />
+                        </labels>
+                        <control id="gc_deal" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="gc_deal" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{5b50a60b-02ce-4adb-8a0a-893306a897a5}">
+                        <labels>
+                          <label description="Uploaded by" languagecode="1033" />
+                        </labels>
+                        <control id="gc_uploadedby" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="gc_uploadedby" />
+                      </cell>
+                      <cell id="{df0f841b-ee5a-482e-b22a-6c65454b0bec}">
+                        <labels>
+                          <label description="Document type" languagecode="1033" />
+                        </labels>
+                        <control id="gc_doctype" classid="{3EF39988-22BB-4f0b-BBBE-64B5A3748AEE}" datafieldname="gc_doctype" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{b623f1af-46a7-4f19-b03c-cc2ae5179ebf}">
+                        <labels>
+                          <label description="Document type confidence" languagecode="1033" />
+                        </labels>
+                        <control id="gc_doctypeconfidence" classid="{C3EFE0C3-0EC6-42be-8349-CBD9079DFD8E}" datafieldname="gc_doctypeconfidence" />
+                      </cell>
+                      <cell id="{638edb92-91ab-4c3d-832a-f9701623b419}">
+                        <labels>
+                          <label description="Document type method" languagecode="1033" />
+                        </labels>
+                        <control id="gc_doctypemethod" classid="{3EF39988-22BB-4f0b-BBBE-64B5A3748AEE}" datafieldname="gc_doctypemethod" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{91cb0f93-8b6a-4641-ab03-2c5e26d98754}">
+                        <labels>
+                          <label description="Language" languagecode="1033" />
+                        </labels>
+                        <control id="gc_language" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_language" />
+                      </cell>
+                      <cell id="{3d83bb01-c686-45fc-bd86-0a70a5096beb}">
+                        <labels>
+                          <label description="Page count" languagecode="1033" />
+                        </labels>
+                        <control id="gc_pagecount" classid="{C6D124CA-7EDA-4a60-AEA9-7FB8D318B68F}" datafieldname="gc_pagecount" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{b3e119fe-17ca-47e4-accc-a8fb29c6f52b}">
+                        <labels>
+                          <label description="Issuer" languagecode="1033" />
+                        </labels>
+                        <control id="gc_issuer" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="gc_issuer" />
+                      </cell>
+                      <cell id="{5ae0857d-b962-4a0a-bea8-8018d3cfb439}">
+                        <labels>
+                          <label description="Document date" languagecode="1033" />
+                        </labels>
+                        <control id="gc_docdate" classid="{5B773807-9FB2-42db-97C3-7A91EFF8ADFF}" datafieldname="gc_docdate" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{59f5f98d-20c4-4f5e-a82d-af9da16cabca}">
+                        <labels>
+                          <label description="Provenance class" languagecode="1033" />
+                        </labels>
+                        <control id="gc_provenanceclass" classid="{3EF39988-22BB-4f0b-BBBE-64B5A3748AEE}" datafieldname="gc_provenanceclass" />
+                      </cell>
+                      <cell id="{9a778e7b-cb99-42dd-a6f5-3be888273a3c}">
+                        <labels>
+                          <label description="Parse status" languagecode="1033" />
+                        </labels>
+                        <control id="gc_parsestatus" classid="{3EF39988-22BB-4f0b-BBBE-64B5A3748AEE}" datafieldname="gc_parsestatus" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{224f7c70-3276-464c-888e-5ae6cbd83c03}">
+                        <labels>
+                          <label description="OCR confidence" languagecode="1033" />
+                        </labels>
+                        <control id="gc_ocrconfidence" classid="{C3EFE0C3-0EC6-42be-8349-CBD9079DFD8E}" datafieldname="gc_ocrconfidence" />
+                      </cell>
+                      <cell id="{e0a030ad-cdfa-4f49-8406-5d4737702605}">
+                        <labels>
+                          <label description="Duplicate of" languagecode="1033" />
+                        </labels>
+                        <control id="gc_duplicateof" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="gc_duplicateof" />
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+                <section name="data" showlabel="true" showbar="false" id="{160c2812-5b49-45c0-b999-1c136c76039b}" IsUserDefined="0" columns="1">
+                  <labels>
+                    <label description="Data" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row>
+                      <cell id="{85b59ba1-ba0d-44c1-8758-a5ca1420ecc9}" colspan="2">
+                        <labels>
+                          <label description="Risk flags (JSON)" languagecode="1033" />
+                        </labels>
+                        <control id="gc_riskflags" classid="{E0DECE4B-6FC8-4a8f-A065-082708572369}" datafieldname="gc_riskflags" />
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+              </sections>
+            </column>
+          </columns>
+        </tab>
+      </tabs>
+    </form>
+    <IsCustomizable>1</IsCustomizable>
+    <CanBeDeleted>1</CanBeDeleted>
+    <LocalizedNames>
+      <LocalizedName description="Information" languagecode="1033" />
+    </LocalizedNames>
+    <Descriptions>
+      <Description description="A form for this entity." languagecode="1033" />
+    </Descriptions>
+  </systemform>
+</forms>

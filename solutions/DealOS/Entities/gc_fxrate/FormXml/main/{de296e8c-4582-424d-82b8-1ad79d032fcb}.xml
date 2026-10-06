@@ -1,0 +1,81 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<forms xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <systemform>
+    <formid>{de296e8c-4582-424d-82b8-1ad79d032fcb}</formid>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <FormPresentation>1</FormPresentation>
+    <FormActivationState>1</FormActivationState>
+    <form>
+      <tabs>
+        <tab name="general" id="{1e1d0e05-fec3-48d0-842f-145990c7eefd}" IsUserDefined="0" verticallayout="true" expanded="true">
+          <labels>
+            <label description="General" languagecode="1033" />
+          </labels>
+          <columns>
+            <column width="100%">
+              <sections>
+                <section name="details" showlabel="true" showbar="false" id="{c5affef8-e92c-456e-a1d3-7e95c06b9e33}" IsUserDefined="0" columns="11">
+                  <labels>
+                    <label description="Details" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row>
+                      <cell id="{34f76ede-a271-4fe3-8c8c-599b1d4887c2}">
+                        <labels>
+                          <label description="Name" languagecode="1033" />
+                        </labels>
+                        <control id="gc_name" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_name" />
+                      </cell>
+                      <cell id="{7b25c98d-99a3-4aee-b899-f0babd1cfa73}">
+                        <labels>
+                          <label description="Base currency" languagecode="1033" />
+                        </labels>
+                        <control id="gc_basecurrency" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_basecurrency" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{a104d811-924d-40ef-b272-73d5c91dca41}">
+                        <labels>
+                          <label description="Quote currency" languagecode="1033" />
+                        </labels>
+                        <control id="gc_quotecurrency" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_quotecurrency" />
+                      </cell>
+                      <cell id="{995f57bd-14d8-4702-959a-df5aac45c2f6}">
+                        <labels>
+                          <label description="Rate" languagecode="1033" />
+                        </labels>
+                        <control id="gc_rate" classid="{C3EFE0C3-0EC6-42be-8349-CBD9079DFD8E}" datafieldname="gc_rate" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{1e444f18-fe0d-4cc7-9201-f11b5360ffd6}">
+                        <labels>
+                          <label description="Rate date" languagecode="1033" />
+                        </labels>
+                        <control id="gc_ratedate" classid="{5B773807-9FB2-42db-97C3-7A91EFF8ADFF}" datafieldname="gc_ratedate" />
+                      </cell>
+                      <cell id="{edcb4a59-ae1f-4020-8e8d-78564a22247d}">
+                        <labels>
+                          <label description="Source" languagecode="1033" />
+                        </labels>
+                        <control id="gc_source" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_source" />
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+              </sections>
+            </column>
+          </columns>
+        </tab>
+      </tabs>
+    </form>
+    <IsCustomizable>1</IsCustomizable>
+    <CanBeDeleted>1</CanBeDeleted>
+    <LocalizedNames>
+      <LocalizedName description="Information" languagecode="1033" />
+    </LocalizedNames>
+    <Descriptions>
+      <Description description="A form for this entity." languagecode="1033" />
+    </Descriptions>
+  </systemform>
+</forms>

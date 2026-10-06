@@ -1,0 +1,13 @@
+.env
+.env.*
+!.env.example
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+bin/
+obj/
+*.zip
+.DS_Store
+.dv_token.json
+/build/

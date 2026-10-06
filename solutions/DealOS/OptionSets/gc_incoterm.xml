@@ -1,0 +1,67 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<optionset Name="gc_incoterm" localizedName="Incoterm 2020" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <OptionSetType>picklist</OptionSetType>
+  <IsGlobal>1</IsGlobal>
+  <IntroducedVersion>1.0.0.0</IntroducedVersion>
+  <IsCustomizable>1</IsCustomizable>
+  <displaynames>
+    <displayname description="Incoterm 2020" languagecode="1033" />
+  </displaynames>
+  <options>
+    <option value="303300000" ExternalValue="" IsHidden="0">
+      <labels>
+        <label description="EXW" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="303300001" ExternalValue="" IsHidden="0">
+      <labels>
+        <label description="FCA" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="303300002" ExternalValue="" IsHidden="0">
+      <labels>
+        <label description="FAS" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="303300003" ExternalValue="" IsHidden="0">
+      <labels>
+        <label description="FOB" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="303300004" ExternalValue="" IsHidden="0">
+      <labels>
+        <label description="CFR" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="303300005" ExternalValue="" IsHidden="0">
+      <labels>
+        <label description="CIF" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="303300006" ExternalValue="" IsHidden="0">
+      <labels>
+        <label description="CPT" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="303300007" ExternalValue="" IsHidden="0">
+      <labels>
+        <label description="CIP" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="303300008" ExternalValue="" IsHidden="0">
+      <labels>
+        <label description="DAP" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="303300009" ExternalValue="" IsHidden="0">
+      <labels>
+        <label description="DPU" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="303300010" ExternalValue="" IsHidden="0">
+      <labels>
+        <label description="DDP" languagecode="1033" />
+      </labels>
+    </option>
+  </options>
+</optionset>

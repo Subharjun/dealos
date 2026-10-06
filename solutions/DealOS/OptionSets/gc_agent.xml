@@ -1,0 +1,72 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<optionset Name="gc_agent" localizedName="Agent" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <OptionSetType>picklist</OptionSetType>
+  <IsGlobal>1</IsGlobal>
+  <IntroducedVersion>1.0.0.0</IntroducedVersion>
+  <IsCustomizable>1</IsCustomizable>
+  <displaynames>
+    <displayname description="Agent" languagecode="1033" />
+  </displaynames>
+  <options>
+    <option value="303300000" ExternalValue="" IsHidden="0">
+      <labels>
+        <label description="Onboarding KYB" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="303300011" IsHidden="0">
+      <labels>
+        <label description="Document Intelligence" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="303300001" ExternalValue="" IsHidden="0">
+      <labels>
+        <label description="Listing Verification" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="303300002" ExternalValue="" IsHidden="0">
+      <labels>
+        <label description="Buyer Verification" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="303300003" ExternalValue="" IsHidden="0">
+      <labels>
+        <label description="Compliance" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="303300004" ExternalValue="" IsHidden="0">
+      <labels>
+        <label description="Matching" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="303300005" ExternalValue="" IsHidden="0">
+      <labels>
+        <label description="Pricing Landed Cost" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="303300006" ExternalValue="" IsHidden="0">
+      <labels>
+        <label description="Negotiation" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="303300007" ExternalValue="" IsHidden="0">
+      <labels>
+        <label description="Contract" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="303300008" ExternalValue="" IsHidden="0">
+      <labels>
+        <label description="Payment" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="303300009" ExternalValue="" IsHidden="0">
+      <labels>
+        <label description="Logistics" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="303300010" ExternalValue="" IsHidden="0">
+      <labels>
+        <label description="Admin Supervisor" languagecode="1033" />
+      </labels>
+    </option>
+  </options>
+</optionset>

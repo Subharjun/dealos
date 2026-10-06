@@ -1,0 +1,51 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<savedqueries xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <savedquery>
+    <IsCustomizable>1</IsCustomizable>
+    <CanBeDeleted>0</CanBeDeleted>
+    <isquickfindquery>0</isquickfindquery>
+    <isprivate>0</isprivate>
+    <isdefault>1</isdefault>
+    <savedqueryid>{6641af04-089d-436b-95e2-111d3c94ba4b}</savedqueryid>
+    <layoutxml>
+      <grid name="resultset" jump="gc_name" select="1" icon="1" preview="1">
+        <row name="result" id="gc_documentid">
+          <cell name="gc_name" width="200" />
+          <cell name="gc_sha256" width="140" />
+          <cell name="gc_filename" width="140" />
+          <cell name="gc_mimetype" width="140" />
+          <cell name="gc_sizebytes" width="140" />
+          <cell name="gc_account" width="140" />
+          <cell name="gc_listing" width="140" />
+          <cell name="gc_deal" width="140" />
+          <cell name="createdon" width="140" />
+        </row>
+      </grid>
+    </layoutxml>
+    <querytype>0</querytype>
+    <fetchxml>
+      <fetch version="1.0" mapping="logical">
+        <entity name="gc_document">
+          <attribute name="gc_name" />
+          <attribute name="gc_sha256" />
+          <attribute name="gc_filename" />
+          <attribute name="gc_mimetype" />
+          <attribute name="gc_sizebytes" />
+          <attribute name="gc_account" />
+          <attribute name="gc_listing" />
+          <attribute name="gc_deal" />
+          <attribute name="createdon" />
+          <attribute name="gc_documentid" />
+          <order attribute="createdon" descending="true" />
+          <filter type="and">
+            <condition attribute="statecode" operator="eq" value="0" />
+          </filter>
+        </entity>
+      </fetch>
+    </fetchxml>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <LocalizedNames>
+      <LocalizedName description="Active Documents" languagecode="1033" />
+    </LocalizedNames>
+  </savedquery>
+</savedqueries>

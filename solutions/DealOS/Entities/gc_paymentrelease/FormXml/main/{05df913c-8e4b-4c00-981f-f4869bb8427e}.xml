@@ -1,0 +1,138 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<forms xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <systemform>
+    <formid>{05df913c-8e4b-4c00-981f-f4869bb8427e}</formid>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <FormPresentation>1</FormPresentation>
+    <FormActivationState>1</FormActivationState>
+    <form>
+      <tabs>
+        <tab name="general" id="{eef238b5-314e-4299-aa1d-e51493a3a112}" IsUserDefined="0" verticallayout="true" expanded="true">
+          <labels>
+            <label description="General" languagecode="1033" />
+          </labels>
+          <columns>
+            <column width="100%">
+              <sections>
+                <section name="details" showlabel="true" showbar="false" id="{e093192a-c3d6-4c11-8698-d8e64f205262}" IsUserDefined="0" columns="11">
+                  <labels>
+                    <label description="Details" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row>
+                      <cell id="{b0881121-6e8b-4f43-aae6-e3a8f2a78442}">
+                        <labels>
+                          <label description="Name" languagecode="1033" />
+                        </labels>
+                        <control id="gc_name" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_name" />
+                      </cell>
+                      <cell id="{cc2507b2-485f-4482-ac63-1a7f131f0524}">
+                        <labels>
+                          <label description="Payment" languagecode="1033" />
+                        </labels>
+                        <control id="gc_payment" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="gc_payment" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{374aa930-196f-48ef-9af8-c1607eb8183e}">
+                        <labels>
+                          <label description="Sequence" languagecode="1033" />
+                        </labels>
+                        <control id="gc_sequence" classid="{C6D124CA-7EDA-4a60-AEA9-7FB8D318B68F}" datafieldname="gc_sequence" />
+                      </cell>
+                      <cell id="{1d4ef54d-a9bc-4b5d-a4fa-b96d917dcea6}">
+                        <labels>
+                          <label description="Release %" languagecode="1033" />
+                        </labels>
+                        <control id="gc_pct" classid="{C3EFE0C3-0EC6-42be-8349-CBD9079DFD8E}" datafieldname="gc_pct" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{4bf50f33-51e2-4ee1-ad4a-d9ed336f8d78}">
+                        <labels>
+                          <label description="Gross amount" languagecode="1033" />
+                        </labels>
+                        <control id="gc_amount" classid="{C3EFE0C3-0EC6-42be-8349-CBD9079DFD8E}" datafieldname="gc_amount" />
+                      </cell>
+                      <cell id="{85760a17-9e2f-4c4e-af40-eb2becf4a262}">
+                        <labels>
+                          <label description="Status" languagecode="1033" />
+                        </labels>
+                        <control id="gc_status" classid="{3EF39988-22BB-4f0b-BBBE-64B5A3748AEE}" datafieldname="gc_status" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{d6cba2b0-e20f-4738-998c-30764f7f1126}">
+                        <labels>
+                          <label description="Commission" languagecode="1033" />
+                        </labels>
+                        <control id="gc_commissionamount" classid="{C3EFE0C3-0EC6-42be-8349-CBD9079DFD8E}" datafieldname="gc_commissionamount" />
+                      </cell>
+                      <cell id="{6f8127bf-1e77-49ed-a08e-276bac1a6104}">
+                        <labels>
+                          <label description="Net to seller" languagecode="1033" />
+                        </labels>
+                        <control id="gc_netamount" classid="{C3EFE0C3-0EC6-42be-8349-CBD9079DFD8E}" datafieldname="gc_netamount" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{f8cc60e1-f7f1-4700-b109-ccd2bf594271}">
+                        <labels>
+                          <label description="Idempotency key" languagecode="1033" />
+                        </labels>
+                        <control id="gc_idempotencykey" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_idempotencykey" />
+                      </cell>
+                      <cell id="{0390a29e-0f30-468f-ab4f-b4b6868ba1bb}">
+                        <labels>
+                          <label description="Approved by" languagecode="1033" />
+                        </labels>
+                        <control id="gc_approvedby" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="gc_approvedby" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{862c7c3c-b74d-4a94-a52a-3e4263e07277}">
+                        <labels>
+                          <label description="Instructed on" languagecode="1033" />
+                        </labels>
+                        <control id="gc_instructedon" classid="{5B773807-9FB2-42db-97C3-7A91EFF8ADFF}" datafieldname="gc_instructedon" />
+                      </cell>
+                      <cell id="{63334ac3-df50-4e07-a100-ba1cd6380a12}">
+                        <labels>
+                          <label description="Settled on" languagecode="1033" />
+                        </labels>
+                        <control id="gc_settledon" classid="{5B773807-9FB2-42db-97C3-7A91EFF8ADFF}" datafieldname="gc_settledon" />
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+                <section name="data" showlabel="true" showbar="false" id="{16b33548-607b-47e4-99d1-94107fa400fa}" IsUserDefined="0" columns="1">
+                  <labels>
+                    <label description="Data" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row>
+                      <cell id="{962026f8-08ed-4f18-a870-8421fb98b946}" colspan="2">
+                        <labels>
+                          <label description="Release condition" languagecode="1033" />
+                        </labels>
+                        <control id="gc_condition" classid="{E0DECE4B-6FC8-4a8f-A065-082708572369}" datafieldname="gc_condition" />
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+              </sections>
+            </column>
+          </columns>
+        </tab>
+      </tabs>
+    </form>
+    <IsCustomizable>1</IsCustomizable>
+    <CanBeDeleted>1</CanBeDeleted>
+    <LocalizedNames>
+      <LocalizedName description="Information" languagecode="1033" />
+    </LocalizedNames>
+    <Descriptions>
+      <Description description="A form for this entity." languagecode="1033" />
+    </Descriptions>
+  </systemform>
+</forms>

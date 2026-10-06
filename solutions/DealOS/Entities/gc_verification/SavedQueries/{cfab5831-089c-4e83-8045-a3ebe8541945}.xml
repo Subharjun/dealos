@@ -1,0 +1,51 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<savedqueries xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <savedquery>
+    <IsCustomizable>1</IsCustomizable>
+    <CanBeDeleted>0</CanBeDeleted>
+    <isquickfindquery>0</isquickfindquery>
+    <isprivate>0</isprivate>
+    <isdefault>1</isdefault>
+    <savedqueryid>{cfab5831-089c-4e83-8045-a3ebe8541945}</savedqueryid>
+    <layoutxml>
+      <grid name="resultset" jump="gc_name" select="1" icon="1" preview="1">
+        <row name="result" id="gc_verificationid">
+          <cell name="gc_name" width="200" />
+          <cell name="gc_assertion" width="140" />
+          <cell name="gc_fact" width="140" />
+          <cell name="gc_method" width="140" />
+          <cell name="gc_result" width="140" />
+          <cell name="gc_performedby" width="140" />
+          <cell name="gc_performedbypartner" width="140" />
+          <cell name="gc_evidencedocument" width="140" />
+          <cell name="createdon" width="140" />
+        </row>
+      </grid>
+    </layoutxml>
+    <querytype>0</querytype>
+    <fetchxml>
+      <fetch version="1.0" mapping="logical">
+        <entity name="gc_verification">
+          <attribute name="gc_name" />
+          <attribute name="gc_assertion" />
+          <attribute name="gc_fact" />
+          <attribute name="gc_method" />
+          <attribute name="gc_result" />
+          <attribute name="gc_performedby" />
+          <attribute name="gc_performedbypartner" />
+          <attribute name="gc_evidencedocument" />
+          <attribute name="createdon" />
+          <attribute name="gc_verificationid" />
+          <order attribute="createdon" descending="true" />
+          <filter type="and">
+            <condition attribute="statecode" operator="eq" value="0" />
+          </filter>
+        </entity>
+      </fetch>
+    </fetchxml>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <LocalizedNames>
+      <LocalizedName description="Active Verifications" languagecode="1033" />
+    </LocalizedNames>
+  </savedquery>
+</savedqueries>

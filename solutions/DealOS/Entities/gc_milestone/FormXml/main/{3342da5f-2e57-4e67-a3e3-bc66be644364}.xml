@@ -1,0 +1,95 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<forms xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <systemform>
+    <formid>{3342da5f-2e57-4e67-a3e3-bc66be644364}</formid>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <FormPresentation>1</FormPresentation>
+    <FormActivationState>1</FormActivationState>
+    <form>
+      <tabs>
+        <tab name="general" id="{00e2edf7-ccc7-4b2b-bbe0-8de262c68713}" IsUserDefined="0" verticallayout="true" expanded="true">
+          <labels>
+            <label description="General" languagecode="1033" />
+          </labels>
+          <columns>
+            <column width="100%">
+              <sections>
+                <section name="details" showlabel="true" showbar="false" id="{2c99a798-5d2b-4c33-8fa6-e38e53877182}" IsUserDefined="0" columns="11">
+                  <labels>
+                    <label description="Details" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row>
+                      <cell id="{0337f148-52f9-4290-8cfa-f0fe54276f42}">
+                        <labels>
+                          <label description="Name" languagecode="1033" />
+                        </labels>
+                        <control id="gc_name" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_name" />
+                      </cell>
+                      <cell id="{c2c76ecf-a124-4d67-90f1-27dbfde68137}">
+                        <labels>
+                          <label description="Deal" languagecode="1033" />
+                        </labels>
+                        <control id="gc_deal" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="gc_deal" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{2c95a6ce-6243-4b01-b434-de37ade1095f}">
+                        <labels>
+                          <label description="Shipment" languagecode="1033" />
+                        </labels>
+                        <control id="gc_shipment" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="gc_shipment" />
+                      </cell>
+                      <cell id="{a5b52a72-5f62-48bc-bbed-1d4f5dc05557}">
+                        <labels>
+                          <label description="Type" languagecode="1033" />
+                        </labels>
+                        <control id="gc_type" classid="{3EF39988-22BB-4f0b-BBBE-64B5A3748AEE}" datafieldname="gc_type" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{1f6c05fe-3fd1-4a3f-8dd4-163eec932978}">
+                        <labels>
+                          <label description="Status" languagecode="1033" />
+                        </labels>
+                        <control id="gc_status" classid="{3EF39988-22BB-4f0b-BBBE-64B5A3748AEE}" datafieldname="gc_status" />
+                      </cell>
+                      <cell id="{684ad7fb-1d29-4d8d-a489-1616244fd5f9}">
+                        <labels>
+                          <label description="Due on" languagecode="1033" />
+                        </labels>
+                        <control id="gc_dueon" classid="{5B773807-9FB2-42db-97C3-7A91EFF8ADFF}" datafieldname="gc_dueon" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{fe7fe508-e253-44e8-9a8a-cbe4abbdb6fa}">
+                        <labels>
+                          <label description="Completed on" languagecode="1033" />
+                        </labels>
+                        <control id="gc_completedon" classid="{5B773807-9FB2-42db-97C3-7A91EFF8ADFF}" datafieldname="gc_completedon" />
+                      </cell>
+                      <cell id="{ecf17446-e883-43ff-8cb6-25f9b2efd291}">
+                        <labels>
+                          <label description="Evidence document" languagecode="1033" />
+                        </labels>
+                        <control id="gc_evidencedocument" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="gc_evidencedocument" />
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+              </sections>
+            </column>
+          </columns>
+        </tab>
+      </tabs>
+    </form>
+    <IsCustomizable>1</IsCustomizable>
+    <CanBeDeleted>1</CanBeDeleted>
+    <LocalizedNames>
+      <LocalizedName description="Information" languagecode="1033" />
+    </LocalizedNames>
+    <Descriptions>
+      <Description description="A form for this entity." languagecode="1033" />
+    </Descriptions>
+  </systemform>
+</forms>

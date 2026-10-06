@@ -1,0 +1,51 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<savedqueries xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <savedquery>
+    <IsCustomizable>1</IsCustomizable>
+    <CanBeDeleted>0</CanBeDeleted>
+    <isquickfindquery>0</isquickfindquery>
+    <isprivate>0</isprivate>
+    <isdefault>1</isdefault>
+    <savedqueryid>{49588a3a-b238-4db2-a9bc-f65e8e0a1488}</savedqueryid>
+    <layoutxml>
+      <grid name="resultset" jump="gc_name" select="1" icon="1" preview="1">
+        <row name="result" id="gc_offerid">
+          <cell name="gc_name" width="200" />
+          <cell name="gc_deal" width="140" />
+          <cell name="gc_fromparty" width="140" />
+          <cell name="gc_round" width="140" />
+          <cell name="gc_parentoffer" width="140" />
+          <cell name="gc_quantity" width="140" />
+          <cell name="gc_price" width="140" />
+          <cell name="gc_currency" width="140" />
+          <cell name="createdon" width="140" />
+        </row>
+      </grid>
+    </layoutxml>
+    <querytype>0</querytype>
+    <fetchxml>
+      <fetch version="1.0" mapping="logical">
+        <entity name="gc_offer">
+          <attribute name="gc_name" />
+          <attribute name="gc_deal" />
+          <attribute name="gc_fromparty" />
+          <attribute name="gc_round" />
+          <attribute name="gc_parentoffer" />
+          <attribute name="gc_quantity" />
+          <attribute name="gc_price" />
+          <attribute name="gc_currency" />
+          <attribute name="createdon" />
+          <attribute name="gc_offerid" />
+          <order attribute="createdon" descending="true" />
+          <filter type="and">
+            <condition attribute="statecode" operator="eq" value="0" />
+          </filter>
+        </entity>
+      </fetch>
+    </fetchxml>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <LocalizedNames>
+      <LocalizedName description="Active Offers" languagecode="1033" />
+    </LocalizedNames>
+  </savedquery>
+</savedqueries>

@@ -1,0 +1,81 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<forms xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <systemform>
+    <formid>{a035d9f7-4f64-46c4-b39d-ca8b429a40ca}</formid>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <FormPresentation>1</FormPresentation>
+    <FormActivationState>1</FormActivationState>
+    <form>
+      <tabs>
+        <tab name="general" id="{5d68edbc-3154-4af7-bdb8-3815578f5150}" IsUserDefined="0" verticallayout="true" expanded="true">
+          <labels>
+            <label description="General" languagecode="1033" />
+          </labels>
+          <columns>
+            <column width="100%">
+              <sections>
+                <section name="details" showlabel="true" showbar="false" id="{74bb443d-2ba1-455d-b3e0-a35acaab04ad}" IsUserDefined="0" columns="11">
+                  <labels>
+                    <label description="Details" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row>
+                      <cell id="{a6cefae3-a943-47b5-8a7e-5a36f30e7e0b}">
+                        <labels>
+                          <label description="Name" languagecode="1033" />
+                        </labels>
+                        <control id="gc_name" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_name" />
+                      </cell>
+                      <cell id="{3fff297d-3e80-496b-bf90-5028eb55e473}">
+                        <labels>
+                          <label description="ISO alpha-2" languagecode="1033" />
+                        </labels>
+                        <control id="gc_iso2" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_iso2" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{3a2ab88a-bca8-4fb3-8654-c185e68b5c2a}">
+                        <labels>
+                          <label description="ISO alpha-3" languagecode="1033" />
+                        </labels>
+                        <control id="gc_iso3" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_iso3" />
+                      </cell>
+                      <cell id="{7295867a-4a0d-483a-bab7-c793179a7dc7}">
+                        <labels>
+                          <label description="Launch status" languagecode="1033" />
+                        </labels>
+                        <control id="gc_launchstatus" classid="{3EF39988-22BB-4f0b-BBBE-64B5A3748AEE}" datafieldname="gc_launchstatus" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{4c6534d9-474b-46bb-bae4-cd75deecbb0d}">
+                        <labels>
+                          <label description="Conflict-affected / high-risk area" languagecode="1033" />
+                        </labels>
+                        <control id="gc_cahra" classid="{67FAC785-CD58-4f9f-ABB3-4B7DDC6ED5ED}" datafieldname="gc_cahra" />
+                      </cell>
+                      <cell id="{3130814c-4f3a-4df0-bb1d-8ec770504b3a}">
+                        <labels>
+                          <label description="FATF status" languagecode="1033" />
+                        </labels>
+                        <control id="gc_fatfstatus" classid="{3EF39988-22BB-4f0b-BBBE-64B5A3748AEE}" datafieldname="gc_fatfstatus" />
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+              </sections>
+            </column>
+          </columns>
+        </tab>
+      </tabs>
+    </form>
+    <IsCustomizable>1</IsCustomizable>
+    <CanBeDeleted>1</CanBeDeleted>
+    <LocalizedNames>
+      <LocalizedName description="Information" languagecode="1033" />
+    </LocalizedNames>
+    <Descriptions>
+      <Description description="A form for this entity." languagecode="1033" />
+    </Descriptions>
+  </systemform>
+</forms>

@@ -1,0 +1,12 @@
+<customapirequestparameter uniquename="SubjectId">
+  <description default="GUID of the record the agent works on. (gc_listing)">
+    <label description="GUID of the record the agent works on. (gc_listing)" languagecode="1033" />
+  </description>
+  <displayname default="SubjectId">
+    <label description="SubjectId" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isoptional>0</isoptional>
+  <name>gc_Agent_ListingVerification.SubjectId</name>
+  <type>10</type>
+</customapirequestparameter>

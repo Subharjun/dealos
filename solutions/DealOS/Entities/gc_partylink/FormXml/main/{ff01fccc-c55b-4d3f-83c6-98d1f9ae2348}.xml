@@ -1,0 +1,103 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<forms xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <systemform>
+    <formid>{ff01fccc-c55b-4d3f-83c6-98d1f9ae2348}</formid>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <FormPresentation>1</FormPresentation>
+    <FormActivationState>1</FormActivationState>
+    <form>
+      <tabs>
+        <tab name="general" id="{8699e8e0-a6c2-4066-b126-b103bde88224}" IsUserDefined="0" verticallayout="true" expanded="true">
+          <labels>
+            <label description="General" languagecode="1033" />
+          </labels>
+          <columns>
+            <column width="100%">
+              <sections>
+                <section name="details" showlabel="true" showbar="false" id="{389cad93-5fa6-409e-9b03-2eef12844467}" IsUserDefined="0" columns="11">
+                  <labels>
+                    <label description="Details" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row>
+                      <cell id="{b075ef4d-e36f-49f7-b2c7-eadcf81b212e}">
+                        <labels>
+                          <label description="Name" languagecode="1033" />
+                        </labels>
+                        <control id="gc_name" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_name" />
+                      </cell>
+                      <cell id="{3389c6d6-067e-4291-92ef-7ed293ea5cbc}">
+                        <labels>
+                          <label description="From company" languagecode="1033" />
+                        </labels>
+                        <control id="gc_fromaccount" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="gc_fromaccount" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{cd712a97-868b-4aef-9489-eabd0c8b55e7}">
+                        <labels>
+                          <label description="From person" languagecode="1033" />
+                        </labels>
+                        <control id="gc_fromcontact" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="gc_fromcontact" />
+                      </cell>
+                      <cell id="{d5ac836f-66e2-4279-8387-7c5bcc6df59e}">
+                        <labels>
+                          <label description="To company" languagecode="1033" />
+                        </labels>
+                        <control id="gc_toaccount" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="gc_toaccount" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{99ebd9ac-8ea7-4c1d-983a-0d287b657417}">
+                        <labels>
+                          <label description="To person" languagecode="1033" />
+                        </labels>
+                        <control id="gc_tocontact" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="gc_tocontact" />
+                      </cell>
+                      <cell id="{14705995-661a-4c46-b537-5beaee16acd8}">
+                        <labels>
+                          <label description="Kind" languagecode="1033" />
+                        </labels>
+                        <control id="gc_kind" classid="{3EF39988-22BB-4f0b-BBBE-64B5A3748AEE}" datafieldname="gc_kind" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{bbc0ac78-064a-432c-80c5-42313523bc2f}">
+                        <labels>
+                          <label description="Deal" languagecode="1033" />
+                        </labels>
+                        <control id="gc_deal" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="gc_deal" />
+                      </cell>
+                      <cell id="{2021e34e-8dea-4bf8-9072-fb54704d2e36}">
+                        <labels>
+                          <label description="Mandate document" languagecode="1033" />
+                        </labels>
+                        <control id="gc_mandatedocument" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="gc_mandatedocument" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{d02bff73-4e8a-465a-9327-00d79a46c079}">
+                        <labels>
+                          <label description="Source assertion ID" languagecode="1033" />
+                        </labels>
+                        <control id="gc_sourceassertionid" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_sourceassertionid" />
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+              </sections>
+            </column>
+          </columns>
+        </tab>
+      </tabs>
+    </form>
+    <IsCustomizable>1</IsCustomizable>
+    <CanBeDeleted>1</CanBeDeleted>
+    <LocalizedNames>
+      <LocalizedName description="Information" languagecode="1033" />
+    </LocalizedNames>
+    <Descriptions>
+      <Description description="A form for this entity." languagecode="1033" />
+    </Descriptions>
+  </systemform>
+</forms>

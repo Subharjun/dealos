@@ -1,0 +1,96 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<forms xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <systemform>
+    <formid>{0ce0cb3e-ee38-44ce-8f95-6e6857b950f3}</formid>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <FormPresentation>1</FormPresentation>
+    <FormActivationState>1</FormActivationState>
+    <form>
+      <tabs>
+        <tab name="general" id="{f1bda737-5b35-4345-8b36-9524c10b394b}" IsUserDefined="0" verticallayout="true" expanded="true">
+          <labels>
+            <label description="General" languagecode="1033" />
+          </labels>
+          <columns>
+            <column width="100%">
+              <sections>
+                <section name="details" showlabel="true" showbar="false" id="{f3680f6d-aa04-4868-837d-8b315cb888c8}" IsUserDefined="0" columns="11">
+                  <labels>
+                    <label description="Details" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row>
+                      <cell id="{152bc5ea-7f8b-4c67-9870-e65f8ba7d418}">
+                        <labels>
+                          <label description="Name" languagecode="1033" />
+                        </labels>
+                        <control id="gc_name" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_name" />
+                      </cell>
+                      <cell id="{682e851b-4ad0-4d5a-827d-9e6afec62edd}">
+                        <labels>
+                          <label description="Fact" languagecode="1033" />
+                        </labels>
+                        <control id="gc_fact" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="gc_fact" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{63bebedf-eaf8-4ec4-bd05-39be6daf1d41}">
+                        <labels>
+                          <label description="Kind" languagecode="1033" />
+                        </labels>
+                        <control id="gc_kind" classid="{3EF39988-22BB-4f0b-BBBE-64B5A3748AEE}" datafieldname="gc_kind" />
+                      </cell>
+                      <cell id="{33b89325-1658-43fb-a7c1-e90f691ff1ad}">
+                        <labels>
+                          <label description="Status" languagecode="1033" />
+                        </labels>
+                        <control id="gc_status" classid="{3EF39988-22BB-4f0b-BBBE-64B5A3748AEE}" datafieldname="gc_status" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{8e7c7c03-61e9-4e80-a460-027f713e109e}">
+                        <labels>
+                          <label description="Resolution assertion" languagecode="1033" />
+                        </labels>
+                        <control id="gc_resolutionassertion" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="gc_resolutionassertion" />
+                      </cell>
+                      <cell id="{88f524ba-2d0f-48dc-9247-f988a6415130}">
+                        <labels>
+                          <label description="Resolved by" languagecode="1033" />
+                        </labels>
+                        <control id="gc_resolvedby" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="gc_resolvedby" />
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+                <section name="data" showlabel="true" showbar="false" id="{de7f2b05-74e4-4de6-a497-b09df4c745f0}" IsUserDefined="0" columns="1">
+                  <labels>
+                    <label description="Data" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row>
+                      <cell id="{f982fdb0-2917-42f0-a3fb-5f88cfa7f152}" colspan="2">
+                        <labels>
+                          <label description="Assertion IDs (JSON)" languagecode="1033" />
+                        </labels>
+                        <control id="gc_assertionids" classid="{E0DECE4B-6FC8-4a8f-A065-082708572369}" datafieldname="gc_assertionids" />
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+              </sections>
+            </column>
+          </columns>
+        </tab>
+      </tabs>
+    </form>
+    <IsCustomizable>1</IsCustomizable>
+    <CanBeDeleted>1</CanBeDeleted>
+    <LocalizedNames>
+      <LocalizedName description="Information" languagecode="1033" />
+    </LocalizedNames>
+    <Descriptions>
+      <Description description="A form for this entity." languagecode="1033" />
+    </Descriptions>
+  </systemform>
+</forms>

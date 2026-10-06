@@ -1,0 +1,11 @@
+<customapiresponseproperty uniquename="Facts">
+  <description default="Facts">
+    <label description="Facts" languagecode="1033" />
+  </description>
+  <displayname default="Facts">
+    <label description="Facts" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <name>gc_ResolveEvidence.Facts</name>
+  <type>7</type>
+</customapiresponseproperty>

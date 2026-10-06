@@ -1,0 +1,47 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<savedqueries xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <savedquery>
+    <IsCustomizable>1</IsCustomizable>
+    <CanBeDeleted>0</CanBeDeleted>
+    <isquickfindquery>0</isquickfindquery>
+    <isprivate>0</isprivate>
+    <isdefault>1</isdefault>
+    <savedqueryid>{dc832a0a-db5a-4fa6-888d-6eb088970146}</savedqueryid>
+    <layoutxml>
+      <grid name="resultset" jump="gc_name" select="1" icon="1" preview="1">
+        <row name="result" id="gc_paymenteventid">
+          <cell name="gc_name" width="200" />
+          <cell name="gc_payment" width="140" />
+          <cell name="gc_eventtype" width="140" />
+          <cell name="gc_externalid" width="140" />
+          <cell name="gc_signaturevalid" width="140" />
+          <cell name="gc_receivedon" width="140" />
+          <cell name="createdon" width="140" />
+        </row>
+      </grid>
+    </layoutxml>
+    <querytype>0</querytype>
+    <fetchxml>
+      <fetch version="1.0" mapping="logical">
+        <entity name="gc_paymentevent">
+          <attribute name="gc_name" />
+          <attribute name="gc_payment" />
+          <attribute name="gc_eventtype" />
+          <attribute name="gc_externalid" />
+          <attribute name="gc_signaturevalid" />
+          <attribute name="gc_receivedon" />
+          <attribute name="createdon" />
+          <attribute name="gc_paymenteventid" />
+          <order attribute="createdon" descending="true" />
+          <filter type="and">
+            <condition attribute="statecode" operator="eq" value="0" />
+          </filter>
+        </entity>
+      </fetch>
+    </fetchxml>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <LocalizedNames>
+      <LocalizedName description="Active Payment events" languagecode="1033" />
+    </LocalizedNames>
+  </savedquery>
+</savedqueries>

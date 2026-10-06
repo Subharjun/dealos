@@ -1,0 +1,51 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<savedqueries xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <savedquery>
+    <IsCustomizable>1</IsCustomizable>
+    <CanBeDeleted>0</CanBeDeleted>
+    <isquickfindquery>0</isquickfindquery>
+    <isprivate>0</isprivate>
+    <isdefault>1</isdefault>
+    <savedqueryid>{5cbedecf-6d1e-43f9-b328-215638637841}</savedqueryid>
+    <layoutxml>
+      <grid name="resultset" jump="gc_name" select="1" icon="1" preview="1">
+        <row name="result" id="gc_dealid">
+          <cell name="gc_name" width="200" />
+          <cell name="gc_dealnumber" width="140" />
+          <cell name="gc_listing" width="140" />
+          <cell name="gc_lot" width="140" />
+          <cell name="gc_seller" width="140" />
+          <cell name="gc_buyer" width="140" />
+          <cell name="gc_commodity" width="140" />
+          <cell name="gc_hscode" width="140" />
+          <cell name="createdon" width="140" />
+        </row>
+      </grid>
+    </layoutxml>
+    <querytype>0</querytype>
+    <fetchxml>
+      <fetch version="1.0" mapping="logical">
+        <entity name="gc_deal">
+          <attribute name="gc_name" />
+          <attribute name="gc_dealnumber" />
+          <attribute name="gc_listing" />
+          <attribute name="gc_lot" />
+          <attribute name="gc_seller" />
+          <attribute name="gc_buyer" />
+          <attribute name="gc_commodity" />
+          <attribute name="gc_hscode" />
+          <attribute name="createdon" />
+          <attribute name="gc_dealid" />
+          <order attribute="createdon" descending="true" />
+          <filter type="and">
+            <condition attribute="statecode" operator="eq" value="0" />
+          </filter>
+        </entity>
+      </fetch>
+    </fetchxml>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <LocalizedNames>
+      <LocalizedName description="Active Deals" languagecode="1033" />
+    </LocalizedNames>
+  </savedquery>
+</savedqueries>

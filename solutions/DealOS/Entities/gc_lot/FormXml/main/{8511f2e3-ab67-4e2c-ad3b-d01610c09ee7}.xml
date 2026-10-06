@@ -1,0 +1,95 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<forms xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <systemform>
+    <formid>{8511f2e3-ab67-4e2c-ad3b-d01610c09ee7}</formid>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <FormPresentation>1</FormPresentation>
+    <FormActivationState>1</FormActivationState>
+    <form>
+      <tabs>
+        <tab name="general" id="{f88a183c-3320-4c9e-986e-4ed2a4e1e78e}" IsUserDefined="0" verticallayout="true" expanded="true">
+          <labels>
+            <label description="General" languagecode="1033" />
+          </labels>
+          <columns>
+            <column width="100%">
+              <sections>
+                <section name="details" showlabel="true" showbar="false" id="{3f6bdf49-787b-4f1d-b32d-41fc0b05a5d8}" IsUserDefined="0" columns="11">
+                  <labels>
+                    <label description="Details" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row>
+                      <cell id="{7e50f5cb-6903-42c5-b7d1-bf41fa32c132}">
+                        <labels>
+                          <label description="Name" languagecode="1033" />
+                        </labels>
+                        <control id="gc_name" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_name" />
+                      </cell>
+                      <cell id="{57bb3646-238a-49a5-bb32-3050922f96ad}">
+                        <labels>
+                          <label description="Listing" languagecode="1033" />
+                        </labels>
+                        <control id="gc_listing" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="gc_listing" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{4473d3c4-9f6d-4780-a6f3-6c0b8ef1a498}">
+                        <labels>
+                          <label description="Lot number" languagecode="1033" />
+                        </labels>
+                        <control id="gc_lotnumber" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_lotnumber" />
+                      </cell>
+                      <cell id="{89474dc6-06bc-4e17-b161-b519e50e29fa}">
+                        <labels>
+                          <label description="Quantity" languagecode="1033" />
+                        </labels>
+                        <control id="gc_quantity" classid="{C3EFE0C3-0EC6-42be-8349-CBD9079DFD8E}" datafieldname="gc_quantity" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{4be83e42-7e29-4c98-a751-94e3a13f40ce}">
+                        <labels>
+                          <label description="Location" languagecode="1033" />
+                        </labels>
+                        <control id="gc_location" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="gc_location" />
+                      </cell>
+                      <cell id="{7d767aeb-6df4-469a-8d8e-b6f351348179}">
+                        <labels>
+                          <label description="Status" languagecode="1033" />
+                        </labels>
+                        <control id="gc_status" classid="{3EF39988-22BB-4f0b-BBBE-64B5A3748AEE}" datafieldname="gc_status" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{325bbe15-be2a-450e-af3a-32346ea77aec}">
+                        <labels>
+                          <label description="Reserved for deal" languagecode="1033" />
+                        </labels>
+                        <control id="gc_reservedfor" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="gc_reservedfor" />
+                      </cell>
+                      <cell id="{4916d3f4-5831-459f-a2ab-6fa21cef9f7a}">
+                        <labels>
+                          <label description="Fingerprint" languagecode="1033" />
+                        </labels>
+                        <control id="gc_fingerprint" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_fingerprint" />
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+              </sections>
+            </column>
+          </columns>
+        </tab>
+      </tabs>
+    </form>
+    <IsCustomizable>1</IsCustomizable>
+    <CanBeDeleted>1</CanBeDeleted>
+    <LocalizedNames>
+      <LocalizedName description="Information" languagecode="1033" />
+    </LocalizedNames>
+    <Descriptions>
+      <Description description="A form for this entity." languagecode="1033" />
+    </Descriptions>
+  </systemform>
+</forms>

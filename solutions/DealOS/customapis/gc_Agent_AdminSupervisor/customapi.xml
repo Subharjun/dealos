@@ -1,0 +1,18 @@
+<customapi uniquename="gc_Agent_AdminSupervisor">
+  <allowedcustomprocessingsteptype>0</allowedcustomprocessingsteptype>
+  <bindingtype>0</bindingtype>
+  <description default="Read-only operations digest: open approvals, stuck deals, listings waiting on sellers, failed flows and agent runs, AI spend against budget, with prioritised actions.">
+    <label description="Read-only operations digest: open approvals, stuck deals, listings waiting on sellers, failed flows and agent runs, AI spend against budget, with prioritised actions." languagecode="1033" />
+  </description>
+  <displayname default="Agent: Ops Supervisor">
+    <label description="Agent: Ops Supervisor" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isfunction>0</isfunction>
+  <isprivate>0</isprivate>
+  <name>gc_Agent_AdminSupervisor</name>
+  <plugintypeid>
+    <plugintypeexportkey>80e9c839-6ac1-f111-aaaf-7ced8daf451f</plugintypeexportkey>
+  </plugintypeid>
+  <workflowsdkstepenabled>0</workflowsdkstepenabled>
+</customapi>

@@ -1,0 +1,18 @@
+<customapi uniquename="gc_Agent_Contract">
+  <allowedcustomprocessingsteptype>0</allowedcustomprocessingsteptype>
+  <bindingtype>0</bindingtype>
+  <description default="Builds a term sheet strictly from the accepted offer and deal data, flags missing or non-standard terms, and opens a draft contract for Deal Manager review.">
+    <label description="Builds a term sheet strictly from the accepted offer and deal data, flags missing or non-standard terms, and opens a draft contract for Deal Manager review." languagecode="1033" />
+  </description>
+  <displayname default="Agent: Contract">
+    <label description="Agent: Contract" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isfunction>0</isfunction>
+  <isprivate>0</isprivate>
+  <name>gc_Agent_Contract</name>
+  <plugintypeid>
+    <plugintypeexportkey>80e9c839-6ac1-f111-aaaf-7ced8daf451f</plugintypeexportkey>
+  </plugintypeid>
+  <workflowsdkstepenabled>0</workflowsdkstepenabled>
+</customapi>

@@ -1,0 +1,11 @@
+<customapiresponseproperty uniquename="Summary">
+  <description default="Short human-readable summary.">
+    <label description="Short human-readable summary." languagecode="1033" />
+  </description>
+  <displayname default="Summary">
+    <label description="Summary" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <name>gc_Agent_Payment.Summary</name>
+  <type>10</type>
+</customapiresponseproperty>

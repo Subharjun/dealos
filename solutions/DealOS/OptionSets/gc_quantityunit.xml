@@ -1,0 +1,62 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<optionset Name="gc_quantityunit" localizedName="Quantity unit" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <OptionSetType>picklist</OptionSetType>
+  <IsGlobal>1</IsGlobal>
+  <IntroducedVersion>1.0.0.0</IntroducedVersion>
+  <IsCustomizable>1</IsCustomizable>
+  <displaynames>
+    <displayname description="Quantity unit" languagecode="1033" />
+  </displaynames>
+  <options>
+    <option value="303300000" ExternalValue="" IsHidden="0">
+      <labels>
+        <label description="MT" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="303300001" ExternalValue="" IsHidden="0">
+      <labels>
+        <label description="DMT" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="303300002" ExternalValue="" IsHidden="0">
+      <labels>
+        <label description="WMT" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="303300003" ExternalValue="" IsHidden="0">
+      <labels>
+        <label description="Kg" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="303300004" ExternalValue="" IsHidden="0">
+      <labels>
+        <label description="Lb" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="303300005" ExternalValue="" IsHidden="0">
+      <labels>
+        <label description="Troy Oz" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="303300006" ExternalValue="" IsHidden="0">
+      <labels>
+        <label description="Short Ton" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="303300007" ExternalValue="" IsHidden="0">
+      <labels>
+        <label description="Long Ton" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="303300008" ExternalValue="" IsHidden="0">
+      <labels>
+        <label description="Flask" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="303300009" ExternalValue="" IsHidden="0">
+      <labels>
+        <label description="Unit" languagecode="1033" />
+      </labels>
+    </option>
+  </options>
+</optionset>

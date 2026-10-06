@@ -1,0 +1,118 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<forms xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <systemform>
+    <formid>{17f60956-db03-4cce-916e-65d3d117b651}</formid>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <FormPresentation>1</FormPresentation>
+    <FormActivationState>1</FormActivationState>
+    <form>
+      <tabs>
+        <tab name="general" id="{7b078a7d-a71e-477f-8a83-560b2996a8ab}" IsUserDefined="0" verticallayout="true" expanded="true">
+          <labels>
+            <label description="General" languagecode="1033" />
+          </labels>
+          <columns>
+            <column width="100%">
+              <sections>
+                <section name="details" showlabel="true" showbar="false" id="{b611a52b-2a43-4713-a878-dae8e66d1f46}" IsUserDefined="0" columns="11">
+                  <labels>
+                    <label description="Details" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row>
+                      <cell id="{2ee500b4-e413-467c-b35e-e941126fee23}">
+                        <labels>
+                          <label description="Name" languagecode="1033" />
+                        </labels>
+                        <control id="gc_name" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_name" />
+                      </cell>
+                      <cell id="{67e3ff28-a1a1-4830-af0f-0abe7d83c84c}">
+                        <labels>
+                          <label description="Assertion" languagecode="1033" />
+                        </labels>
+                        <control id="gc_assertion" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="gc_assertion" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{27b31cf2-642e-404c-adbf-81400b10b346}">
+                        <labels>
+                          <label description="Fact" languagecode="1033" />
+                        </labels>
+                        <control id="gc_fact" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="gc_fact" />
+                      </cell>
+                      <cell id="{a362dcd9-4447-49a4-9658-77e6d107cf78}">
+                        <labels>
+                          <label description="Method" languagecode="1033" />
+                        </labels>
+                        <control id="gc_method" classid="{3EF39988-22BB-4f0b-BBBE-64B5A3748AEE}" datafieldname="gc_method" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{892e28b8-2a38-4c8b-8889-2e364c6fec08}">
+                        <labels>
+                          <label description="Result" languagecode="1033" />
+                        </labels>
+                        <control id="gc_result" classid="{3EF39988-22BB-4f0b-BBBE-64B5A3748AEE}" datafieldname="gc_result" />
+                      </cell>
+                      <cell id="{23dd9d95-d727-461d-8566-0727cb1028d1}">
+                        <labels>
+                          <label description="Performed by" languagecode="1033" />
+                        </labels>
+                        <control id="gc_performedby" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="gc_performedby" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{5b40826a-b663-4aa4-a38c-3b9174fb7b20}">
+                        <labels>
+                          <label description="Performed by partner" languagecode="1033" />
+                        </labels>
+                        <control id="gc_performedbypartner" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="gc_performedbypartner" />
+                      </cell>
+                      <cell id="{415bbe03-ceb7-45c0-9a4c-1ec0b46bed44}">
+                        <labels>
+                          <label description="Evidence document" languagecode="1033" />
+                        </labels>
+                        <control id="gc_evidencedocument" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="gc_evidencedocument" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{d012aa8e-f8fa-41f6-9117-cc480ba07666}">
+                        <labels>
+                          <label description="Performed on" languagecode="1033" />
+                        </labels>
+                        <control id="gc_performedon" classid="{5B773807-9FB2-42db-97C3-7A91EFF8ADFF}" datafieldname="gc_performedon" />
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+                <section name="data" showlabel="true" showbar="false" id="{470cba30-c6ab-4d39-8686-217db28746bd}" IsUserDefined="0" columns="1">
+                  <labels>
+                    <label description="Data" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row>
+                      <cell id="{c3de6e0c-9839-4257-b99e-39859c44d884}" colspan="2">
+                        <labels>
+                          <label description="Notes" languagecode="1033" />
+                        </labels>
+                        <control id="gc_notes" classid="{E0DECE4B-6FC8-4a8f-A065-082708572369}" datafieldname="gc_notes" />
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+              </sections>
+            </column>
+          </columns>
+        </tab>
+      </tabs>
+    </form>
+    <IsCustomizable>1</IsCustomizable>
+    <CanBeDeleted>1</CanBeDeleted>
+    <LocalizedNames>
+      <LocalizedName description="Information" languagecode="1033" />
+    </LocalizedNames>
+    <Descriptions>
+      <Description description="A form for this entity." languagecode="1033" />
+    </Descriptions>
+  </systemform>
+</forms>

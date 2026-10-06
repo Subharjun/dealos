@@ -1,0 +1,51 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<savedqueries xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <savedquery>
+    <IsCustomizable>1</IsCustomizable>
+    <CanBeDeleted>0</CanBeDeleted>
+    <isquickfindquery>0</isquickfindquery>
+    <isprivate>0</isprivate>
+    <isdefault>1</isdefault>
+    <savedqueryid>{4fc91294-4cfd-436e-9090-269d4c4c5522}</savedqueryid>
+    <layoutxml>
+      <grid name="resultset" jump="gc_name" select="1" icon="1" preview="1">
+        <row name="result" id="gc_buyerrequirementid">
+          <cell name="gc_name" width="200" />
+          <cell name="gc_buyer" width="140" />
+          <cell name="gc_commodity" width="140" />
+          <cell name="gc_quantity" width="140" />
+          <cell name="gc_quantityunit" width="140" />
+          <cell name="gc_destinationcountry" width="140" />
+          <cell name="gc_destinationport" width="140" />
+          <cell name="gc_incoterm" width="140" />
+          <cell name="createdon" width="140" />
+        </row>
+      </grid>
+    </layoutxml>
+    <querytype>0</querytype>
+    <fetchxml>
+      <fetch version="1.0" mapping="logical">
+        <entity name="gc_buyerrequirement">
+          <attribute name="gc_name" />
+          <attribute name="gc_buyer" />
+          <attribute name="gc_commodity" />
+          <attribute name="gc_quantity" />
+          <attribute name="gc_quantityunit" />
+          <attribute name="gc_destinationcountry" />
+          <attribute name="gc_destinationport" />
+          <attribute name="gc_incoterm" />
+          <attribute name="createdon" />
+          <attribute name="gc_buyerrequirementid" />
+          <order attribute="createdon" descending="true" />
+          <filter type="and">
+            <condition attribute="statecode" operator="eq" value="0" />
+          </filter>
+        </entity>
+      </fetch>
+    </fetchxml>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <LocalizedNames>
+      <LocalizedName description="Active Buyer requirements" languagecode="1033" />
+    </LocalizedNames>
+  </savedquery>
+</savedqueries>

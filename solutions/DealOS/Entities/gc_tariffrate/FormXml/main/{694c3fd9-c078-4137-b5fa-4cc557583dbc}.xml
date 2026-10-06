@@ -1,0 +1,117 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<forms xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <systemform>
+    <formid>{694c3fd9-c078-4137-b5fa-4cc557583dbc}</formid>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <FormPresentation>1</FormPresentation>
+    <FormActivationState>1</FormActivationState>
+    <form>
+      <tabs>
+        <tab name="general" id="{6755ba70-a050-4bd7-8d2b-b0ffd551b251}" IsUserDefined="0" verticallayout="true" expanded="true">
+          <labels>
+            <label description="General" languagecode="1033" />
+          </labels>
+          <columns>
+            <column width="100%">
+              <sections>
+                <section name="details" showlabel="true" showbar="false" id="{de78868a-4211-4ad9-9e2b-8b7a5c95084e}" IsUserDefined="0" columns="11">
+                  <labels>
+                    <label description="Details" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row>
+                      <cell id="{31fb7c78-f731-4093-93c0-95f0f9ee8f0b}">
+                        <labels>
+                          <label description="Name" languagecode="1033" />
+                        </labels>
+                        <control id="gc_name" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_name" />
+                      </cell>
+                      <cell id="{3c25bc83-532b-4010-a0d8-4d5e298502b4}">
+                        <labels>
+                          <label description="Country" languagecode="1033" />
+                        </labels>
+                        <control id="gc_country" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="gc_country" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{f7c0defc-8aff-483a-9330-7259f77dae83}">
+                        <labels>
+                          <label description="Direction" languagecode="1033" />
+                        </labels>
+                        <control id="gc_direction" classid="{3EF39988-22BB-4f0b-BBBE-64B5A3748AEE}" datafieldname="gc_direction" />
+                      </cell>
+                      <cell id="{a56ca879-9cc4-4deb-bebd-263c95774206}">
+                        <labels>
+                          <label description="HS code" languagecode="1033" />
+                        </labels>
+                        <control id="gc_hscode" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_hscode" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{709a356f-441a-4476-9f4f-1306a3eb0f7b}">
+                        <labels>
+                          <label description="Rate %" languagecode="1033" />
+                        </labels>
+                        <control id="gc_ratepct" classid="{C3EFE0C3-0EC6-42be-8349-CBD9079DFD8E}" datafieldname="gc_ratepct" />
+                      </cell>
+                      <cell id="{f196bf21-6a9a-4ec1-b3d8-2849473c0948}">
+                        <labels>
+                          <label description="Basis" languagecode="1033" />
+                        </labels>
+                        <control id="gc_basis" classid="{3EF39988-22BB-4f0b-BBBE-64B5A3748AEE}" datafieldname="gc_basis" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{56949eca-d03b-4c06-a675-e160592f24fe}">
+                        <labels>
+                          <label description="Specific amount per unit" languagecode="1033" />
+                        </labels>
+                        <control id="gc_specificamount" classid="{C3EFE0C3-0EC6-42be-8349-CBD9079DFD8E}" datafieldname="gc_specificamount" />
+                      </cell>
+                      <cell id="{534d3865-9cbb-4955-98fa-c06390246ff6}">
+                        <labels>
+                          <label description="Preferential origin" languagecode="1033" />
+                        </labels>
+                        <control id="gc_origincountry" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="gc_origincountry" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{5bcb748a-10f0-480e-8cb6-fdb8aa2a8d2b}">
+                        <labels>
+                          <label description="Source URL" languagecode="1033" />
+                        </labels>
+                        <control id="gc_sourceurl" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_sourceurl" />
+                      </cell>
+                      <cell id="{5a2ffcff-2974-4617-870b-2903fa83839c}">
+                        <labels>
+                          <label description="As of" languagecode="1033" />
+                        </labels>
+                        <control id="gc_asof" classid="{5B773807-9FB2-42db-97C3-7A91EFF8ADFF}" datafieldname="gc_asof" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{ea65ec73-3ef4-43e4-b8f4-838a188de0e0}">
+                        <labels>
+                          <label description="Status" languagecode="1033" />
+                        </labels>
+                        <control id="gc_status" classid="{3EF39988-22BB-4f0b-BBBE-64B5A3748AEE}" datafieldname="gc_status" />
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+              </sections>
+            </column>
+          </columns>
+        </tab>
+      </tabs>
+    </form>
+    <IsCustomizable>1</IsCustomizable>
+    <CanBeDeleted>1</CanBeDeleted>
+    <LocalizedNames>
+      <LocalizedName description="Information" languagecode="1033" />
+    </LocalizedNames>
+    <Descriptions>
+      <Description description="A form for this entity." languagecode="1033" />
+    </Descriptions>
+  </systemform>
+</forms>

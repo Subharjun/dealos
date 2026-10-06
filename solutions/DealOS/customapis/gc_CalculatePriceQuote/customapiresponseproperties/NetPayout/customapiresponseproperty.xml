@@ -1,0 +1,11 @@
+<customapiresponseproperty uniquename="NetPayout">
+  <description default="NetPayout">
+    <label description="NetPayout" languagecode="1033" />
+  </description>
+  <displayname default="NetPayout">
+    <label description="NetPayout" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <name>gc_CalculatePriceQuote.NetPayout</name>
+  <type>2</type>
+</customapiresponseproperty>

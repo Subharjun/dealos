@@ -1,0 +1,138 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<forms xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <systemform>
+    <formid>{9a3d208a-95e7-409d-9063-9f4068b2621c}</formid>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <FormPresentation>1</FormPresentation>
+    <FormActivationState>1</FormActivationState>
+    <form>
+      <tabs>
+        <tab name="general" id="{0c2a450c-7377-4768-9a4e-55f05193e33b}" IsUserDefined="0" verticallayout="true" expanded="true">
+          <labels>
+            <label description="General" languagecode="1033" />
+          </labels>
+          <columns>
+            <column width="100%">
+              <sections>
+                <section name="details" showlabel="true" showbar="false" id="{4658c9d0-81ec-402f-92dd-b3eab5017927}" IsUserDefined="0" columns="11">
+                  <labels>
+                    <label description="Details" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row>
+                      <cell id="{b8402cc6-38f6-4582-98c9-68b0550eb4fd}">
+                        <labels>
+                          <label description="Name" languagecode="1033" />
+                        </labels>
+                        <control id="gc_name" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_name" />
+                      </cell>
+                      <cell id="{c24bc5e3-e51a-49d1-8f60-e14ee9f9f92a}">
+                        <labels>
+                          <label description="Task" languagecode="1033" />
+                        </labels>
+                        <control id="gc_task" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_task" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{c0f6cd57-4be6-4f5e-9491-b8fd2e5045ed}">
+                        <labels>
+                          <label description="Provider" languagecode="1033" />
+                        </labels>
+                        <control id="gc_provider" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_provider" />
+                      </cell>
+                      <cell id="{1abe9d9d-7a04-448e-aec2-4b9ada1acfd1}">
+                        <labels>
+                          <label description="Model" languagecode="1033" />
+                        </labels>
+                        <control id="gc_model" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_model" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{aa83cbc7-244c-4c18-9642-721ff0bc7568}">
+                        <labels>
+                          <label description="Prompt version" languagecode="1033" />
+                        </labels>
+                        <control id="gc_promptversion" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_promptversion" />
+                      </cell>
+                      <cell id="{5901f80b-eef8-4f20-9b8c-0658b27d0f65}">
+                        <labels>
+                          <label description="Input SHA-256" languagecode="1033" />
+                        </labels>
+                        <control id="gc_inputdigest" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_inputdigest" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{65cff04a-1a63-4307-8d24-b8ebbd2245bb}">
+                        <labels>
+                          <label description="Tokens in" languagecode="1033" />
+                        </labels>
+                        <control id="gc_tokensin" classid="{C6D124CA-7EDA-4a60-AEA9-7FB8D318B68F}" datafieldname="gc_tokensin" />
+                      </cell>
+                      <cell id="{a136b47b-66d8-4859-8713-0227d4cae715}">
+                        <labels>
+                          <label description="Tokens out" languagecode="1033" />
+                        </labels>
+                        <control id="gc_tokensout" classid="{C6D124CA-7EDA-4a60-AEA9-7FB8D318B68F}" datafieldname="gc_tokensout" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{977914d7-7d9b-40ea-95c6-8f3373248bd6}">
+                        <labels>
+                          <label description="Latency (ms)" languagecode="1033" />
+                        </labels>
+                        <control id="gc_latencyms" classid="{C6D124CA-7EDA-4a60-AEA9-7FB8D318B68F}" datafieldname="gc_latencyms" />
+                      </cell>
+                      <cell id="{b10ddb78-9a05-40d5-9843-ef31ddd689ac}">
+                        <labels>
+                          <label description="Cost (USD)" languagecode="1033" />
+                        </labels>
+                        <control id="gc_costusd" classid="{C3EFE0C3-0EC6-42be-8349-CBD9079DFD8E}" datafieldname="gc_costusd" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{a74a7eda-14ae-4428-93fe-f6330685c3fc}">
+                        <labels>
+                          <label description="Outcome" languagecode="1033" />
+                        </labels>
+                        <control id="gc_outcome" classid="{3EF39988-22BB-4f0b-BBBE-64B5A3748AEE}" datafieldname="gc_outcome" />
+                      </cell>
+                      <cell id="{c973d44e-22b7-4878-8e11-dd5bbd53a039}">
+                        <labels>
+                          <label description="Agent run" languagecode="1033" />
+                        </labels>
+                        <control id="gc_agentrun" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="gc_agentrun" />
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+                <section name="data" showlabel="true" showbar="false" id="{9828416a-8861-4a4c-87f3-413eac2639f4}" IsUserDefined="0" columns="1">
+                  <labels>
+                    <label description="Data" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row>
+                      <cell id="{eadf0db8-e443-4e52-806b-8d10f2d21e69}" colspan="2">
+                        <labels>
+                          <label description="Error" languagecode="1033" />
+                        </labels>
+                        <control id="gc_error" classid="{E0DECE4B-6FC8-4a8f-A065-082708572369}" datafieldname="gc_error" />
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+              </sections>
+            </column>
+          </columns>
+        </tab>
+      </tabs>
+    </form>
+    <IsCustomizable>1</IsCustomizable>
+    <CanBeDeleted>1</CanBeDeleted>
+    <LocalizedNames>
+      <LocalizedName description="Information" languagecode="1033" />
+    </LocalizedNames>
+    <Descriptions>
+      <Description description="A form for this entity." languagecode="1033" />
+    </Descriptions>
+  </systemform>
+</forms>

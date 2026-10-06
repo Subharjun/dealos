@@ -1,0 +1,49 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<savedqueries xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <savedquery>
+    <IsCustomizable>1</IsCustomizable>
+    <CanBeDeleted>0</CanBeDeleted>
+    <isquickfindquery>0</isquickfindquery>
+    <isprivate>0</isprivate>
+    <isdefault>1</isdefault>
+    <savedqueryid>{ecb88aef-7c10-4b2e-b0e9-050b2bc73c20}</savedqueryid>
+    <layoutxml>
+      <grid name="resultset" jump="gc_name" select="1" icon="1" preview="1">
+        <row name="result" id="gc_messageid">
+          <cell name="gc_name" width="200" />
+          <cell name="gc_conversation" width="140" />
+          <cell name="gc_externalid" width="140" />
+          <cell name="gc_senderlabel" width="140" />
+          <cell name="gc_sendercontact" width="140" />
+          <cell name="gc_senton" width="140" />
+          <cell name="gc_isplatform" width="140" />
+          <cell name="createdon" width="140" />
+        </row>
+      </grid>
+    </layoutxml>
+    <querytype>0</querytype>
+    <fetchxml>
+      <fetch version="1.0" mapping="logical">
+        <entity name="gc_message">
+          <attribute name="gc_name" />
+          <attribute name="gc_conversation" />
+          <attribute name="gc_externalid" />
+          <attribute name="gc_senderlabel" />
+          <attribute name="gc_sendercontact" />
+          <attribute name="gc_senton" />
+          <attribute name="gc_isplatform" />
+          <attribute name="createdon" />
+          <attribute name="gc_messageid" />
+          <order attribute="createdon" descending="true" />
+          <filter type="and">
+            <condition attribute="statecode" operator="eq" value="0" />
+          </filter>
+        </entity>
+      </fetch>
+    </fetchxml>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <LocalizedNames>
+      <LocalizedName description="Active Messages" languagecode="1033" />
+    </LocalizedNames>
+  </savedquery>
+</savedqueries>

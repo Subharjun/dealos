@@ -1,0 +1,104 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<forms xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <systemform>
+    <formid>{f494ba45-d91a-4226-9466-8941d6fe2f8a}</formid>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <FormPresentation>1</FormPresentation>
+    <FormActivationState>1</FormActivationState>
+    <form>
+      <tabs>
+        <tab name="general" id="{a9274fe8-9584-4bba-860e-a79f12cec0cf}" IsUserDefined="0" verticallayout="true" expanded="true">
+          <labels>
+            <label description="General" languagecode="1033" />
+          </labels>
+          <columns>
+            <column width="100%">
+              <sections>
+                <section name="details" showlabel="true" showbar="false" id="{31b4e0af-c029-460f-8382-aefdc2832b75}" IsUserDefined="0" columns="11">
+                  <labels>
+                    <label description="Details" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row>
+                      <cell id="{aa501915-3a6d-449d-bdf4-eda30a6361c0}">
+                        <labels>
+                          <label description="Name" languagecode="1033" />
+                        </labels>
+                        <control id="gc_name" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_name" />
+                      </cell>
+                      <cell id="{a0d86b1d-c8a6-4500-861f-b856f6001519}">
+                        <labels>
+                          <label description="Key" languagecode="1033" />
+                        </labels>
+                        <control id="gc_key" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_key" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{0a6b1797-874b-4e8a-bd0d-0af7ff0b8d30}">
+                        <labels>
+                          <label description="Data type" languagecode="1033" />
+                        </labels>
+                        <control id="gc_datatype" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_datatype" />
+                      </cell>
+                      <cell id="{7a4320c6-1968-456a-bacb-b2c4030a87a0}">
+                        <labels>
+                          <label description="Canonical unit" languagecode="1033" />
+                        </labels>
+                        <control id="gc_canonicalunit" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_canonicalunit" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{5ed144e7-ae89-46d6-8a98-d8db100bcfef}">
+                        <labels>
+                          <label description="Sensitivity" languagecode="1033" />
+                        </labels>
+                        <control id="gc_sensitivity" classid="{3EF39988-22BB-4f0b-BBBE-64B5A3748AEE}" datafieldname="gc_sensitivity" />
+                      </cell>
+                      <cell id="{972986e5-e9c1-4c7c-a712-7d2403d33eb0}">
+                        <labels>
+                          <label description="Freshness (days)" languagecode="1033" />
+                        </labels>
+                        <control id="gc_freshnessdays" classid="{C6D124CA-7EDA-4a60-AEA9-7FB8D318B68F}" datafieldname="gc_freshnessdays" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{7e590a78-c57c-4d82-85c9-bc04eed30016}">
+                        <labels>
+                          <label description="Catalog version" languagecode="1033" />
+                        </labels>
+                        <control id="gc_catalogversion" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_catalogversion" />
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+                <section name="data" showlabel="true" showbar="false" id="{d47e5325-de96-41fa-8105-11dc9d2d3d87}" IsUserDefined="0" columns="1">
+                  <labels>
+                    <label description="Data" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row>
+                      <cell id="{68f5510a-2904-41d0-b623-103caacbfe7e}" colspan="2">
+                        <labels>
+                          <label description="Definition (JSON)" languagecode="1033" />
+                        </labels>
+                        <control id="gc_definition" classid="{E0DECE4B-6FC8-4a8f-A065-082708572369}" datafieldname="gc_definition" />
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+              </sections>
+            </column>
+          </columns>
+        </tab>
+      </tabs>
+    </form>
+    <IsCustomizable>1</IsCustomizable>
+    <CanBeDeleted>1</CanBeDeleted>
+    <LocalizedNames>
+      <LocalizedName description="Information" languagecode="1033" />
+    </LocalizedNames>
+    <Descriptions>
+      <Description description="A form for this entity." languagecode="1033" />
+    </Descriptions>
+  </systemform>
+</forms>

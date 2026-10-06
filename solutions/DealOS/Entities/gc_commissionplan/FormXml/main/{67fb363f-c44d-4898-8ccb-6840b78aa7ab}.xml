@@ -1,0 +1,123 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<forms xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <systemform>
+    <formid>{67fb363f-c44d-4898-8ccb-6840b78aa7ab}</formid>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <FormPresentation>1</FormPresentation>
+    <FormActivationState>1</FormActivationState>
+    <form>
+      <tabs>
+        <tab name="general" id="{3ecabbb3-aac3-4baa-88e4-6ef7f2bed009}" IsUserDefined="0" verticallayout="true" expanded="true">
+          <labels>
+            <label description="General" languagecode="1033" />
+          </labels>
+          <columns>
+            <column width="100%">
+              <sections>
+                <section name="details" showlabel="true" showbar="false" id="{54bb7d5f-892a-4ba7-a3a4-ab6b946282f9}" IsUserDefined="0" columns="11">
+                  <labels>
+                    <label description="Details" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row>
+                      <cell id="{9e7f8da1-0eff-4a3c-afb8-67b35036f74c}">
+                        <labels>
+                          <label description="Name" languagecode="1033" />
+                        </labels>
+                        <control id="gc_name" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_name" />
+                      </cell>
+                      <cell id="{6abe4a1a-259b-42c2-a77a-311a9b5e6033}">
+                        <labels>
+                          <label description="Rate %" languagecode="1033" />
+                        </labels>
+                        <control id="gc_ratepct" classid="{C3EFE0C3-0EC6-42be-8349-CBD9079DFD8E}" datafieldname="gc_ratepct" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{285b6188-8413-4034-a31b-0eeff933007a}">
+                        <labels>
+                          <label description="Commission base" languagecode="1033" />
+                        </labels>
+                        <control id="gc_base" classid="{3EF39988-22BB-4f0b-BBBE-64B5A3748AEE}" datafieldname="gc_base" />
+                      </cell>
+                      <cell id="{478f74b6-eb47-4cf6-b244-c4797edfec88}">
+                        <labels>
+                          <label description="Payer" languagecode="1033" />
+                        </labels>
+                        <control id="gc_payer" classid="{3EF39988-22BB-4f0b-BBBE-64B5A3748AEE}" datafieldname="gc_payer" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{44d883c9-33d3-41a5-abf9-c7c9819ee7e4}">
+                        <labels>
+                          <label description="Seller share % (when split)" languagecode="1033" />
+                        </labels>
+                        <control id="gc_sellersharepct" classid="{C3EFE0C3-0EC6-42be-8349-CBD9079DFD8E}" datafieldname="gc_sellersharepct" />
+                      </cell>
+                      <cell id="{a37a296a-7812-4519-a59b-d2a559c45371}">
+                        <labels>
+                          <label description="Minimum amount" languagecode="1033" />
+                        </labels>
+                        <control id="gc_minamount" classid="{C3EFE0C3-0EC6-42be-8349-CBD9079DFD8E}" datafieldname="gc_minamount" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{dafbfeec-e738-4df3-b286-a16101751811}">
+                        <labels>
+                          <label description="Maximum amount" languagecode="1033" />
+                        </labels>
+                        <control id="gc_maxamount" classid="{C3EFE0C3-0EC6-42be-8349-CBD9079DFD8E}" datafieldname="gc_maxamount" />
+                      </cell>
+                      <cell id="{cd2330c2-aa85-4c0d-98a3-549c4e35bc9c}">
+                        <labels>
+                          <label description="Currency" languagecode="1033" />
+                        </labels>
+                        <control id="gc_currency" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_currency" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{5dcb2e50-5ce9-4510-996d-102d7941ad76}">
+                        <labels>
+                          <label description="Effective from" languagecode="1033" />
+                        </labels>
+                        <control id="gc_effectivefrom" classid="{5B773807-9FB2-42db-97C3-7A91EFF8ADFF}" datafieldname="gc_effectivefrom" />
+                      </cell>
+                      <cell id="{905d3384-1ecb-44a3-8690-37946e7a1538}">
+                        <labels>
+                          <label description="Effective to" languagecode="1033" />
+                        </labels>
+                        <control id="gc_effectiveto" classid="{5B773807-9FB2-42db-97C3-7A91EFF8ADFF}" datafieldname="gc_effectiveto" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{3882a5bc-04f2-471b-8d22-79d9465eefdd}">
+                        <labels>
+                          <label description="Default plan" languagecode="1033" />
+                        </labels>
+                        <control id="gc_isdefault" classid="{67FAC785-CD58-4f9f-ABB3-4B7DDC6ED5ED}" datafieldname="gc_isdefault" />
+                      </cell>
+                      <cell id="{43068bb9-4ebc-4e92-a95b-742913e74c54}">
+                        <labels>
+                          <label description="Status" languagecode="1033" />
+                        </labels>
+                        <control id="gc_status" classid="{3EF39988-22BB-4f0b-BBBE-64B5A3748AEE}" datafieldname="gc_status" />
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+              </sections>
+            </column>
+          </columns>
+        </tab>
+      </tabs>
+    </form>
+    <IsCustomizable>1</IsCustomizable>
+    <CanBeDeleted>1</CanBeDeleted>
+    <LocalizedNames>
+      <LocalizedName description="Information" languagecode="1033" />
+    </LocalizedNames>
+    <Descriptions>
+      <Description description="A form for this entity." languagecode="1033" />
+    </Descriptions>
+  </systemform>
+</forms>

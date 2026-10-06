@@ -1,0 +1,11 @@
+<customapiresponseproperty uniquename="Status">
+  <description default="Succeeded or Failed.">
+    <label description="Succeeded or Failed." languagecode="1033" />
+  </description>
+  <displayname default="Status">
+    <label description="Status" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <name>gc_Agent_BuyerVerification.Status</name>
+  <type>10</type>
+</customapiresponseproperty>

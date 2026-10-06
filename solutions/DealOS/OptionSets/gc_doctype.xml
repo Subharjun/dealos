@@ -1,0 +1,157 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<optionset Name="gc_doctype" localizedName="Document type" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <OptionSetType>picklist</OptionSetType>
+  <IsGlobal>1</IsGlobal>
+  <IntroducedVersion>1.0.0.0</IntroducedVersion>
+  <IsCustomizable>1</IsCustomizable>
+  <displaynames>
+    <displayname description="Document type" languagecode="1033" />
+  </displaynames>
+  <options>
+    <option value="303300000" ExternalValue="" IsHidden="0">
+      <labels>
+        <label description="Assay" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="303300001" ExternalValue="" IsHidden="0">
+      <labels>
+        <label description="Certificate Of Analysis" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="303300002" ExternalValue="" IsHidden="0">
+      <labels>
+        <label description="Inspection Report" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="303300003" ExternalValue="" IsHidden="0">
+      <labels>
+        <label description="Mining Licence" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="303300004" ExternalValue="" IsHidden="0">
+      <labels>
+        <label description="Export Permit" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="303300005" ExternalValue="" IsHidden="0">
+      <labels>
+        <label description="Certificate Of Origin" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="303300006" ExternalValue="" IsHidden="0">
+      <labels>
+        <label description="Incorporation Certificate" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="303300007" ExternalValue="" IsHidden="0">
+      <labels>
+        <label description="Shareholder Register" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="303300008" ExternalValue="" IsHidden="0">
+      <labels>
+        <label description="UBO Declaration" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="303300009" ExternalValue="" IsHidden="0">
+      <labels>
+        <label description="Id Document" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="303300010" ExternalValue="" IsHidden="0">
+      <labels>
+        <label description="Proof Of Funds" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="303300011" ExternalValue="" IsHidden="0">
+      <labels>
+        <label description="Bank Reference" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="303300012" ExternalValue="" IsHidden="0">
+      <labels>
+        <label description="LOI" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="303300013" ExternalValue="" IsHidden="0">
+      <labels>
+        <label description="ICPO" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="303300014" ExternalValue="" IsHidden="0">
+      <labels>
+        <label description="FCO" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="303300015" ExternalValue="" IsHidden="0">
+      <labels>
+        <label description="SPA" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="303300016" ExternalValue="" IsHidden="0">
+      <labels>
+        <label description="Contract" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="303300017" ExternalValue="" IsHidden="0">
+      <labels>
+        <label description="Invoice" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="303300018" ExternalValue="" IsHidden="0">
+      <labels>
+        <label description="Packing List" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="303300019" ExternalValue="" IsHidden="0">
+      <labels>
+        <label description="Bill Of Lading" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="303300020" ExternalValue="" IsHidden="0">
+      <labels>
+        <label description="Insurance Certificate" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="303300021" ExternalValue="" IsHidden="0">
+      <labels>
+        <label description="Warehouse Receipt" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="303300022" ExternalValue="" IsHidden="0">
+      <labels>
+        <label description="Photo" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="303300023" ExternalValue="" IsHidden="0">
+      <labels>
+        <label description="Production Report" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="303300024" ExternalValue="" IsHidden="0">
+      <labels>
+        <label description="Technical Report" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="303300025" ExternalValue="" IsHidden="0">
+      <labels>
+        <label description="Mandate" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="303300026" ExternalValue="" IsHidden="0">
+      <labels>
+        <label description="Chat Export" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="303300027" ExternalValue="" IsHidden="0">
+      <labels>
+        <label description="Other" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="303300028" ExternalValue="" IsHidden="0">
+      <labels>
+        <label description="Unknown" languagecode="1033" />
+      </labels>
+    </option>
+  </options>
+</optionset>

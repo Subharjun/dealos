@@ -1,0 +1,12 @@
+<customapirequestparameter uniquename="OriginInland">
+  <description default="OriginInland">
+    <label description="OriginInland" languagecode="1033" />
+  </description>
+  <displayname default="OriginInland">
+    <label description="OriginInland" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isoptional>1</isoptional>
+  <name>gc_CalculatePriceQuote.OriginInland</name>
+  <type>2</type>
+</customapirequestparameter>

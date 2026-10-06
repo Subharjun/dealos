@@ -1,0 +1,103 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<forms xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <systemform>
+    <formid>{61ce4353-e463-4fdf-913e-969152d455cd}</formid>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <FormPresentation>1</FormPresentation>
+    <FormActivationState>1</FormActivationState>
+    <form>
+      <tabs>
+        <tab name="general" id="{dfbfda43-602b-4201-9ada-1eec73c8e5d9}" IsUserDefined="0" verticallayout="true" expanded="true">
+          <labels>
+            <label description="General" languagecode="1033" />
+          </labels>
+          <columns>
+            <column width="100%">
+              <sections>
+                <section name="details" showlabel="true" showbar="false" id="{a77c90bc-c021-4aff-8cfe-287603b74992}" IsUserDefined="0" columns="11">
+                  <labels>
+                    <label description="Details" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row>
+                      <cell id="{a2830761-726e-4359-8c17-12997669506e}">
+                        <labels>
+                          <label description="Name" languagecode="1033" />
+                        </labels>
+                        <control id="gc_name" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_name" />
+                      </cell>
+                      <cell id="{2f237520-3b5f-452f-b71d-c66d605288f1}">
+                        <labels>
+                          <label description="Deal" languagecode="1033" />
+                        </labels>
+                        <control id="gc_deal" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="gc_deal" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{8c580563-a05a-41da-b4ff-b1e4de6a568d}">
+                        <labels>
+                          <label description="Payment partner" languagecode="1033" />
+                        </labels>
+                        <control id="gc_partner" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_partner" />
+                      </cell>
+                      <cell id="{13b90dde-91cd-4e14-a6c0-5ced17f2dd70}">
+                        <labels>
+                          <label description="Partner reference" languagecode="1033" />
+                        </labels>
+                        <control id="gc_partnerreference" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_partnerreference" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{9530e5aa-608b-40b8-8fa7-43359cc4ca2e}">
+                        <labels>
+                          <label description="State" languagecode="1033" />
+                        </labels>
+                        <control id="gc_state" classid="{3EF39988-22BB-4f0b-BBBE-64B5A3748AEE}" datafieldname="gc_state" />
+                      </cell>
+                      <cell id="{7e401e31-4c86-4742-9678-86d53b8d6185}">
+                        <labels>
+                          <label description="Amount due" languagecode="1033" />
+                        </labels>
+                        <control id="gc_amountdue" classid="{C3EFE0C3-0EC6-42be-8349-CBD9079DFD8E}" datafieldname="gc_amountdue" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{88cc61c3-5214-4541-88ce-53d886e9d099}">
+                        <labels>
+                          <label description="Amount funded" languagecode="1033" />
+                        </labels>
+                        <control id="gc_amountfunded" classid="{C3EFE0C3-0EC6-42be-8349-CBD9079DFD8E}" datafieldname="gc_amountfunded" />
+                      </cell>
+                      <cell id="{c2657956-5fa7-401e-b506-55fe60233c25}">
+                        <labels>
+                          <label description="Currency" languagecode="1033" />
+                        </labels>
+                        <control id="gc_currency" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_currency" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{806c1618-26b3-4bc7-8b86-92652ad01620}">
+                        <labels>
+                          <label description="Funding deadline" languagecode="1033" />
+                        </labels>
+                        <control id="gc_fundingdeadline" classid="{5B773807-9FB2-42db-97C3-7A91EFF8ADFF}" datafieldname="gc_fundingdeadline" />
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+              </sections>
+            </column>
+          </columns>
+        </tab>
+      </tabs>
+    </form>
+    <IsCustomizable>1</IsCustomizable>
+    <CanBeDeleted>1</CanBeDeleted>
+    <LocalizedNames>
+      <LocalizedName description="Information" languagecode="1033" />
+    </LocalizedNames>
+    <Descriptions>
+      <Description description="A form for this entity." languagecode="1033" />
+    </Descriptions>
+  </systemform>
+</forms>

@@ -1,0 +1,131 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<forms xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <systemform>
+    <formid>{f4e185e2-c7c0-f111-aaaf-7ced8daf451f}</formid>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <FormPresentation>0</FormPresentation>
+    <FormActivationState>1</FormActivationState>
+    <form>
+      <tabs>
+        <tab name="general" id="{4f45ba1c-fb86-440e-a5b2-a8e35741bf04}" IsUserDefined="0" verticallayout="true" expanded="true">
+          <labels>
+            <label description="Company" languagecode="1033" />
+          </labels>
+          <columns>
+            <column width="100%">
+              <sections>
+                <section name="dealos" showlabel="true" showbar="false" id="{8bb0a54f-293b-4c4d-a027-f53fca65e804}" IsUserDefined="0" columns="11">
+                  <labels>
+                    <label description="DealOS profile" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row>
+                      <cell id="{cf52cb5c-3659-477a-8454-46fdec61ea5c}">
+                        <labels>
+                          <label description="Company name" languagecode="1033" />
+                        </labels>
+                        <control id="name" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="name" />
+                      </cell>
+                      <cell id="{e5d4ff94-20ec-4597-8013-259088fab50a}">
+                        <labels>
+                          <label description="Email" languagecode="1033" />
+                        </labels>
+                        <control id="emailaddress1" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="emailaddress1" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{97df89f8-adf3-49e1-8ad5-9f1fa41e7092}">
+                        <labels>
+                          <label description="Phone" languagecode="1033" />
+                        </labels>
+                        <control id="telephone1" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="telephone1" />
+                      </cell>
+                      <cell id="{3ee39d1c-e1fb-4f1e-9f9b-327f634b1a29}">
+                        <labels>
+                          <label description="Website" languagecode="1033" />
+                        </labels>
+                        <control id="websiteurl" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="websiteurl" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{8a4e7224-298a-4b94-a8f6-fda51936cf13}">
+                        <labels>
+                          <label description="Party roles" languagecode="1033" />
+                        </labels>
+                        <control id="gc_partyrole" classid="{4AA28AB7-9C13-4F57-A73D-AD894D048B5F}" datafieldname="gc_partyrole" />
+                      </cell>
+                      <cell id="{59e88009-b390-479b-8048-bf3a71058ac2}">
+                        <labels>
+                          <label description="Seller type" languagecode="1033" />
+                        </labels>
+                        <control id="gc_sellertype" classid="{4AA28AB7-9C13-4F57-A73D-AD894D048B5F}" datafieldname="gc_sellertype" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{00151cb1-c3bb-4e14-8e4e-3472b5df523e}">
+                        <labels>
+                          <label description="Buyer type" languagecode="1033" />
+                        </labels>
+                        <control id="gc_buyertype" classid="{4AA28AB7-9C13-4F57-A73D-AD894D048B5F}" datafieldname="gc_buyertype" />
+                      </cell>
+                      <cell id="{85c11da1-731f-4c03-bba3-0c68dc1ee297}">
+                        <labels>
+                          <label description="Trust tier" languagecode="1033" />
+                        </labels>
+                        <control id="gc_trusttier" classid="{3EF39988-22BB-4f0b-BBBE-64B5A3748AEE}" datafieldname="gc_trusttier" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{4f858a91-daf9-4ab5-8c16-be235e40ce81}">
+                        <labels>
+                          <label description="Country of registration" languagecode="1033" />
+                        </labels>
+                        <control id="gc_country" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="gc_country" />
+                      </cell>
+                      <cell id="{d268c1ab-bd51-4bd3-b170-18c94e35e5ef}">
+                        <labels>
+                          <label description="Registration number" languagecode="1033" />
+                        </labels>
+                        <control id="gc_registrationnumber" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_registrationnumber" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{fb7e09e4-cc1a-41d3-97bd-f43cdea43ca1}">
+                        <labels>
+                          <label description="LEI" languagecode="1033" />
+                        </labels>
+                        <control id="gc_lei" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_lei" />
+                      </cell>
+                      <cell id="{04b877d3-70a2-4c83-81ec-050cc6ac17b7}">
+                        <labels>
+                          <label description="Compliance hold" languagecode="1033" />
+                        </labels>
+                        <control id="gc_compliancehold" classid="{67FAC785-CD58-4f9f-ABB3-4B7DDC6ED5ED}" datafieldname="gc_compliancehold" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{437604ba-d0ca-4900-8a31-7be3eb63efcc}">
+                        <labels>
+                          <label description="KYB status" languagecode="1033" />
+                        </labels>
+                        <control id="gc_kybstatus" classid="{3EF39988-22BB-4f0b-BBBE-64B5A3748AEE}" datafieldname="gc_kybstatus" />
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+              </sections>
+            </column>
+          </columns>
+        </tab>
+      </tabs>
+    </form>
+    <IsCustomizable>1</IsCustomizable>
+    <CanBeDeleted>1</CanBeDeleted>
+    <LocalizedNames>
+      <LocalizedName description="DealOS company" languagecode="1033" />
+    </LocalizedNames>
+    <Descriptions>
+      <Description description="Company profile for DealOS staff" languagecode="1033" />
+    </Descriptions>
+  </systemform>
+</forms>

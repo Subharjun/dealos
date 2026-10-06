@@ -1,0 +1,18 @@
+<customapi uniquename="gc_TransitionDeal">
+  <allowedcustomprocessingsteptype>0</allowedcustomprocessingsteptype>
+  <bindingtype>0</bindingtype>
+  <description default="Move a deal to another stage if the state machine and its guards allow it.">
+    <label description="Move a deal to another stage if the state machine and its guards allow it." languagecode="1033" />
+  </description>
+  <displayname default="TransitionDeal">
+    <label description="TransitionDeal" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isfunction>0</isfunction>
+  <isprivate>0</isprivate>
+  <name>gc_TransitionDeal</name>
+  <plugintypeid>
+    <plugintypeexportkey>aef1218a-c7c0-f111-aaaf-7ced8daf451f</plugintypeexportkey>
+  </plugintypeid>
+  <workflowsdkstepenabled>0</workflowsdkstepenabled>
+</customapi>

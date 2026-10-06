@@ -1,0 +1,168 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<forms xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <systemform>
+    <formid>{e9d51075-b256-47ea-9714-5ff0000ad93c}</formid>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <FormPresentation>1</FormPresentation>
+    <FormActivationState>1</FormActivationState>
+    <form>
+      <tabs>
+        <tab name="general" id="{b2e92510-0c41-47a9-a6ae-72610747a855}" IsUserDefined="0" verticallayout="true" expanded="true">
+          <labels>
+            <label description="General" languagecode="1033" />
+          </labels>
+          <columns>
+            <column width="100%">
+              <sections>
+                <section name="details" showlabel="true" showbar="false" id="{383df8c9-a5be-4d2b-abf1-ccfd74e96ec2}" IsUserDefined="0" columns="11">
+                  <labels>
+                    <label description="Details" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row>
+                      <cell id="{59b4a8cb-4432-45d0-b4f7-90103e1b4e61}">
+                        <labels>
+                          <label description="Name" languagecode="1033" />
+                        </labels>
+                        <control id="gc_name" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_name" />
+                      </cell>
+                      <cell id="{13dd2bdb-a610-4fc4-ac25-c539757155e8}">
+                        <labels>
+                          <label description="Deal" languagecode="1033" />
+                        </labels>
+                        <control id="gc_deal" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="gc_deal" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{7ff1ea10-a6d6-4313-bbe9-042f7704064b}">
+                        <labels>
+                          <label description="Offer" languagecode="1033" />
+                        </labels>
+                        <control id="gc_offer" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="gc_offer" />
+                      </cell>
+                      <cell id="{210419b8-b8f8-4174-8641-eddd21cac7c1}">
+                        <labels>
+                          <label description="Viewer" languagecode="1033" />
+                        </labels>
+                        <control id="gc_viewer" classid="{3EF39988-22BB-4f0b-BBBE-64B5A3748AEE}" datafieldname="gc_viewer" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{c285edc4-05bd-4804-a456-0beda34ff76d}">
+                        <labels>
+                          <label description="FOB value" languagecode="1033" />
+                        </labels>
+                        <control id="gc_fobvalue" classid="{C3EFE0C3-0EC6-42be-8349-CBD9079DFD8E}" datafieldname="gc_fobvalue" />
+                      </cell>
+                      <cell id="{36799b2a-125e-4eac-b059-a09a597d0883}">
+                        <labels>
+                          <label description="CIF value" languagecode="1033" />
+                        </labels>
+                        <control id="gc_cifvalue" classid="{C3EFE0C3-0EC6-42be-8349-CBD9079DFD8E}" datafieldname="gc_cifvalue" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{dc592b2f-5189-4c61-94a0-6e8edb0ad4e0}">
+                        <labels>
+                          <label description="Import duty" languagecode="1033" />
+                        </labels>
+                        <control id="gc_importduty" classid="{C3EFE0C3-0EC6-42be-8349-CBD9079DFD8E}" datafieldname="gc_importduty" />
+                      </cell>
+                      <cell id="{038dd0be-e4a8-46ba-b50f-93c0a1ed8af8}">
+                        <labels>
+                          <label description="Other taxes" languagecode="1033" />
+                        </labels>
+                        <control id="gc_othertaxes" classid="{C3EFE0C3-0EC6-42be-8349-CBD9079DFD8E}" datafieldname="gc_othertaxes" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{e5288d0c-c268-43fd-a5d0-73d30b3a28e9}">
+                        <labels>
+                          <label description="Landed cost" languagecode="1033" />
+                        </labels>
+                        <control id="gc_landedcost" classid="{C3EFE0C3-0EC6-42be-8349-CBD9079DFD8E}" datafieldname="gc_landedcost" />
+                      </cell>
+                      <cell id="{6604c763-35e9-447f-850c-f450190e05e5}">
+                        <labels>
+                          <label description="Commission" languagecode="1033" />
+                        </labels>
+                        <control id="gc_commissionamount" classid="{C3EFE0C3-0EC6-42be-8349-CBD9079DFD8E}" datafieldname="gc_commissionamount" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{2055e4d2-8bff-4458-bd73-a065a163bbeb}">
+                        <labels>
+                          <label description="Net payout to seller" languagecode="1033" />
+                        </labels>
+                        <control id="gc_netpayout" classid="{C3EFE0C3-0EC6-42be-8349-CBD9079DFD8E}" datafieldname="gc_netpayout" />
+                      </cell>
+                      <cell id="{f02055a1-d5df-44cc-b17d-8dfc727702be}">
+                        <labels>
+                          <label description="Currency" languagecode="1033" />
+                        </labels>
+                        <control id="gc_currency" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_currency" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{abc3ec38-3d9b-4357-89b7-03cfbb28bdff}">
+                        <labels>
+                          <label description="Engine version" languagecode="1033" />
+                        </labels>
+                        <control id="gc_engineversion" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="gc_engineversion" />
+                      </cell>
+                      <cell id="{d5bdc42c-0790-4aec-80b6-0b77258f410a}">
+                        <labels>
+                          <label description="Computed on" languagecode="1033" />
+                        </labels>
+                        <control id="gc_computedon" classid="{5B773807-9FB2-42db-97C3-7A91EFF8ADFF}" datafieldname="gc_computedon" />
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+                <section name="data" showlabel="true" showbar="false" id="{09205cc1-3d0c-4725-a62c-0ed9717c8dfa}" IsUserDefined="0" columns="1">
+                  <labels>
+                    <label description="Data" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row>
+                      <cell id="{5c9a5281-d10b-45da-966b-0ae453af87f2}" colspan="2">
+                        <labels>
+                          <label description="Inputs (JSON)" languagecode="1033" />
+                        </labels>
+                        <control id="gc_inputs" classid="{E0DECE4B-6FC8-4a8f-A065-082708572369}" datafieldname="gc_inputs" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{001ecf98-1278-4937-b390-bc4356cf56a7}" colspan="2">
+                        <labels>
+                          <label description="Cost lines (JSON)" languagecode="1033" />
+                        </labels>
+                        <control id="gc_lines" classid="{E0DECE4B-6FC8-4a8f-A065-082708572369}" datafieldname="gc_lines" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{35a6bfae-c5e8-4f18-828e-0d687ec9eeb1}" colspan="2">
+                        <labels>
+                          <label description="Rate snapshot (JSON)" languagecode="1033" />
+                        </labels>
+                        <control id="gc_ratesnapshot" classid="{E0DECE4B-6FC8-4a8f-A065-082708572369}" datafieldname="gc_ratesnapshot" />
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+              </sections>
+            </column>
+          </columns>
+        </tab>
+      </tabs>
+    </form>
+    <IsCustomizable>1</IsCustomizable>
+    <CanBeDeleted>1</CanBeDeleted>
+    <LocalizedNames>
+      <LocalizedName description="Information" languagecode="1033" />
+    </LocalizedNames>
+    <Descriptions>
+      <Description description="A form for this entity." languagecode="1033" />
+    </Descriptions>
+  </systemform>
+</forms>

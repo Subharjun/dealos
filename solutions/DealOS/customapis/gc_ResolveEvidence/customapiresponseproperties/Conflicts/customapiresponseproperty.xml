@@ -1,0 +1,11 @@
+<customapiresponseproperty uniquename="Conflicts">
+  <description default="Conflicts">
+    <label description="Conflicts" languagecode="1033" />
+  </description>
+  <displayname default="Conflicts">
+    <label description="Conflicts" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <name>gc_ResolveEvidence.Conflicts</name>
+  <type>7</type>
+</customapiresponseproperty>

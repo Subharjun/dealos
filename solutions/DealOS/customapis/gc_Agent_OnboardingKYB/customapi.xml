@@ -1,0 +1,18 @@
+<customapi uniquename="gc_Agent_OnboardingKYB">
+  <allowedcustomprocessingsteptype>0</allowedcustomprocessingsteptype>
+  <bindingtype>0</bindingtype>
+  <description default="Seller/party KYB: company, UBO, directors' ID, authority to sell, screening; records pending checks, asks for missing documents, recommends a trust tier.">
+    <label description="Seller/party KYB: company, UBO, directors' ID, authority to sell, screening; records pending checks, asks for missing documents, recommends a trust tier." languagecode="1033" />
+  </description>
+  <displayname default="Agent: Onboarding KYB">
+    <label description="Agent: Onboarding KYB" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isfunction>0</isfunction>
+  <isprivate>0</isprivate>
+  <name>gc_Agent_OnboardingKYB</name>
+  <plugintypeid>
+    <plugintypeexportkey>80e9c839-6ac1-f111-aaaf-7ced8daf451f</plugintypeexportkey>
+  </plugintypeid>
+  <workflowsdkstepenabled>0</workflowsdkstepenabled>
+</customapi>

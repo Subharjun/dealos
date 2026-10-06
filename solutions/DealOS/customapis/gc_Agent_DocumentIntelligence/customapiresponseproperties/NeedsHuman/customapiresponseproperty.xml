@@ -1,0 +1,11 @@
+<customapiresponseproperty uniquename="NeedsHuman">
+  <description default="True when a person must act before the process continues.">
+    <label description="True when a person must act before the process continues." languagecode="1033" />
+  </description>
+  <displayname default="NeedsHuman">
+    <label description="NeedsHuman" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <name>gc_Agent_DocumentIntelligence.NeedsHuman</name>
+  <type>0</type>
+</customapiresponseproperty>

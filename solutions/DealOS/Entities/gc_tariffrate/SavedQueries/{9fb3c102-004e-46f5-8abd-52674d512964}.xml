@@ -1,0 +1,51 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<savedqueries xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <savedquery>
+    <IsCustomizable>1</IsCustomizable>
+    <CanBeDeleted>0</CanBeDeleted>
+    <isquickfindquery>0</isquickfindquery>
+    <isprivate>0</isprivate>
+    <isdefault>1</isdefault>
+    <savedqueryid>{9fb3c102-004e-46f5-8abd-52674d512964}</savedqueryid>
+    <layoutxml>
+      <grid name="resultset" jump="gc_name" select="1" icon="1" preview="1">
+        <row name="result" id="gc_tariffrateid">
+          <cell name="gc_name" width="200" />
+          <cell name="gc_country" width="140" />
+          <cell name="gc_direction" width="140" />
+          <cell name="gc_hscode" width="140" />
+          <cell name="gc_ratepct" width="140" />
+          <cell name="gc_basis" width="140" />
+          <cell name="gc_specificamount" width="140" />
+          <cell name="gc_origincountry" width="140" />
+          <cell name="createdon" width="140" />
+        </row>
+      </grid>
+    </layoutxml>
+    <querytype>0</querytype>
+    <fetchxml>
+      <fetch version="1.0" mapping="logical">
+        <entity name="gc_tariffrate">
+          <attribute name="gc_name" />
+          <attribute name="gc_country" />
+          <attribute name="gc_direction" />
+          <attribute name="gc_hscode" />
+          <attribute name="gc_ratepct" />
+          <attribute name="gc_basis" />
+          <attribute name="gc_specificamount" />
+          <attribute name="gc_origincountry" />
+          <attribute name="createdon" />
+          <attribute name="gc_tariffrateid" />
+          <order attribute="createdon" descending="true" />
+          <filter type="and">
+            <condition attribute="statecode" operator="eq" value="0" />
+          </filter>
+        </entity>
+      </fetch>
+    </fetchxml>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <LocalizedNames>
+      <LocalizedName description="Active Tariff rates" languagecode="1033" />
+    </LocalizedNames>
+  </savedquery>
+</savedqueries>
