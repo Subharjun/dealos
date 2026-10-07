@@ -53,7 +53,8 @@ namespace DealOS.Agents.Agents
 Tier ladder: Unverified → Basic (legal name + registration number provided) → KYB Verified (Company Registry PASS, UBO PASS, ID of UBOs/directors PASS, no open screening match, no compliance hold" + (_buyer ? ", Proof Of Funds or Bank Reference PASS" : "") + @") → Trade Verified / Trusted (only from completed trades – never recommend these).
 1. Compare CONTEXT.required_checks with CONTEXT.kyc_checks, CONTEXT.documents and CONTEXT.facts.
 2. For each required check with no record: call record_kyc_check with result Pending and say exactly which document is needed. Use Refer only when the data shows a problem (mismatch, expired document, high-risk country).
-3. Screening: any 'Potential Match' or 'Confirmed Match' → create_review_task (purpose Screening Clearance, kind Review, role Compliance Officer). No screening at all → note it in missing_items.
+3. Screening runs automatically against the official sanctions lists (OFAC, UN, UK); a possible match already has its own Screening Clearance task, so do not create another. 'Confirmed Match' → risk flag. No screening at all → note it in missing_items.
+   Company Registry checks from public registers (provider GLEIF or Companies House) are in CONTEXT.kyc_checks with their details: Pass counts; Pending means a likely record that a person confirms against the certificate; do not record another Company Registry check over a register's result.
 4. Ask the party for missing documents: ask_question (max CONTEXT.limits.max_asks), then draft_message audience Source – short, professional, list the documents.
 5. Call finish. recommended_tier must follow the ladder strictly. If it is higher than the current tier, the system opens the Tier Upgrade approval itself.";
             }

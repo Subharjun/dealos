@@ -1,6 +1,6 @@
 # HANDOFF: resume here
 
-**Last updated:** 7 October 2026, about 16:45 IST (email desk only; OpenAI **out of credits**, E2E run stopped; owner in control by email: approve by reply, label corrections, tracking updates, KYB from email, company profile, DocuSign e-signature (off), pipeline view)
+**Last updated:** 7 October 2026, about 19:45 IST (email desk only; OpenAI **out of credits**; approve by reply fixed and passing; **sanctions screening** (official OFAC / UN / UK lists) and **company registry** checks (GLEIF, Companies House) built and deployed, partly tested; inspection agencies and forwarders not started. **Work since `44559aa` is uncommitted.**)
 **Read first in any new chat:**
 1. this file
 2. [docs/EMAIL_DESK.md](docs/EMAIL_DESK.md), the current front door
@@ -23,7 +23,7 @@ An **email trade desk in Gmail** for minerals and metals. The bot is the trader 
    - **Buyer first:** requirement → enquiries to seller leads (trade-data imports + **AI web search across Google, IndiaMART, Globalwitz/Volza/TradeIndia pages**). **Sellers take turns:** the first seller to quote is negotiated with the buyer; later quotes queue in reply order; non-responders stay open; "not interested" is left alone. If the deal breaks (seller withdraws or goes silent after a reminder, buyer turns the offer down) and the buyer still wants it, the next queued seller comes up.
    - **Seller first:** a seller's stock with price and quantity → **seller lot** → offered (masked, + margin) to known buyers and buyers found by web search. **Window per lot** from the seller's email (24 h, 48 h, ...) or the default; **open-ended** ("until sold") lets the seller decide: every bid goes to them at once. Timed lots: highest price wins at the deadline; if no bid reaches the seller's price, the best bid goes to the seller and the lot goes open-ended.
 3. **Negotiation:** seller price + margin to the buyer; buyer price − margin to the seller; counters both ways. Acceptance → **Confirm deal** task (a person approves).
-4. **Contract:** KYB (documents from the email attachments, `save_kyb_documents`) + screening → Compliance agent → Contract agent → Contract Issue approval → two PDF contracts (sales to the buyer, purchase from the seller) drafted to each thread → signed copy → task → deal **Signed** (no escrow) → **inspection** requested. With `contract.esign` = docusign: a **Send for e-signature** approval instead, then one DocuSign envelope per side (off in Dev; setup in [docs/EMAIL_DESK.md](docs/EMAIL_DESK.md) "E-signature setup").
+4. **Contract:** KYB (documents from the email attachments, `save_kyb_documents`; **company registry check in GLEIF / Companies House and sanctions screening against the official OFAC, UN and UK lists run automatically at onboarding**, a possible match always goes to a person) → Compliance agent → Contract agent → Contract Issue approval → two PDF contracts (sales to the buyer, purchase from the seller) drafted to each thread → signed copy → task → deal **Signed** (no escrow) → **inspection** requested. With `contract.esign` = docusign: a **Send for e-signature** approval instead, then one DocuSign envelope per side (off in Dev; setup in [docs/EMAIL_DESK.md](docs/EMAIL_DESK.md) "E-signature setup").
 5. **Tracking:** inspection booked / passed / failed and loading / sailing / arrival / delivery are drafted to each side, masked, each status once.
 6. **Briefings and approve by reply:** a `[DealOS] ...` email to the owner after each step. Every decision is briefed with a reply code; the owner replies `APPROVE`, `REJECT <reason>`, `SEND` (sends the drafts the briefing lists) or `PIPELINE`. Only the owner's replies count (the mailbox itself, or `desk.owner_email` passing DMARC). Moving an email to another `DealOS/...` label in Gmail corrects its triage. Desk timers every 15 min (lot closing, seller queue, chasers, reminders, approval reminders).
 
@@ -40,8 +40,9 @@ Every model call fails with `429 insufficient_quota / credit_balance_exhausted`,
 
 ### Totals in Dev
 - **8 agents:** Mail Triage, Trade Desk, Document Intelligence, Onboarding KYB, Buyer Verification, Compliance, Contract, Admin Supervisor
-- **26 product flows** + 1 test-kit flow, plus 2 e-signature flows saved off until DocuSign is connected (list in [docs/WORKFLOWS.md](docs/WORKFLOWS.md))
-- operations: `gc_AcceptOffer`, `gc_ReleaseDeal`, `gc_IngestEmail`, `gc_AttachEmailFile`, `gc_BuildEmailRaw`, `gc_SourceRequirement`, `gc_DiscoverSellers`, `gc_DiscoverBuyers`, `gc_MarketLot`, `gc_DeskBrief`, `gc_DeskContract`, `gc_CloseLots`, `gc_DeskFollowUps`, `gc_DeskBriefTask`, `gc_DeskPipeline`, `gc_TriageCorrections`, `gc_DeskTrack`, `gc_EsignEnvelopes`, `gc_EsignRecord`, `gc_EsignPending`, `gc_EsignUpdate`
+- **28 product flows** + 1 test-kit flow, plus 2 e-signature flows saved off until DocuSign is connected (list in [docs/WORKFLOWS.md](docs/WORKFLOWS.md); the two newest, **Sanctions lists** and **Party re-check**, are not in that doc yet)
+- operations: `gc_AcceptOffer`, `gc_ReleaseDeal`, `gc_IngestEmail`, `gc_AttachEmailFile`, `gc_BuildEmailRaw`, `gc_SourceRequirement`, `gc_DiscoverSellers`, `gc_DiscoverBuyers`, `gc_MarketLot`, `gc_DeskBrief`, `gc_DeskContract`, `gc_CloseLots`, `gc_DeskFollowUps`, `gc_DeskBriefTask`, `gc_DeskPipeline`, `gc_TriageCorrections`, `gc_DeskTrack`, `gc_EsignEnvelopes`, `gc_EsignRecord`, `gc_EsignPending`, `gc_EsignUpdate`, `gc_SanctionsLoad`, `gc_ScreenParty`, `gc_ScreenParties`, `gc_RegistryQuery`, `gc_RegistryRecord`
+- custom connectors: **DealOS Gmail**, **DealOS GLEIF** (connected, no key), **DealOS Companies House** (deployed, waits for a free API key)
 
 ### Testing
 - **All scenarios in one command:** `python3 tools/e2e_all.py` (about 1.5 to 2 h; logs in `build/e2e/`, summary in `build/e2e/summary.json`). It switches web discovery off while the scenarios run (`email.discovery.enabled` = false, so real companies never get test drafts), then checks discovery on its own (leads only, no drafts).
@@ -58,14 +59,18 @@ Every model call fails with `429 insufficient_quota / credit_balance_exhausted`,
   | web discovery (sellers + buyers) | `e2e_all.py discovery` | pending |
   | tracking updates (no AI calls) | `tracking_e2e.py` | **PASS** 7 Oct 16:14 |
   | label corrections from Gmail | `corrections_e2e.py` | **PASS** 7 Oct 16:37 |
-  | approve by reply (no AI calls) | `approval_e2e.py` | steps 1 to 3 passed 16:24–16:25 (APPROVE, REJECT with reason, a reply from someone else ignored); **step 4 failed**: after `SEND` the probe draft was never sent from Gmail (timed out at 16:35). Look at the **Desk drafts** flow runs (the release-by-SEND branch). |
+  | approve by reply (no AI calls) | `approval_e2e.py` | **PASS** 7 Oct 17:14 (APPROVE, REJECT with reason, a forged reply ignored, SEND sends the listed draft, PIPELINE) after two fixes (history below) |
+  | sanctions lists download | flow **Sanctions lists** (run it from the CLI, see section 8) | **UK list loaded** (7,733 names, 19:40). **OFAC SDN, OFAC Consolidated and UN failed:** their URLs answer with a 302 redirect to a signed storage link and the flow's HTTP action does not follow redirects. Fix in Next. |
+  | party checks (registry + screening at onboarding) | — | deployed in **Party onboarding** and **Party re-check**, not run live yet. Matching calibrated offline on the real lists (below). |
   | e-signature, company profile, pipeline app | — | not run live (e-signature needs a DocuSign sandbox connection first) |
-- Offline: `dotnet run --project tests/DealOS.Agents.Harness -- build/agents` (all checks pass, 7 Oct 16:41, including `approvals:`, `corrections:`, `esign:`, `tracking:`).
+- Offline: `dotnet run --project tests/DealOS.Agents.Harness -- build/agents` (all checks pass, 7 Oct 19:05, including `approvals:`, `corrections:`, `esign:`, `tracking:`; no harness checks for screening yet).
+- **Screening calibration** (7 Oct, prototype on the downloaded OFAC SDN + UK lists, 55k names): with threshold 0.84 every true hit is caught (Rosneft, Rosneft Trading SA, Bank Melli Iran, Sovcomflot, Vladimir Putin, Viktor Vekselberg incl. full patronymic, Victor Ivanov, Mahan Air, IRISL, Kaveh / Nornickel subsidiaries) and ordinary names stay clear (Glencore, Trafigura, Tata Steel, Adani, Coal India, Hong Kong Minerals, the test companies). Companies are only compared with listed entities and people with listed individuals.
 
 ### GitHub
-`main` on https://github.com/Subharjun/dealos holds all the 7 Oct work (pushed 7 Oct about 16:45). Commit and push only when the user asks.
+`main` on https://github.com/Subharjun/dealos is at `44559aa` (pushed 7 Oct about 16:45). **Uncommitted since then:** the SEND fixes, sanctions screening, company registry, their connectors, flows and this HANDOFF. Not committed: `Power-Automate-lastry.code-workspace` (personal, points at the WhatsApp chat in Downloads). Commit and push only when the user asks.
 
 ### History (most recent first)
+- **7 Oct evening:** **SEND by reply fixed** (two causes: the sync's "you sent it by hand" pass marked drafts the flow was about to send as Sent, so the flow never sent them; and Gmail caps a thread at 100 messages, so the owner's reply to the busy briefing thread landed in a new thread and was skipped as personal mail. Now drafts flagged for sending are marked Sent by the Desk drafts flow itself, the briefing thread is never closed by the sent pass, a failed SEND tells the owner, and replies are matched by their `(ref CODE)` whatever Gmail thread they land in). **Sanctions screening** (`Checks/Sanctions.cs`): official lists (OFAC SDN + consolidated, UN, UK) downloaded daily by flow **Sanctions lists** into `gc_sanctionlist`, name index, fuzzy matching (Jaro-Winkler per word, generic words weigh less, a distinctive word must match), one `gc_screening` per name, possible match → Screening Clearance task + briefing, a person's decision is kept on re-screens, all parties re-screened when a list changes. **Company registry** (`Checks/Registry.cs`): GLEIF (by LEI, registration number, name) and Companies House for UK companies (profile, officers, owners) → Company Registry KYB checks Pass / Fail / Refer / Pending with details; directors and owners screened too. Party onboarding runs both before the KYB agents; flow **Party re-check** when a party's registration number or name changes. Review decisions: approving a screening clearance sets the screenings Clear, rejecting sets Confirmed Match and the compliance hold.
 - **7 Oct late afternoon:** the owner in control by email: approve by reply (`Mail/Approvals.cs`, flow **Approval briefing**, reply codes, one reminder), SEND releases drafts, label corrections from Gmail (`Mail/Corrections.cs`), KYB documents filed from email (`save_kyb_documents`, flow **KYB passed: compliance re-check**), tracking updates (`Mail/Tracking.cs`, two **Desk tracking** flows), company profile PDF (`tools/company_profile.py`), DocuSign e-signature (`Mail/Esign.cs`, off by default), pipeline (`PIPELINE` reply, daily digest, admin app area **Email desk** from `tools/deploy_app.py`). Tracking and corrections passed live; approve by reply passed except SEND.
 - **7 Oct afternoon:** OpenAI replaces Gemini; sellers take turns; website and marketplace removed (repo and Dev); house style; discovery across Google / IndiaMART / Globalwitz; `e2e_all.py`. Found by the tests and fixed: a seller's own wording (with their price) copied into an offer to the buyer (`Desk.SafeTerms`); the agent overwriting a draft the desk had just written (draft lock per run); OpenAI filling empty optional output (`S.Prune`).
 - **7 Oct midday:** seller first (buyer web search, offers, counters both ways) and per-lot windows; open-ended live test passed (deal at seller USD 31,500 / buyer USD 32,445).
@@ -118,6 +123,9 @@ The problem it solves: mineral trade runs on WhatsApp and email chains, with for
 | 7 Oct 2026 | **The owner decides by replying to briefings** (APPROVE / REJECT / SEND / PIPELINE); only the owner's authenticated replies count; the admin app and Teams approvals still work, first answer counts | Built the same day |
 | 7 Oct 2026 | **E-signature through DocuSign, optional** (`contract.esign` = off / docusign); scan and return stays the default; nothing goes out before a person approves | Sandbox first; production needs a paid plan |
 | 7 Oct 2026 | **No IndiaMART scraping** (against its terms); only the paid Lead Manager API, later | IndiaMART pages still come in through web search |
+| 7 Oct 2026 | **Sanctions screening from the free official lists** (US OFAC SDN + consolidated, UN Security Council, UK Sanctions List), not a paid provider; no PEP or adverse-media data | The user's choice. A possible match is never decided by code: a person clears or confirms it |
+| 7 Oct 2026 | **Company registry from free registers: GLEIF + UK Companies House** (not OpenCorporates) | The user's choice. Companies without a record there stay a person's check from the documents |
+| 7 Oct 2026 | **Inspection agencies and freight forwarders work by email** (no booking APIs exist; SGS, Bureau Veritas, Intertek, Alex Stewart, Cotecna book by email). Live container tracking only from paid APIs | Planned, not built yet (section 9) |
 | 6 Oct 2026 | Leads: trade-data exports (`import_leads.py`), warehouses, email offers, web search; IndiaMART only via its official API (later) | No scraping |
 
 ---
@@ -137,6 +145,7 @@ The problem it solves: mineral trade runs on WhatsApp and email chains, with for
 | Gmail | Mailbox `desk@gmail.com`. Google Cloud project **"My First Project"**: Gmail API on, OAuth consent screen "DealOS Email Desk" (External), scope `gmail.modify`. OAuth client "DealOS Power Automate", **Client ID** `set-the-google-client-id` (also in `.env` `GMAIL_CLIENT_ID`). The secret is only in the connector's Security tab. Redirect URI `https://global.consent.azure-apim.net/redirect/gc-5fdealos-20gmail-5fc12c8485be9726a2`. |
 | Google app status | **Check whether it was published** ("In production"). If it's still in Testing with the user as test user, the Gmail connection **expires every 7 days**. Fix: Google Auth Platform → Audience → Publish app. |
 | Power Automate | Custom connector **DealOS Gmail** (`shared_gc-5fdealos-20gmail-5fc12c8485be9726a2`, in the solution), connection reference `gc_gmail` → connection `fcbe6c4cbf774649b49bfe659161b8a8` (Connected) |
+| KYB registers | **DealOS GLEIF**: connection reference `gc_gleif` → connection `08bada89da1c4b339fd131e04bdbe013` (Connected, no key). **DealOS Companies House**: connector and reference `gc_companieshouse` deployed, **no connection**: get a free key at https://developer.company-information.service.gov.uk (create an application, REST API key), put `COMPANIES_HOUSE_API_KEY=...` in `.env`, run `python3 tools/deploy_connector.py registries`, set `registry.companies_house` = on, redeploy **Party onboarding** and **Party re-check**. |
 | DocuSign | Connection reference `gc_docusign` on **Docusign Demo** exists in Dev; **no connection yet** (needs a DocuSign developer account). Steps: [docs/EMAIL_DESK.md](docs/EMAIL_DESK.md) "E-signature setup". |
 | Old site (removed from the build) | https://dealos-gigacore.powerappsportals.com still exists in Dev, parked, until its trial ends (about 4 Jan 2027). Delete it in the Power Pages admin centre whenever convenient. |
 | Dev settings changed | plug-in trace log = All (set back to Exception before go-live) |
@@ -151,7 +160,7 @@ The problem it solves: mineral trade runs on WhatsApp and email chains, with for
 | `docs/EMAIL_DESK.md` | **The email desk**: design, mailbox setup, triage, Trade Desk, leads, contract, data model, build status, **section 12 = what a person does** |
 | `docs/AGENTS.md`, `docs/WORKFLOWS.md` | Agent and flow catalogues, including the email desk agents and flows |
 | `docs/ARCHITECTURE_AND_BUILD_PLAN.md`, `docs/TEAM_SETUP.md` | Original plan (background), team setup |
-| `src/DealOS.Agents/` | Plug-in assembly (net462, signed). Model providers: `Infrastructure/ModelClient.cs` (OpenAI Responses API + provider switch), `Infrastructure/GeminiClient.cs`. Email desk code:<br>• `Mail/GmailMessage.cs` (parser)<br>• `Mail/MailSignals.cs` (hard signals, verdict)<br>• `Mail/MailPlugin.cs` (email operations)<br>• `Mail/Desk.cs` (margin maths, drafts, sourcing, contracts, briefings, auto-send)<br>• `Mail/Discovery.cs` (web search for sellers and buyers)<br>• `Mail/Lots.cs` (seller lots: windows, bids, seller decisions, close)<br>• `Mail/FollowUps.cs` (chasers, reminders)<br>• `Mail/Approvals.cs` (approve by reply, SEND, PIPELINE)<br>• `Mail/Corrections.cs` (triage corrections from Gmail labels)<br>• `Mail/Tracking.cs` (inspection and shipment updates to the parties)<br>• `Mail/Esign.cs` (DocuSign envelopes and status)<br>• `Mail/Mime.cs` (RFC 2822 builder, PDF writer)<br>• `Agents/MailAgents.cs` (Mail Triage, Trade Desk)<br>• `Tools/DeskTools.cs` (Trade Desk tools and draft masking checks) |
+| `src/DealOS.Agents/` | Plug-in assembly (net462, signed). Model providers: `Infrastructure/ModelClient.cs` (OpenAI Responses API + provider switch), `Infrastructure/GeminiClient.cs`. Email desk code:<br>• `Mail/GmailMessage.cs` (parser)<br>• `Mail/MailSignals.cs` (hard signals, verdict)<br>• `Mail/MailPlugin.cs` (email operations)<br>• `Mail/Desk.cs` (margin maths, drafts, sourcing, contracts, briefings, auto-send)<br>• `Mail/Discovery.cs` (web search for sellers and buyers)<br>• `Mail/Lots.cs` (seller lots: windows, bids, seller decisions, close)<br>• `Mail/FollowUps.cs` (chasers, reminders)<br>• `Mail/Approvals.cs` (approve by reply, SEND, PIPELINE)<br>• `Mail/Corrections.cs` (triage corrections from Gmail labels)<br>• `Mail/Tracking.cs` (inspection and shipment updates to the parties)<br>• `Mail/Esign.cs` (DocuSign envelopes and status)<br>• `Mail/Mime.cs` (RFC 2822 builder, PDF writer)<br>• `Agents/MailAgents.cs` (Mail Triage, Trade Desk)<br>• `Tools/DeskTools.cs` (Trade Desk tools and draft masking checks)<br>KYB checks: `Checks/Sanctions.cs` (list parsing, name index, matching, screening), `Checks/Registry.cs` (GLEIF / Companies House results → KYB checks) |
 | `tests/DealOS.Agents.Harness/` | Offline checks (all pass; email desk ones are named `gmail:`, `signals:`, `triage:`, `desk:`) |
 | `tools/flows/definitions.py` | All flows as code. Email desk:<br>• `mailbox_sync`, `trade_desk`, `desk_drafts`, `desk_contract`, `seller_discovery`<br>• `email_test_kit` (in `TESTS`) |
 | `tools/connectors/gmail.swagger.json`, `tools/deploy_connector.py` | The DealOS Gmail connector. `deploy_connector.py` creates or updates it, adds it to the solution and binds the connection. |
@@ -166,6 +175,7 @@ The problem it solves: mineral trade runs on WhatsApp and email chains, with for
 | `tools/company_profile.py` | `set <pdf>`: stores our company profile PDF (`desk.company_profile`) for the desk to attach |
 | `tools/deploy_app.py` | The admin app area **Email desk** (pipeline views and chart), idempotent |
 | `tools/deploy_connector.py docusign` / `docusign-bind`, `tools/deploy_flows.py --esign` | DocuSign connection reference and the two e-signature flows |
+| `tools/connectors/gleif.swagger.json`, `companieshouse.swagger.json`, `tools/deploy_connector.py registries` | The KYB register connectors; `registries` deploys both, creates the GLEIF connection (and the Companies House one when the key is in `.env`) and binds them. The flows include the Companies House steps only once it is bound (`connectors.json` `companieshouse_connected`). |
 | `tools/deploy_schema.py`, `deploy_agents.py`, `deploy_flows.py` (`--tests` for the kit), `run_agent.py`, `watch.py`, `seed_test_data.py`, `export_solution.py` | Deploy and run tools |
 | `solutions/DealOS/` | Unpacked solution, exported from Dev on 7 Oct 2026 |
 
@@ -184,6 +194,7 @@ The problem it solves: mineral trade runs on WhatsApp and email chains, with for
 - `gc_offer.gc_terms`
 - **new table `gc_lead`**
 - `gc_agent` options Mail Triage (14), Trade Desk (15)
+- 7 Oct evening: **new table `gc_sanctionlist`** (source, URLs, file columns `gc_raw` / `gc_rawaliases` / `gc_index`, names, hash, list date) and `gc_kyccheck.gc_details`. `deploy_schema.py` now also makes file columns.
 - 7 Oct late: `gc_reviewtask`: `gc_replycode`, `gc_briefedon`, `gc_remindedon`; `gc_message`: `gc_triagecorrection`, `gc_correctedon`; `gc_contract`: `gc_esignstatus`, `gc_envelopes`; `gc_shipment` / `gc_inspection`: `gc_deskupdates`
 
 **Agents:**
@@ -214,6 +225,9 @@ The problem it solves: mineral trade runs on WhatsApp and email chains, with for
 | **Approval briefing** | a review task is opened | the decision briefed to the owner with a reply code (APPROVE / REJECT by reply) |
 | **Desk tracking: inspection** / **shipment** | inspection or shipment status changes | masked updates drafted to both sides → briefing (SEND) |
 | **KYB passed: compliance re-check** | an account's KYB → Passed | Compliance again for its deals waiting at Compliance Check |
+| **Sanctions lists** | every day 02:30 UTC | HTTP download of each list → file column → `gc_SanctionsLoad` → `gc_ScreenParties` (only when a list changed) |
+| **Party re-check** | a party's registration number or name changes after onboarding | registry + screening again → KYB agents |
+| **Party onboarding** (changed) | a party becomes seller or buyer | now registry (GLEIF; Companies House when connected) + screening first, then the KYB agents |
 | **Desk e-signature send** / **status** | saved off; `deploy_flows.py --esign` once DocuSign is connected | envelopes out; poll every 15 min; both signed → contract Signed |
 
 Mailbox sync also reads Gmail's label history first (owner corrections) and treats a reply to a briefing as a command, never triaging it.
@@ -234,6 +248,7 @@ Mailbox sync also reads Gmail's label history first (owner corrections) and trea
 - `desk.approval_remind_hours` = 12, `desk.company_profile` (empty until `company_profile.py set`), `desk.tracking.enabled` = true
 - `contract.esign` = off, `contract.signatory`, `esign.docusign.account_id` (both empty)
 - `email.gmail.history_id` (kept by Mailbox sync)
+- `screening.threshold` = 0.84, `screening.rescreen_max` = 300, `screening.lists_hash` (kept by `gc_ScreenParties`), `registry.companies_house` = off
 
 ### Earlier work (5–6 Oct 2026)
 
@@ -291,6 +306,10 @@ Mailbox sync also reads Gmail's label history first (owner corrections) and trea
 - **Sending a Gmail draft creates a new message id and drops the draft's labels, but keeps the thread id.** That's why sent mail is matched by thread.
 - `users.messages.insert` (scope `gmail.modify`) puts test mail into the inbox without sending.
 - The Flow API (`https://service.flow.microsoft.com//.default`) can run a scheduled flow on demand and give an HTTP trigger's URL.
+- **Gmail caps a thread at 100 messages**; after that a reply starts a new thread. The one "DealOS desk briefing" thread passed it, so owner replies are matched by `(ref CODE)`, not by thread.
+- **The built-in HTTP action does not follow redirects**: a 302 counts as Failed. OFAC (`sanctionslistservice.ofac.treas.gov`) and UN (`scsanctions.un.org`) redirect to signed storage links; GET the `Location` header in a second step.
+- A connection without OAuth (no auth or an API key) can be made from code: PUT `api.powerapps.com/.../apis/{api}/connections/{name}` with `environment` and `connectionParameters` (`deploy_connector.py create_connection`).
+- **Don't let the sync close a draft the flow is sending**: drafts flagged `gc_autosend` are marked Sent by the Desk drafts flow after Gmail sends them.
 
 **Process**
 - A password change revokes every refresh token: run `python3 tools/dv.py login` (and `pac auth create`).
@@ -318,7 +337,9 @@ python3 tools/deploy_schema.py                     # tables / columns / options 
 python3 tools/deploy_agents.py                     # plug-in, agents, operations, settings (idempotent)
 python3 tools/deploy_flows.py --only "Trade desk"  # one flow (all without --only also deletes retired flows); --tests for the test kit
 python3 tools/deploy_connector.py [status|bind]    # Gmail connector / connection (docusign / docusign-bind for e-signature)
-python3 tools/approval_e2e.py                      # approve by reply on the real mailbox (no AI calls)
+python3 tools/approval_e2e.py run                  # approve by reply on the real mailbox (no AI calls)
+python3 tools/deploy_connector.py registries       # GLEIF / Companies House connectors and connections
+python3 -c "import sys; sys.path.insert(0,'tools'); import gmail_kit as g; print(g.run_flow('DealOS | Sanctions lists','Every_day_0230_UTC'))"   # load the lists now
 python3 tools/import_leads.py <file.csv> --source "<provider>"   # trade-data leads
 python3 tools/run_agent.py TradeDesk <conversation-guid> --dry --input '{"message_id":"<gc_message guid>"}'
 python3 tools/export_solution.py                   # sync solutions/ with Dev
@@ -330,7 +351,12 @@ python3 tools/export_solution.py                   # sync solutions/ with Dev
 
 ### Next
 - [ ] **OpenAI credits** (blocker, section 0), then **run the full E2E** (`python3 tools/e2e_all.py`); fix whatever fails and rerun that scenario (`e2e_all.py <name>`).
-- [ ] **Fix approve by reply step 4 (SEND)**: the owner's `SEND` did not send the listed draft from Gmail (`approval_e2e.py` timed out 16:35). Check the Desk drafts flow's release branch, then rerun `python3 tools/approval_e2e.py` (no AI calls, so it runs without OpenAI credits).
+- [x] **Approve by reply SEND fixed** (passed 17:14).
+- [ ] **Sanctions lists: follow redirects.** In `sanctions_lists()` (`tools/flows/definitions.py`): when `Get_list` (or `Get_aliases`) returns 302, GET `outputs('Get_list')?['headers']?['Location']` and store that body; let `Store_list` run after Get_list Failed too. Redeploy (`deploy_flows.py --only "Sanctions lists"`), run it (section 8), check all four `gc_sanctionlist` rows have names (UK: 7,733 already).
+- [ ] **Test the party checks live** (no AI needed for the checks themselves): create an `[AGENT-TEST]` account with a known LEI / registration number (e.g. a real listed company) and Seller role → Party onboarding → check `gc_kyccheck` (GLEIF) and `gc_screening`; then a test account named like a listed entity (e.g. `[AGENT-TEST] Rosneft Trading SA`) → Potential Match, Screening Clearance task, briefing; approve it by reply → screening Clear. Watch GLEIF's bracketed query parameters (`filter[fulltext]`) and its `application/vnd.api+json` responses in the flow run. Add harness checks for `Sanctions.Score` / `Tokens` / CSV and XML parsing.
+- [ ] **Companies House key** (free, see section 3), then `registry.companies_house` = on.
+- [ ] **Inspection agencies and freight forwarders by email** (the user asked for both; not started). Plan: settings `inspection.agencies` / `logistics.forwarders` ("Name <email>" lists or Service Partner accounts); on deal Signed the desk drafts a booking request to the agency (commodity, quantity, spec to verify, location, window) in its own thread instead of only a task; new `gc_side` options Agency and Forwarder; Trade Desk tools for agency replies (quote, booked date → inspection Booked, report attached → Report Received + task to confirm Passed / Failed) and forwarder replies (freight quote → task; BL / ETD / ETA → `record_shipment_update`). Freight requests only if the business decides we arrange logistics (open decision below); live container tracking would need a paid API.
+- [ ] **Docs:** add the screening, registry, new flows and settings to docs/EMAIL_DESK.md, docs/WORKFLOWS.md and docs/AGENTS.md.
 - [ ] **Try the rest live:** `company_profile.py set <pdf>` with a real profile, `deploy_app.py` (Email desk area in the admin app), and DocuSign in the sandbox (EMAIL_DESK.md "E-signature setup": developer account, connection, `docusign-bind`, `deploy_flows.py --esign`, settings, one test deal).
 - [ ] Optional resilience: fall back from OpenAI to Gemini automatically when OpenAI says `insufficient_quota`, so the desk keeps working when credits run out.
 - [ ] **Re-export the solution** (`python3 tools/export_solution.py`) after the run: `solutions/` still contains the removed site plug-ins, marketplace flows and agents until it is exported again.
@@ -369,9 +395,9 @@ python3 tools/export_solution.py                   # sync solutions/ with Dev
 - [ ] Live test `desk_lot_e2e.py below` (48 h window from the email; best bid below the price → to the seller): in the 7 Oct afternoon run.
 
 ### Email desk: still to build
-- [x] Approve by reply: the owner answers a briefing (`APPROVE` / `REJECT <reason>` / `SEND` / `PIPELINE`) instead of using the admin app (7 Oct; SEND still to fix, see Next).
+- [x] Approve by reply: the owner answers a briefing (`APPROVE` / `REJECT <reason>` / `SEND` / `PIPELINE`) instead of using the admin app (live test passed 7 Oct 17:14).
 - [x] Label corrections from Gmail feed triage (EMAIL_DESK.md 4.4; live test passed 7 Oct 16:37).
-- [x] KYB documents filed from email attachments (`save_kyb_documents` → Document Intelligence → KYB agents → tier upgrade approval; a person still records the sanctions screening).
+- [x] KYB documents filed from email attachments (`save_kyb_documents` → Document Intelligence → KYB agents → tier upgrade approval). Sanctions screening and the registry check now run automatically (7 Oct evening).
 - [x] A polite "not this time" draft to sellers whose deal was closed (7 Oct).
 - [x] Tracking updates (inspection, loading, sailing, arrival, delivery) drafted to the parties (live test passed 7 Oct 16:14).
 - [ ] IndiaMART Lead Manager API (paid seller account): IndiaMART pages already come in through the web search; the API would bring in the enquiries IndiaMART sends us. No scraping.
@@ -380,10 +406,12 @@ python3 tools/export_solution.py                   # sync solutions/ with Dev
 
 ### Parked
 - [ ] Add Krishna to Dev (System Administrator) and as co-owner of the flows.
-- [ ] Integrations (registry/KYB APIs, sanctions screening, inspection agencies, forwarders, WhatsApp into `gc_message`), field security profiles, ALM (Test/Prod, pipeline, solution split), evidence benchmark.
+- [x] Company registry (GLEIF, Companies House) and sanctions screening (OFAC, UN, UK): built 7 Oct evening (finish items in Next).
+- [ ] Inspection agencies and forwarders by email: see Next. Paid options for later: OpenCorporates (registries in 140+ jurisdictions incl. India), OpenSanctions (PEPs, 300+ lists), a container-tracking API.
+- [ ] WhatsApp into `gc_message`, field security profiles, ALM (Test/Prod, pipeline, solution split), evidence benchmark.
 
 ### Housekeeping: deliberately last (the user's decision)
-- [ ] Remove all test data: `[AGENT-TEST]`, `[SMOKE]`, test leads, test KYB/screenings, test Gmail messages and briefing thread.
+- [ ] Remove all test data: `[AGENT-TEST]`, `[SMOKE]`, test leads, test KYB/screenings, test Gmail messages and briefing thread (now over Gmail's 100-message thread cap; also the `[AGENT-TEST] Approve by reply` tasks and `SEND probe` drafts from today's runs).
 - [ ] Key rotation: OpenAI (in use) and Gemini (standby) were both pasted in chat.
 - [ ] Plug-in trace log back to Exception. Optionally delete the parked Power Pages site and the marketplace tables/data in Dev (listings, catalog, payments, chats).
 - [ ] Optional: `agents.pricing` for cost tracking.

@@ -11,10 +11,12 @@ Usage:
   python3 tools/deploy_connector.py status             # show connector, redirect URL and connection reference
   python3 tools/deploy_connector.py docusign [--prod]  # e-signature: connection reference gc_docusign (DocuSign Demo, or production)
   python3 tools/deploy_connector.py docusign-bind      # attach the DocuSign connection you created to gc_docusign
+  python3 tools/deploy_connector.py registries         # KYB registers: DealOS GLEIF (no key) and DealOS Companies House
+                                                       # (COMPANIES_HOUSE_API_KEY in .env), connections created and bound
 
 After the first deploy the connector's API name is written to tools/flows/connectors.json; the flow definitions read it.
 """
-import json, os, sys, urllib.request
+import json, os, sys, urllib.error, urllib.request
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import dv  # noqa: E402
@@ -183,6 +185,96 @@ def bind_connection(api, ref_name, display):
     print(f"= {ref_name} → {good[0]['name']} ({good[0]['properties'].get('displayName')})")
 
 
+# ---------------------------------------------------------------- KYB registers (custom connectors without OAuth)
+
+REGISTRIES = [
+    # key, connector name, display, swagger, connection reference, colour, description
+    ("gleif", "gc_dealosgleif", "DealOS GLEIF", "gleif.swagger.json", "gc_gleif", "#0b5394", "GLEIF LEI register (free, no key): company registry check for KYB."),
+    ("companieshouse", "gc_dealoscompanieshouse", "DealOS Companies House", "companieshouse.swagger.json", "gc_companieshouse", "#1d3c34",
+     "UK Companies House public data API (free key): profile, officers and owners for KYB."),
+]
+
+
+def env_value(key):
+    path = os.path.join(ROOT, ".env")
+    if os.path.exists(path):
+        for line in open(path):
+            if line.startswith(key + "="):
+                return line.split("=", 1)[1].strip() or None
+    return os.environ.get(key)
+
+
+def api_key_parameters():
+    return {"api_key": {"type": "securestring", "uiDefinition": {
+        "displayName": "API key", "description": "Companies House: 'Basic ' + base64 of '<your key>:' (deploy_connector.py registries does this from .env)",
+        "tooltip": "Companies House REST API key", "constraints": {"tabIndex": 2, "clearText": False, "required": "true"}}}}
+
+
+def deploy_api_connector(key, name, display, swagger_file, ref, color, description):
+    swagger = open(os.path.join(ROOT, "tools", "connectors", swagger_file)).read()
+    params = api_key_parameters() if "securityDefinitions" in json.loads(swagger) else {}
+    rows = ok(*dv.get(f"connectors?$select=connectorid,connectorinternalid&$filter=name eq '{name}'"), "read connector").get("value", [])
+    if rows:
+        ok(*dv.patch(f"connectors({rows[0]['connectorid']})", {"openapidefinition": swagger, "connectionparameters": json.dumps(params)}), "update " + name)
+        print(f"= connector {display}")
+    else:
+        ok(*dv.request("POST", "connectors", {"name": name, "displayname": display, "connectortype": 1, "iconbrandcolor": color, "description": description,
+                                              "openapidefinition": swagger, "connectionparameters": json.dumps(params)}, SOL), "create " + name)
+        print(f"+ connector {display}")
+    row = ok(*dv.get(f"connectors?$select=connectorid,connectorinternalid&$filter=name eq '{name}'"), "read connector")["value"][0]
+    ok(*dv.request("POST", "AddSolutionComponent", {"ComponentId": row["connectorid"], "ComponentType": 372, "SolutionUniqueName": "DealOS",
+                                                     "AddRequiredComponents": False}), "add connector to solution")
+    api = row["connectorinternalid"]
+    save_name(key, api)
+    ensure_reference(ref, display, api, description)
+    return api
+
+
+def create_connection(api, display, parameters):
+    """A connection made from code (no sign-in needed: no auth, or an API key)."""
+    import uuid
+    body = {"properties": {"environment": {"id": f"/providers/Microsoft.PowerApps/environments/{ENV_ID}", "name": ENV_ID},
+                           "displayName": display, "connectionParameters": parameters}}
+    url = (f"https://api.powerapps.com/providers/Microsoft.PowerApps/apis/{api}/connections/{uuid.uuid4().hex}"
+           f"?api-version=2016-11-01&$filter=environment%20eq%20%27{ENV_ID}%27")
+    req = urllib.request.Request(url, data=json.dumps(body).encode(), method="PUT",
+                                 headers={"Authorization": f"Bearer {powerapps_token()}", "Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=60) as r:
+            print(f"+ connection {display}")
+            return json.load(r)
+    except urllib.error.HTTPError as e:
+        sys.exit(f"FAILED connection {display}: {e.code} {e.read().decode()[:800]}")
+
+
+def connections_of(api):
+    url = (f"https://api.powerapps.com/providers/Microsoft.PowerApps/apis/{api}/connections"
+           f"?api-version=2016-11-01&$filter=environment%20eq%20%27{ENV_ID}%27")
+    req = urllib.request.Request(url, headers={"Authorization": f"Bearer {powerapps_token()}", "Accept": "application/json"})
+    with urllib.request.urlopen(req, timeout=60) as r:
+        return json.load(r).get("value", [])
+
+
+def registries():
+    import base64
+    for key, name, display, swagger, ref, color, description in REGISTRIES:
+        api = deploy_api_connector(key, name, display, swagger, ref, color, description)
+        if not connections_of(api):
+            if key == "gleif":
+                create_connection(api, display, {})
+            else:
+                k = env_value("COMPANIES_HOUSE_API_KEY")
+                if not k:
+                    print("  No COMPANIES_HOUSE_API_KEY in .env: get a free key at https://developer.company-information.service.gov.uk "
+                          "(create an application, REST API key), add it to .env and run this again. Until then UK companies are checked in GLEIF only.")
+                    continue
+                create_connection(api, display, {"api_key": "Basic " + base64.b64encode((k + ":").encode()).decode()})
+        bind_connection(api, ref, display)
+        if key == "companieshouse":
+            save_name("companieshouse_connected", "yes")   # the flows include the Companies House steps from now on
+            print("  Switch it on: setting registry.companies_house = on, then deploy_flows.py --only \"Party onboarding\" and --only \"Party re-check\"")
+
+
 if __name__ == "__main__":
     cmd = sys.argv[1] if len(sys.argv) > 1 and not sys.argv[1].startswith("--") else "deploy"
-    {"deploy": deploy, "bind": bind, "status": status, "docusign": docusign, "docusign-bind": docusign_bind}.get(cmd, lambda: print(__doc__))()
+    {"deploy": deploy, "bind": bind, "status": status, "docusign": docusign, "docusign-bind": docusign_bind, "registries": registries}.get(cmd, lambda: print(__doc__))()

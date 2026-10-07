@@ -8,7 +8,8 @@ import glob
 import json
 import os
 
-from .lib import (AUTH, B, CONTRACT, DOCUSIGN, GMAIL, docusign, gmail, minutes_trigger, scope, DISPUTE, DV, EMPTY_GUID, FAILURE, INSPECTION, INSPECTION_RESULT, INVITE, INVOICE, INVOICE_KIND, KYB,
+from .lib import (AUTH, B, COMPANIES_HOUSE, CONTRACT, DOCUSIGN, GLEIF, GMAIL, connector, docusign, gmail, http_get, minutes_trigger, scope, upload_file,
+                  _custom_connectors, DISPUTE, DV, EMPTY_GUID, FAILURE, INSPECTION, INSPECTION_RESULT, INVITE, INVOICE, INVOICE_KIND, KYB,
                   LISTING, MATCH, MESSAGE, MESSAGE_KIND, MILESTONE, MILESTONE_INSPECTION, MILESTONE_PENDING, MILESTONE_TYPE, NOTIFY_FLOW, OFFER,
                   OUTLOOK, OVERLAY, OVERLAY_DISPUTED, OVERLAY_ON_HOLD, PARSE, PARTY, PAYMENT, PURPOSE, RELEASE, REQUIREMENT, REQUIREMENT_EXPIRED,
                   RESOLUTION, REVIEW_STATUS, ROOT, SCOPE, SHIPMENT, STAGE, TIER, TIER_TRADE_VERIFIED, VERIFICATION_CONFIRMED,
@@ -127,16 +128,19 @@ def party_onboarding():
     roles = f"string(coalesce({T('gc_partyrole')}, ''))"
     steps = [
         ("Mark_in_progress", update("accounts", S(acc), gc_kybstatus=KYB["InProgress"])),
-        ("Seller", condition(f"@contains({roles}, '{PARTY['Seller']}')", run_agent("OnboardingKYB", S(acc), "party-onboarding", name, on_fail="record"))),
+        # Public register and sanctions lists first, so the KYB agents see the results
+        *party_checks(acc, name),
+        ("Seller", condition(f"@contains({roles}, '{PARTY['Seller']}')", run_agent("OnboardingKYB", S(acc), "party-onboarding", name, on_fail="record")),
+         {"Checks_done": ["Succeeded", "Failed", "Skipped", "TimedOut"]}),
         ("Buyer", condition(f"@contains({roles}, '{PARTY['Buyer']}')", run_agent("BuyerVerification", S(acc), "party-onboarding", name, on_fail="record"))),
         ("Audit", audit("flow:party-onboarding", "party.onboarding", "account", S(acc), props(roles=roles))),
     ]
-    return flow(name, "A party becomes a seller or buyer (and KYB has not started) → KYB status In Progress → Onboarding KYB and/or Buyer Verification. "
-                      "The agents record pending checks and draft the document request for approval.",
+    return flow(name, "A party becomes a seller or buyer (and KYB has not started) → KYB status In Progress → company registry (GLEIF, Companies House) and "
+                      "sanctions screening (OFAC, UN, UK) → Onboarding KYB and/or Buyer Verification. The agents record pending checks and draft the document request.",
                 row_trigger("When_a_party_needs_KYB", "account", 4, attributes="gc_partyrole", concurrency=1, conditions=[
                     f"@and(or(contains({roles}, '{PARTY['Seller']}'), contains({roles}, '{PARTY['Buyer']}')), "
                     f"or(empty({T('gc_kybstatus')}), equals({T('gc_kybstatus')}, {KYB['NotStarted']})))"]),
-                steps)
+                steps, connections=CHECK_CONNECTIONS)
 
 
 # ---------------------------------------------------------------- demand and matching
@@ -289,7 +293,14 @@ def review_decisions():
                     ])),
                 ], [("Cancel_deal", transition(S(deal), STAGE["Cancelled"], "Compliance not cleared"))])),
             ], [
-                ("Party_hold", condition(f"@not(empty({account}))", [("Set_compliance_hold", update("accounts", S(account), gc_compliancehold=f"@not({approved})"))])),
+                ("Party_hold", condition(f"@not(empty({account}))", [
+                    ("Set_compliance_hold", update("accounts", S(account), gc_compliancehold=f"@not({approved})")),
+                    # Sanctions screening tasks list their screenings: Clear (not the same person / company) or Confirmed Match
+                    ("Each_screening", foreach(f"@coalesce({pl('screeningIds')}, json('[]'))", [
+                        ("Set_screening", update("gc_screenings", S("items('Each_screening')"), gc_result=f"@if({approved}, {B}, {B + 2})",
+                                                 gc_clearancereason=S(f"concat(if({approved}, 'Cleared: ', 'Confirmed match: '), coalesce({T('gc_decisionreason')}, 'decided by a person'))"))),
+                    ])),
+                ])),
             ]))]),
         ("Contract_issue", PURPOSE["ContractIssue"], [
             ("Issue_decision", condition("@" + approved, [
@@ -682,13 +693,25 @@ def desk_drafts():
         ("Save_draft_id", update("gc_messages", S(mid), gc_gmaildraftid=S(created("['id']")))),
         ("New_thread", condition(f"@empty({build('ThreadId')})", [
             ("Save_thread_id", update("gc_conversations", S(conv), gc_gmailthreadid=S(created("['message']?['threadId']"))))])),
-        ("Auto_send", condition(f"@equals({T('gc_autosend')}, true)", [("Send_now", gmail("SendDraft", body__id=S(created("['id']"))))])),
+        ("Auto_send", condition(f"@equals({T('gc_autosend')}, true)", [
+            ("Send_now", gmail("SendDraft", body__id=S(created("['id']")))),
+            ("Mark_sent", update("gc_messages", S(mid), gc_draftstatus=DRAFT["Sent"]))])),
         ("Audit_draft", audit("flow:desk-drafts", "email.drafted", "gc_message", S(mid), props(to=build("To"), draft=created("['id']"), auto_send=T("gc_autosend")))),
     ]
     release = [
-        # The owner replied SEND to a briefing: the Gmail draft goes out as it stands (with any edits made in Gmail)
+        # The owner replied SEND to a briefing: the Gmail draft goes out as it stands (with any edits made in Gmail).
+        # The flow marks it Sent itself; the sync's sent-mail pass leaves drafts flagged for sending alone.
         ("Send_released", gmail("SendDraft", body__id=S(T("gc_gmaildraftid")))),
+        ("Mark_released_sent", update("gc_messages", S(mid), gc_draftstatus=DRAFT["Sent"])),
         ("Audit_released", audit("flow:desk-drafts", "email.sent_on_owner_reply", "gc_message", S(mid), props(draft=T("gc_gmaildraftid")))),
+        # Not sent (the draft was sent or deleted by hand in Gmail): back to a normal draft, and the owner is told
+        ("Not_released", update("gc_messages", S(mid), gc_autosend=False), {"Send_released": ["Failed", "TimedOut"]}),
+        ("Brief_not_sent", unbound("gc_DeskBrief", retry_none=True, Subject="Draft not sent",
+                                   Text=S(f"concat('SEND could not send the draft \"', coalesce({T('gc_subject')}, {T('gc_name')}), '\" from Gmail. "
+                                          "It may have been sent or deleted there by hand. Check Gmail > Drafts and send it from there if it is still waiting.')")),
+         {"Not_released": ["Succeeded", "Failed"]}),
+        ("Audit_not_released", audit("flow:desk-drafts", "email.release_failed", "gc_message", S(mid), props(draft=T("gc_gmaildraftid"))),
+         {"Brief_not_sent": ["Succeeded", "Failed"]}),
     ]
     pending = [("New_or_released", condition(f"@empty({T('gc_gmaildraftid')})", create, release))]
     discarded = [
@@ -827,6 +850,109 @@ def desk_tracking_inspection():
 
 def desk_tracking_shipment():
     return desk_tracking("shipment")
+
+
+# ---------------------------------------------------------------- party checks: company registry + sanctions screening
+
+# Registers are used once their connectors are deployed (tools/deploy_connector.py registries); Companies House only with its key bound.
+_NAMES = _custom_connectors()
+REGISTRY_ON = "gleif" in _NAMES
+CH_ON = _NAMES.get("companieshouse_connected") == "yes"
+CHECK_CONNECTIONS = (DV,) + ((GLEIF,) if REGISTRY_ON else ()) + ((COMPANIES_HOUSE,) if CH_ON else ())
+ANY = ["Succeeded", "Failed", "Skipped", "TimedOut"]
+
+
+def party_checks(acc, flow_name):
+    """Company registry (GLEIF; Companies House for UK companies) → Company Registry KYB checks; then sanctions screening of the company,
+    its contacts and the directors / owners the register lists. Never stops the flow: a failure is recorded and the agents still run."""
+    rq = lambda k: f"outputs('Registry_terms')?['body/{k}']"
+    steps = []
+    if REGISTRY_ON:
+        steps += [
+            ("Registry_terms", unbound("gc_RegistryQuery", retry_none=True, AccountId=S(acc))),
+            ("By_lei", condition(f"@not(empty({rq('Lei')}))", [("Gleif_lei", connector(GLEIF, "GetLeiRecord", lei=S(rq("Lei"))))])),
+            ("By_number", condition(f"@not(empty({rq('RegistrationNumber')}))", [
+                ("Gleif_number", connector(GLEIF, "SearchLeiRecords", **{"filter[entity.registeredAs]": S(rq("RegistrationNumber")), "page[size]": 5}))]), {"By_lei": ANY}),
+            ("By_name", condition(f"@not(empty({rq('Search')}))", [
+                ("Gleif_name", connector(GLEIF, "SearchLeiRecords", **{"filter[fulltext]": S(rq("Search")), "page[size]": 5}))]), {"By_number": ANY}),
+        ]
+        last = "By_name"
+        if CH_ON:
+            number = "first(body('Ch_search')?['items'])?['company_number']"
+            steps.append(("Uk_company", condition(f"@equals({rq('Uk')}, true)", [
+                ("Ch_search", connector(COMPANIES_HOUSE, "SearchCompanies", q=S(f"if(empty({rq('RegistrationNumber')}), {rq('Search')}, {rq('RegistrationNumber')})"),
+                                        items_per_page=5)),
+                ("Ch_found", condition("@greater(length(coalesce(body('Ch_search')?['items'], json('[]'))), 0)", [
+                    ("Ch_profile", connector(COMPANIES_HOUSE, "GetCompany", company_number=S(number))),
+                    ("Ch_officers", connector(COMPANIES_HOUSE, "ListOfficers", company_number=S(number)), {"Ch_profile": ANY}),
+                    ("Ch_psc", connector(COMPANIES_HOUSE, "ListPsc", company_number=S(number)), {"Ch_officers": ANY}),
+                ])),
+            ]), {"By_name": ANY}))
+            last = "Uk_company"
+        ch = (lambda a: S(f"body('{a}')")) if CH_ON else (lambda a: "")
+        steps += [
+            ("Record_registry", unbound("gc_RegistryRecord", retry_none=True, AccountId=S(acc), GleifLei=S("body('Gleif_lei')"), GleifSearch=S("body('Gleif_number')"),
+                                        GleifNameSearch=S("body('Gleif_name')"), ChProfile=ch("Ch_profile"), ChOfficers=ch("Ch_officers"), ChPsc=ch("Ch_psc")), {last: ANY}),
+            ("Registry_failed", condition("@not(equals(outputs('Record_registry')?['statusCode'], 200))", [
+                ("Record_registry_failure", flow_failure(flow_name, "Record_registry", S("coalesce(string(outputs('Record_registry')?['body']), 'registry check failed')")))]),
+             {"Record_registry": ANY}),
+            ("Screen_party", unbound("gc_ScreenParty", retry_none=True, AccountId=S(acc), ExtraNames=S("coalesce(outputs('Record_registry')?['body/Names'], '[]')")),
+             {"Registry_failed": ANY}),
+        ]
+    else:
+        steps.append(("Screen_party", unbound("gc_ScreenParty", retry_none=True, AccountId=S(acc))))
+    steps.append(("Checks_done", condition("@not(equals(outputs('Screen_party')?['statusCode'], 200))", [
+        ("Record_screening_failure", flow_failure(flow_name, "Screen_party", S("coalesce(string(outputs('Screen_party')?['body']), 'screening failed')")))]),
+        {"Screen_party": ANY}))
+    return steps
+
+
+def party_recheck():
+    """The party's registration number or name changed after onboarding (e.g. KYB documents arrived by email) → registry and screening again,
+    then the KYB agents, which see the new results. (Party onboarding does the first round.)"""
+    name = "DealOS | Party re-check"
+    acc = T("accountid")
+    roles = f"string(coalesce({T('gc_partyrole')}, ''))"
+    steps = [
+        *party_checks(acc, name),
+        ("Seller", condition(f"@contains({roles}, '{PARTY['Seller']}')", run_agent("OnboardingKYB", S(acc), "party-recheck", name, on_fail="record")), {"Checks_done": ANY}),
+        ("Buyer", condition(f"@contains({roles}, '{PARTY['Buyer']}')", run_agent("BuyerVerification", S(acc), "party-recheck", name, on_fail="record"))),
+        ("Audit", audit("flow:party-recheck", "party.rechecked", "account", S(acc), props(registry="outputs('Record_registry')?['body/Summary']"))),
+    ]
+    return flow(name, "A party's registration number or name changes after onboarding → company registry and sanctions screening again → KYB agents.",
+                row_trigger("When_party_details_change", "account", 3, attributes="gc_registrationnumber,name", concurrency=1, conditions=[
+                    f"@and(or(contains({roles}, '{PARTY['Seller']}'), contains({roles}, '{PARTY['Buyer']}')), "
+                    f"not(empty({T('gc_kybstatus')})), not(equals({T('gc_kybstatus')}, {KYB['NotStarted']})))"]),
+                steps, connections=CHECK_CONNECTIONS)
+
+
+def sanctions_lists():
+    """Every day: the official sanctions lists (OFAC SDN + consolidated, UN, UK) are downloaded into their gc_sanctionlist rows and indexed;
+    when any changed, every party is screened again (new possible matches → Screening Clearance task + briefing)."""
+    name = "DealOS | Sanctions lists"
+    each = "items('Each_list')"
+    steps = [
+        ("Lists", list_rows("gc_sanctionlists", select="gc_sanctionlistid,gc_source,gc_url,gc_aliasurl")),
+        ("Each_list", foreach("@outputs('Lists')?['body/value']", [
+            ("Get_list", http_get(S(f"{each}?['gc_url']"))),
+            ("Store_list", upload_file("gc_sanctionlists", S(f"{each}?['gc_sanctionlistid']"), "gc_raw", "@body('Get_list')", S(f"concat({each}?['gc_source'], '.dat')"))),
+            ("Has_aliases", condition(f"@not(empty({each}?['gc_aliasurl']))", [
+                ("Get_aliases", http_get(S(f"{each}?['gc_aliasurl']"))),
+                ("Store_aliases", upload_file("gc_sanctionlists", S(f"{each}?['gc_sanctionlistid']"), "gc_rawaliases", "@body('Get_aliases')",
+                                              S(f"concat({each}?['gc_source'], '-aliases.dat')"))),
+            ])),
+            ("Load_list", unbound("gc_SanctionsLoad", retry_none=True, ListId=S(f"{each}?['gc_sanctionlistid']"))),
+            ("List_failed", condition("@not(equals(outputs('Load_list')?['statusCode'], 200))", [
+                ("Record_list_failure", flow_failure(name, S(f"concat('Load ', {each}?['gc_source'])"),
+                                                     S("coalesce(string(outputs('Load_list')?['body']), string(outputs('Get_list')?['statusCode']), 'download failed')")))]),
+             {"Load_list": ANY}),
+        ])),
+        # Only does work when a list changed since the last re-screen
+        ("Rescreen", unbound("gc_ScreenParties", retry_none=True), {"Each_list": ["Succeeded", "Failed"]}),
+        ("Audit", audit("flow:sanctions-lists", "sanctions.lists_loaded", "gc_sanctionlist", EMPTY_GUID, props(rescreen="outputs('Rescreen')?['body/Result']"))),
+    ]
+    return flow(name, "Every day 02:30 UTC: OFAC SDN and consolidated, UN Security Council and UK sanctions lists downloaded (HTTP) into gc_sanctionlist → "
+                      "gc_SanctionsLoad (name index) → gc_ScreenParties when a list changed.", daily_trigger("Every_day_0230_UTC", 2, 30), steps)
 
 
 def kyb_recheck():
@@ -970,7 +1096,7 @@ TESTS = [email_test_kit]
 ESIGN_FLOWS = [desk_esign_send, desk_esign_status]
 
 ALL = [document_intake, party_onboarding, offer_pricing, offer_accepted, terms_agreed, compliance_check, contracting, contract_signed, deal_cancelled, review_decisions, approvals, daily_digest, inspection_booking, inspection_result, flow_failure_triage, mailbox_sync, trade_desk, desk_drafts, desk_contract, seller_discovery, buyer_discovery, desk_timers,
-       approval_briefing, desk_tracking_inspection, desk_tracking_shipment, kyb_recheck]
+       approval_briefing, desk_tracking_inspection, desk_tracking_shipment, kyb_recheck, party_recheck, sanctions_lists]
 
 # Flows removed with the website and marketplace (7 Oct 2026); deploy_flows.py turns them off and deletes them in Dev.
 RETIRED = ['DealOS | Commission invoice', 'DealOS | Daily deadlines', 'DealOS | Daily sweep', 'DealOS | Deal settled', 'DealOS | Dispute closed', 'DealOS | Dispute opened', 'DealOS | Escrow funded', 'DealOS | Listing verification', 'DealOS | Match accepted', 'DealOS | Match notifications', 'DealOS | Milestone progress', 'DealOS | New listing matching', 'DealOS | Notify party', 'DealOS | RFQ invite answered', 'DealOS | RFQ invite sent', 'DealOS | RFQ matching', 'DealOS | Rating received', 'DealOS | Release settled']

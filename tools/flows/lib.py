@@ -32,6 +32,11 @@ CONNECTIONS[GMAIL] = {"runtimeSource": "embedded", "connection": {"connectionRef
 # DocuSign (Microsoft's certified connector): the sandbox one while testing, shared_docusign in production (connectors.json "docusign").
 DOCUSIGN = _custom_connectors().get("docusign", "shared_docusigndemo")
 CONNECTIONS[DOCUSIGN] = {"runtimeSource": "embedded", "connection": {"connectionReferenceLogicalName": "gc_docusign"}, "api": {"name": DOCUSIGN}}
+# KYB registers (custom connectors, tools/deploy_connector.py registries)
+GLEIF = _custom_connectors().get("gleif", "shared_gc-5fdealos-20gleif-not-deployed")
+CONNECTIONS[GLEIF] = {"runtimeSource": "embedded", "connection": {"connectionReferenceLogicalName": "gc_gleif"}, "api": {"name": GLEIF}}
+COMPANIES_HOUSE = _custom_connectors().get("companieshouse", "shared_gc-5fdealos-20companies-20house-not-deployed")
+CONNECTIONS[COMPANIES_HOUSE] = {"runtimeSource": "embedded", "connection": {"connectionReferenceLogicalName": "gc_companieshouse"}, "api": {"name": COMPANIES_HOUSE}}
 AUTH = "@parameters('$authentication')"
 NS = uuid.UUID("6a1f3c52-9d7e-4f0b-8c21-0d5e0a7b4f10")
 
@@ -108,6 +113,24 @@ def docusign(op, **params):
     return {"type": "OpenApiConnection",
             "inputs": {"host": {"connectionName": DOCUSIGN, "operationId": op, "apiId": f"/providers/Microsoft.PowerApps/apis/{DOCUSIGN}"},
                        "parameters": {k.replace("__", "/"): v for k, v in params.items()}, "authentication": AUTH}}
+
+
+def connector(api, op, **params):
+    """An action of one of our custom connectors (GLEIF, Companies House); query parameter names are passed as they are."""
+    return {"type": "OpenApiConnection",
+            "inputs": {"host": {"connectionName": api, "operationId": op, "apiId": f"/providers/Microsoft.PowerApps/apis/{api}"},
+                       "parameters": params, "authentication": AUTH}}
+
+
+def http_get(uri):
+    """Built-in HTTP action (a public download, no connection)."""
+    return {"type": "Http", "inputs": {"method": "GET", "uri": uri}}
+
+
+def upload_file(entity_set, record_id, column, content, file_name):
+    """Dataverse 'Upload a file or an image' into a file column."""
+    return _dv("UpdateEntityFileImageFieldContent", {"entityName": entity_set, "recordId": record_id, "fileImageFieldName": column,
+                                                     "item": content, "x-ms-file-name": file_name})
 
 
 def item(fields):

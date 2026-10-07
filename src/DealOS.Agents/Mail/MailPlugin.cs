@@ -95,6 +95,34 @@ namespace DealOS.Agents.Mail
                     context.OutputParameters["Result"] = Json.Serialize(Esign.Update(new DeskWriter(dv), Get<Guid>(context, "ContractId"), Get<string>(context, "Side"),
                                                                                      Get<string>(context, "RecipientsJson"), Get<string>(context, "SignedPdf")));
                     break;
+                case "gc_SanctionsLoad":
+                    var loaded = Checks.Sanctions.Load(dv, Get<Guid>(context, "ListId"));
+                    context.OutputParameters["Changed"] = J.Bool(loaded, "changed");
+                    context.OutputParameters["Result"] = Json.Serialize(loaded);
+                    break;
+                case "gc_ScreenParty":
+                    var screened = Checks.Sanctions.Screen(new DeskWriter(dv), Get<Guid>(context, "AccountId"), Get<string>(context, "ExtraNames"));
+                    context.OutputParameters["Matches"] = Convert.ToInt32(J.Get(screened, "new_hits") ?? 0);
+                    context.OutputParameters["Result"] = Json.Serialize(screened);
+                    break;
+                case "gc_ScreenParties":
+                    context.OutputParameters["Result"] = Json.Serialize(Checks.Sanctions.ScreenAll(new DeskWriter(dv), dv.SettingInt("screening.rescreen_max", 300)));
+                    break;
+                case "gc_RegistryQuery":
+                    var query = Checks.Registry.Query(dv, Get<Guid>(context, "AccountId"));
+                    context.OutputParameters["Search"] = J.Str(query, "search") ?? "";
+                    context.OutputParameters["Lei"] = J.Str(query, "lei") ?? "";
+                    context.OutputParameters["RegistrationNumber"] = J.Str(query, "registration_number") ?? "";
+                    context.OutputParameters["Country"] = J.Str(query, "country") ?? "";
+                    context.OutputParameters["Uk"] = J.Bool(query, "uk");
+                    break;
+                case "gc_RegistryRecord":
+                    var registry = Checks.Registry.Record(new DeskWriter(dv), Get<Guid>(context, "AccountId"), Get<string>(context, "GleifLei"), Get<string>(context, "GleifSearch"), Get<string>(context, "GleifNameSearch"),
+                                                          Get<string>(context, "ChProfile"), Get<string>(context, "ChOfficers"), Get<string>(context, "ChPsc"));
+                    context.OutputParameters["Names"] = Json.Serialize(J.Get(registry, "names"));
+                    context.OutputParameters["Summary"] = J.Str(registry, "summary") ?? "";
+                    context.OutputParameters["Result"] = Json.Serialize(registry);
+                    break;
                 case "gc_DeskContract":
                     context.OutputParameters["Result"] = Json.Serialize(Desk.ContractOut(new DeskWriter(dv), Get<Guid>(context, "ContractId")));
                     break;
@@ -149,6 +177,12 @@ namespace DealOS.Agents.Mail
 
             var conv = dv.Query("gc_conversation", new[] { "gc_conversationid", "gc_counterparty" }, 1,
                                 "gc_gmailthreadid", Microsoft.Xrm.Sdk.Query.ConditionOperator.Equal, m.ThreadId).FirstOrDefault();
+            if (conv == null)
+            {
+                // The owner's reply to a briefing that Gmail put in a new thread (threads are capped at 100 messages): it belongs to the briefing thread.
+                var briefing = Approvals.BriefingThreadForReply(dv, m.Subject);
+                if (briefing != null) conv = dv.Retrieve("gc_conversation", briefing.Value, "gc_counterparty");
+            }
             if (outbound && conv == null)
             {
                 // Our own mail outside the desk's threads (personal mail in the same mailbox) is not stored.
@@ -224,12 +258,14 @@ namespace DealOS.Agents.Mail
 
             // A person sent the desk's reply from Gmail: the pending draft of this thread is done.
             // Only drafts that existed when this mail was sent: a newer draft in the same thread is still waiting.
+            // Not drafts the Desk drafts flow sends itself (auto-send, or released by the owner's SEND): the flow marks those Sent.
+            // Not in the briefing thread: everything sent there is the desk's own briefing or the owner's command.
             var sentAt = m.InternalDate ?? m.Date ?? DateTime.UtcNow;
             var briefingReply = Approvals.IsBriefingReply(dv, convId, m.Subject);
-            if (outbound && !briefingReply)
-                foreach (var d in dv.Query("gc_message", new[] { "gc_messageid", "createdon" }, 10, "gc_conversation", Microsoft.Xrm.Sdk.Query.ConditionOperator.Equal, convId,
+            if (outbound && !briefingReply && !Approvals.IsBriefingThread(dv, convId))
+                foreach (var d in dv.Query("gc_message", new[] { "gc_messageid", "createdon", "gc_autosend" }, 10, "gc_conversation", Microsoft.Xrm.Sdk.Query.ConditionOperator.Equal, convId,
                                            "gc_draftstatus", Microsoft.Xrm.Sdk.Query.ConditionOperator.Equal, DeskChoice.DraftStatus.Pending)
-                                     .Where(x => x.GetAttributeValue<DateTime>("createdon") <= sentAt.AddSeconds(5)))
+                                     .Where(x => x.GetAttributeValue<DateTime>("createdon") <= sentAt.AddSeconds(5) && !x.GetAttributeValue<bool>("gc_autosend")))
                 {
                     var sent = new Entity("gc_message", d.Id);
                     sent["gc_draftstatus"] = new OptionSetValue(DeskChoice.DraftStatus.Sent);

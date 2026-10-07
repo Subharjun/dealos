@@ -76,6 +76,10 @@ SETTINGS = [  # key, value, value type label, description
     ("contract.esign", "off", "Text", "off = contracts go out as PDF drafts (scan and return); docusign = after a person approves, both contracts go out through DocuSign."),
     ("contract.signatory", "", "Text", "Our authorised signatory for e-signature, 'Name <email>'; countersigns each contract after the party."),
     ("esign.docusign.account_id", "", "Text", "DocuSign account id (API Account ID under Settings > Apps and Keys) the e-signature flows use."),
+    ("screening.threshold", "0.84", "Number", "Sanctions name match score (0-1) from which a name is a possible match for a person to check. Calibrated on the official lists, 7 Oct 2026."),
+    ("screening.rescreen_max", "300", "Number", "Parties re-screened per run after a sanctions list changes."),
+    ("screening.lists_hash", "", "Text", "Hashes of the sanctions lists at the last re-screen of all parties (kept by gc_ScreenParties; empty = re-screen on the next run)."),
+    ("registry.companies_house", "off", "Text", "on = UK companies are also checked at Companies House (needs the gc_companieshouse connection with a free API key)."),
     ("email.gmail.history_id", "", "Text", "Gmail history position for label corrections (kept by Mailbox sync; empty = start from now)."),
 ]
 VALUE_TYPES = {"Bool": 303300000, "Number": 303300001, "Text": 303300002, "Json": 303300003}
@@ -348,6 +352,30 @@ MAIL_OPERATIONS = [
      "description": "One chaser to sellers and buyers who have not answered after desk.chase_after_hours; reminders to lot buyers before offers close.",
      "request": [],
      "response": [("Result", 10, "JSON: chasers and reminders drafted.")]},
+    # Sanctions screening and company registry (free public sources; 7 Oct 2026)
+    {"api": "gc_SanctionsLoad", "display": "Load a sanctions list",
+     "description": "The list file(s) the Sanctions lists flow downloaded into a gc_sanctionlist row (OFAC SDN / consolidated CSV, UN XML, UK XML) → the name index used for screening.",
+     "request": [("ListId", 12, "The gc_sanctionlist.", False)],
+     "response": [("Changed", 0, "The list differs from the last load."), ("Result", 10, "JSON: source, names, list date.")]},
+    {"api": "gc_ScreenParty", "display": "Screen a party",
+     "description": "Company name, its contacts and extra names (directors, owners) against the loaded sanctions lists → gc_screening per name; possible matches → Screening Clearance task and briefing.",
+     "request": [("AccountId", 12, "The account.", False), ("ExtraNames", 10, "Optional JSON array [{name, role, person}] (e.g. from the company registry).", True)],
+     "response": [("Matches", 7, "New possible matches."), ("Result", 10, "JSON: each screened name and its hits.")]},
+    {"api": "gc_ScreenParties", "display": "Re-screen parties",
+     "description": "After a sanctions list changed: re-screens the parties whose KYB has started (up to screening.rescreen_max per run).",
+     "request": [],
+     "response": [("Result", 10, "JSON: parties screened, new matches.")]},
+    {"api": "gc_RegistryQuery", "display": "Registry lookup terms",
+     "description": "What the Party checks flow looks up for an account: name (search form), LEI, registration number, country, and whether Companies House applies.",
+     "request": [("AccountId", 12, "The account.", False)],
+     "response": [("Search", 10, "Name for full-text search."), ("Lei", 10, "LEI on file."), ("RegistrationNumber", 10, "Registration number on file."),
+                  ("Country", 10, "ISO 3166 alpha-2."), ("Uk", 0, "UK company and Companies House switched on.")]},
+    {"api": "gc_RegistryRecord", "display": "Record registry results",
+     "description": "GLEIF and Companies House responses → Company Registry KYB checks (Pass / Fail / Refer / Pending) with details; LEI and number filled in; directors and owners for screening.",
+     "request": [("AccountId", 12, "The account.", False), ("GleifLei", 10, "GLEIF lei-records/{lei} body.", True), ("GleifSearch", 10, "GLEIF search by registration number (body).", True),
+                 ("GleifNameSearch", 10, "GLEIF full-text name search (body).", True),
+                 ("ChProfile", 10, "Companies House company profile body.", True), ("ChOfficers", 10, "Companies House officers body.", True), ("ChPsc", 10, "Companies House PSC body.", True)],
+     "response": [("Names", 10, "JSON [{name, role, person}] to screen."), ("Summary", 10, "One line per register."), ("Result", 10, "JSON: checks and overall result.")]},
 ]
 
 
@@ -456,6 +484,33 @@ def ensure_settings():
         print(f"+ setting {key} = {value}")
 
 
+# The official sanctions lists the Sanctions lists flow downloads every day (free, public): source, name, list URL, alias URL (OFAC only)
+OFAC = "https://sanctionslistservice.ofac.treas.gov/api/PublicationPreview/exports/"
+SANCTION_LISTS = [
+    ("ofac_sdn", "OFAC SDN (US Treasury)", OFAC + "SDN.CSV", OFAC + "ALT.CSV"),
+    ("ofac_cons", "OFAC Consolidated non-SDN (US Treasury)", OFAC + "CONS_PRIM.CSV", OFAC + "CONS_ALT.CSV"),
+    ("un", "UN Security Council Consolidated List", "https://scsanctions.un.org/resources/xml/en/consolidated.xml", None),
+    ("uk", "UK Sanctions List (FCDO)", "https://sanctionslist.fcdo.gov.uk/docs/UK-Sanctions-List.xml", None),
+]
+
+
+def ensure_sanction_lists():
+    if dv.get("EntityDefinitions(LogicalName='gc_sanctionlist')?$select=LogicalName")[0] != 200:
+        print("! gc_sanctionlist missing: run tools/deploy_schema.py first")
+        return
+    for source, name, url, aliases in SANCTION_LISTS:
+        rows = ok(*dv.get(f"gc_sanctionlists?$select=gc_sanctionlistid,gc_url,gc_aliasurl&$filter=gc_source eq '{source}'"), "read list").get("value", [])
+        body = {"gc_name": name, "gc_source": source, "gc_url": url, "gc_aliasurl": aliases}
+        if not rows:
+            ok(*dv.post("gc_sanctionlists", body), "create list " + source)
+            print(f"+ sanctions list {source}")
+        elif rows[0].get("gc_url") != url or rows[0].get("gc_aliasurl") != aliases:
+            ok(*dv.patch(f"gc_sanctionlists({rows[0]['gc_sanctionlistid']})", body), "update list " + source)
+            print(f"= sanctions list {source} (URLs updated)")
+        else:
+            print(f"= sanctions list {source}")
+
+
 def main():
     if not os.path.exists(DLL):
         sys.exit("Build first: dotnet build -c Release src/DealOS.Agents")
@@ -480,6 +535,7 @@ def main():
     for op in MAIL_OPERATIONS:
         upsert_operation(op, types["DealOS.Agents.Mail.MailPlugin"])
     ensure_settings()
+    ensure_sanction_lists()
     print(f"Deployed {len(agents)} agents and {len(OPERATIONS)} operations.")
 
 

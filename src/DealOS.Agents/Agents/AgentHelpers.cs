@@ -75,11 +75,13 @@ namespace DealOS.Agents.Agents
 
         public static List<object> KycChecks(AgentContext ctx, Guid? accountId)
         {
-            return Rows(ctx, "gc_kyccheck", "gc_account", accountId, 25, "gc_checktype", "gc_result", "gc_provider", "gc_checkedon", "gc_reportdocument", "gc_name")
+            return Rows(ctx, "gc_kyccheck", "gc_account", accountId, 25, "gc_checktype", "gc_result", "gc_provider", "gc_checkedon", "gc_reportdocument", "gc_name", "gc_details")
                 .Select(e => (object)J.Obj("check_type", Dv.Label(e, "gc_checktype"), "result", Dv.Label(e, "gc_result"),
                                            "provider", e.GetAttributeValue<string>("gc_provider"), "checked_on", e.GetAttributeValue<DateTime?>("gc_checkedon"),
                                            "has_report", e.GetAttributeValue<EntityReference>("gc_reportdocument") != null,
-                                           "note", e.GetAttributeValue<string>("gc_name"))).ToList();
+                                           "note", e.GetAttributeValue<string>("gc_name"),
+                                           // what a public register (GLEIF, Companies House) returned
+                                           "details", GeminiClient.Truncate(e.GetAttributeValue<string>("gc_details") ?? "", 1500))).ToList();
         }
 
         public static List<object> Documents(AgentContext ctx, string lookup, Guid? id)

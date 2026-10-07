@@ -1,0 +1,100 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "DealOS GLEIF",
+    "description": "GLEIF LEI register (free, no key): company registry check for DealOS KYB.",
+    "version": "1.0"
+  },
+  "host": "api.gleif.org",
+  "basePath": "/api/v1",
+  "schemes": [
+    "https"
+  ],
+  "produces": [
+    "application/vnd.api+json",
+    "application/json"
+  ],
+  "paths": {
+    "/lei-records/{lei}": {
+      "get": {
+        "operationId": "GetLeiRecord",
+        "summary": "Get an LEI record",
+        "description": "One LEI record: legal name, registration number, address, entity and LEI status.",
+        "parameters": [
+          {
+            "name": "lei",
+            "in": "path",
+            "type": "string",
+            "required": true,
+            "x-ms-summary": "LEI",
+            "description": "20-character Legal Entity Identifier."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object"
+            }
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/lei-records": {
+      "get": {
+        "operationId": "SearchLeiRecords",
+        "summary": "Search LEI records",
+        "description": "LEI records by registration number, country or full-text name.",
+        "parameters": [
+          {
+            "name": "filter[entity.registeredAs]",
+            "in": "query",
+            "type": "string",
+            "required": false,
+            "x-ms-summary": "Registration number",
+            "description": "Company registration number as held by the business register."
+          },
+          {
+            "name": "filter[entity.legalAddress.country]",
+            "in": "query",
+            "type": "string",
+            "required": false,
+            "x-ms-summary": "Country",
+            "description": "ISO 3166 alpha-2 country of the legal address."
+          },
+          {
+            "name": "filter[fulltext]",
+            "in": "query",
+            "type": "string",
+            "required": false,
+            "x-ms-summary": "Name",
+            "description": "Full-text search on names."
+          },
+          {
+            "name": "page[size]",
+            "in": "query",
+            "type": "integer",
+            "required": false,
+            "x-ms-summary": "Page size",
+            "description": "Records to return.",
+            "default": 5
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object"
+            }
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    }
+  }
+}

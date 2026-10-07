@@ -41,6 +41,7 @@ def when(n, display, desc): return (n, "datetime", display, desc, None)
 def choice(n, display, desc, labels): return (n, "choice", display, desc, labels)
 def gchoice(n, display, desc, optionset): return (n, "globalchoice", display, desc, optionset)
 def lookup(n, display, desc, target): return (n, "lookup", display, desc, target)
+def file(n, display, desc, max_kb=131072): return (n, "file", display, desc, max_kb)
 
 
 # Email Desk choices; the order is the choice value (BASE + index) and must match MailCategories in the plug-in.
@@ -197,6 +198,18 @@ TABLES = [
         when("gc_RemindedOn", "Reminded on", "When buyers were reminded that offers close soon."),
         memo("gc_Outcome", "Outcome", "JSON: floor price and the ranking of bids at close."),
     ]),
+    ("gc_SanctionList", "Sanctions list", "Sanctions lists", "An official sanctions list (OFAC, UN, UK) downloaded daily by the Sanctions lists flow, with the name index used to screen parties.", [
+        text("gc_Source", "Source", "List code: ofac_sdn, ofac_cons, un, uk.", 40),
+        text("gc_Url", "List URL", "Where the flow downloads the list.", 400),
+        text("gc_AliasUrl", "Alias URL", "OFAC only: the alias (a.k.a.) file.", 400),
+        file("gc_Raw", "List file", "The list as downloaded."),
+        file("gc_RawAliases", "Alias file", "OFAC alias file as downloaded."),
+        file("gc_Index", "Name index", "One line per listed name: id, kind (E entity, I individual, V vessel, A aircraft), name, programme."),
+        integer("gc_Entries", "Names", "Listed names (including aliases) in the index."),
+        text("gc_Sha256", "Index hash", "SHA-256 of the index, to tell whether the list changed.", 64),
+        when("gc_FetchedOn", "Loaded on", "When the list was last downloaded and loaded."),
+        text("gc_ListDate", "List date", "Publication date of the list.", 40),
+    ]),
     ("gc_NotificationPreference", "Notification preference", "Notification preferences", "How and in which language a contact wants to be told about updates.", [
         lookup("gc_Contact", "Contact", "Person the preference belongs to.", "contact"),
         lookup("gc_Account", "Account", "Company of the contact.", "account"),
@@ -263,6 +276,8 @@ EXTRA_COLUMNS = [  # (table logical name, column spec)
                            ["Not Used", "Awaiting Approval", "Sending", "Sent", "Completed", "Declined", "Voided", "Failed", "Rejected"])),
     ("gc_contract", memo("gc_Envelopes", "E-signature envelopes", "JSON per side (buyer, seller): DocuSign envelope id, status, signed document.")),
     ("gc_shipment", memo("gc_DeskUpdates", "Desk updates sent", "JSON: status and side of each tracking update the desk drafted (each once).")),
+    # Sanctions screening and company registry (7 Oct 2026)
+    ("gc_kyccheck", memo("gc_Details", "Details", "What the register returned and why the check has this result.")),
     ("gc_inspection", memo("gc_DeskUpdates", "Desk updates sent", "JSON: status and side of each tracking update the desk drafted (each once).")),
 ]
 
@@ -310,6 +325,8 @@ def attribute_body(spec):
         return dict(common, **{"@odata.type": "Microsoft.Dynamics.CRM.PicklistAttributeMetadata",
                                "OptionSet": {"@odata.type": "Microsoft.Dynamics.CRM.OptionSetMetadata", "IsGlobal": False, "OptionSetType": "Picklist",
                                              "Options": [{"Value": BASE + i, "Label": label(l)} for i, l in enumerate(extra)]}})
+    if kind == "file":
+        return dict(common, **{"@odata.type": "Microsoft.Dynamics.CRM.FileAttributeMetadata", "MaxSizeInKB": extra})
     if kind == "globalchoice":
         s, b = dv.get(f"GlobalOptionSetDefinitions(Name='{extra}')?$select=MetadataId")
         ok(s, b, "read global choice " + extra)

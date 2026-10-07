@@ -196,6 +196,29 @@ namespace DealOS.Agents.Mail
         public static bool IsBriefingReply(Dv dv, Guid conversationId, string subject)
         {
             if (!Regex.IsMatch(subject ?? "", @"^\s*(re|aw|sv)\s*:", RegexOptions.IgnoreCase)) return false;
+            return IsBriefingThread(dv, conversationId);
+        }
+
+        /// <summary>
+        /// A reply ("Re: ... (ref CODE)") to a briefing that Gmail filed in another thread: Gmail caps a thread at 100 messages, so the
+        /// owner's reply to a recent briefing can start a new one. The reference code, not the Gmail thread, ties it to the briefing thread.
+        /// </summary>
+        public static Guid? BriefingThreadForReply(Dv dv, string subject)
+        {
+            if (!Regex.IsMatch(subject ?? "", @"^\s*(re|aw|sv)\s*:", RegexOptions.IgnoreCase)) return null;
+            var m = RefRx.Match(subject);
+            if (!m.Success) return null;
+            var conv = dv.Query("gc_conversation", new[] { "gc_conversationid" }, 1, "gc_name", ConditionOperator.Equal, BriefingThread).FirstOrDefault();
+            if (conv == null) return null;
+            var code = m.Groups[1].Value.ToUpperInvariant();
+            var brief = dv.Query("gc_message", new[] { "gc_messageid" }, 1, "gc_conversation", ConditionOperator.Equal, conv.Id,
+                                 "gc_subject", ConditionOperator.Like, "%(ref " + code + ")%").FirstOrDefault();
+            return brief == null ? (Guid?)null : conv.Id;
+        }
+
+        /// <summary>The desk's own briefing thread (briefings to the owner and the owner's commands).</summary>
+        public static bool IsBriefingThread(Dv dv, Guid conversationId)
+        {
             var conv = dv.Retrieve("gc_conversation", conversationId, "gc_name");
             return conv != null && conv.GetAttributeValue<string>("gc_name") == BriefingThread;
         }

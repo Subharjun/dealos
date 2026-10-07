@@ -1,0 +1,151 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "DealOS Companies House",
+    "description": "UK Companies House public data API (free API key): company profile, officers and persons with significant control for DealOS KYB.",
+    "version": "1.0"
+  },
+  "host": "api.company-information.service.gov.uk",
+  "basePath": "/",
+  "schemes": [
+    "https"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "securityDefinitions": {
+    "api_key": {
+      "type": "apiKey",
+      "in": "header",
+      "name": "Authorization"
+    }
+  },
+  "security": [
+    {
+      "api_key": []
+    }
+  ],
+  "paths": {
+    "/search/companies": {
+      "get": {
+        "operationId": "SearchCompanies",
+        "summary": "Search companies",
+        "description": "Companies by name or number.",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "type": "string",
+            "required": true,
+            "x-ms-summary": "Query",
+            "description": "Company name or number."
+          },
+          {
+            "name": "items_per_page",
+            "in": "query",
+            "type": "integer",
+            "required": false,
+            "x-ms-summary": "Results",
+            "description": "How many results.",
+            "default": 5
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object"
+            }
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/company/{company_number}": {
+      "get": {
+        "operationId": "GetCompany",
+        "summary": "Company profile",
+        "description": "Name, status, incorporation date, registered office.",
+        "parameters": [
+          {
+            "name": "company_number",
+            "in": "path",
+            "type": "string",
+            "required": true,
+            "x-ms-summary": "Company number",
+            "description": "8-character company number."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object"
+            }
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/company/{company_number}/officers": {
+      "get": {
+        "operationId": "ListOfficers",
+        "summary": "Officers",
+        "description": "Directors and secretaries, with resignation dates.",
+        "parameters": [
+          {
+            "name": "company_number",
+            "in": "path",
+            "type": "string",
+            "required": true,
+            "x-ms-summary": "Company number",
+            "description": "8-character company number."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object"
+            }
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/company/{company_number}/persons-with-significant-control": {
+      "get": {
+        "operationId": "ListPsc",
+        "summary": "Persons with significant control",
+        "description": "Owners and controllers.",
+        "parameters": [
+          {
+            "name": "company_number",
+            "in": "path",
+            "type": "string",
+            "required": true,
+            "x-ms-summary": "Company number",
+            "description": "8-character company number."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object"
+            }
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    }
+  }
+}
