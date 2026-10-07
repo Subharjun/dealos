@@ -7,7 +7,7 @@ The agents ([AGENTS.md](AGENTS.md)) do the reasoning. The **flows** listed here 
 
 All flows are generated from code ([tools/flows/definitions.py](../tools/flows/definitions.py)) and deployed with `python3 tools/deploy_flows.py`. Change the code and redeploy. If you edit a flow in the designer, the next deploy overwrites it.
 
-**Removed on 7 Oct 2026.** The website and marketplace flows were removed, so that only the email desk and the flows its deals go through remain: listing verification, matching, match notifications, website RFQ invites, escrow funding, milestones, releases, commission invoices, disputes, ratings, deal settled, daily deadlines, daily sweep and the Notify party child flow. Their definitions are in git history (commit `c55f3bb`). `deploy_flows.py` turns off and deletes any of them still in an environment (`definitions.RETIRED`).
+**Removed on 7 Oct 2026.** The website and marketplace flows were removed, so that only the email desk and the flows its deals go through remain: listing verification, matching, match notifications, website RFQ invites, escrow funding, milestones, releases, commission invoices, disputes, ratings, deal settled, daily deadlines, daily sweep and the Notify party child flow. Their definitions are in git history (commit `b879fec`). `deploy_flows.py` turns off and deletes any of them still in an environment (`definitions.RETIRED`).
 
 ---
 

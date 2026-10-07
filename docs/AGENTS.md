@@ -4,7 +4,7 @@
 **Environment:** Giga core's Environment (Dev), solution `DealOS`
 **AI provider:** OpenAI since 7 Oct 2026 (`gpt-5.4-mini` through the Responses API, fallback `gpt-4.1-mini`). Gemini is still supported: `python3 tools/deploy_agents.py --provider gemini|openai` switches.
 
-There are **8 agents**, each deployed as a Dataverse Custom API named `gc_Agent_<Name>`: the two email desk agents (**Mail Triage**, **Trade Desk**) and the six back-office agents a desk deal goes through (documents, KYB, compliance, contract, daily digest). A Power Automate flow (or any Web API client) calls an agent the same way it calls any other Dataverse action. The website's chat agents and the marketplace-only agents (listing verification, matching, pricing, negotiation, payment/escrow, logistics) were removed on 7 Oct 2026; their code is in git history (commit `c55f3bb`). Each agent:
+There are **8 agents**, each deployed as a Dataverse Custom API named `gc_Agent_<Name>`: the two email desk agents (**Mail Triage**, **Trade Desk**) and the six back-office agents a desk deal goes through (documents, KYB, compliance, contract, daily digest). A Power Automate flow (or any Web API client) calls an agent the same way it calls any other Dataverse action. The website's chat agents and the marketplace-only agents (listing verification, matching, pricing, negotiation, payment/escrow, logistics) were removed on 7 Oct 2026; their code is in git history (commit `b879fec`). Each agent:
 
 1. **Pre-loads its data with code:** email threads, documents, parties, deals and rules.
 2. **Asks the model to reason** within a strict instruction set and a limited tool set.
