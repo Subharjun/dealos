@@ -46,7 +46,7 @@ New team members: [docs/TEAM_SETUP.md](docs/TEAM_SETUP.md).
 - **Totals in Dev:**
   - **16 agents**, **39 product flows** plus 1 test-kit flow
   - operations APIs: `gc_AcceptOffer`, `gc_OpenEscrow`, `gc_ReleaseDeal`, `gc_InstructRelease`, `gc_RefreshCatalog`, `gc_IngestEmail`, `gc_AttachEmailFile`, `gc_BuildEmailRaw`, `gc_SourceRequirement`, `gc_DiscoverSellers`, `gc_DeskBrief`, `gc_DeskContract`
-- **Nothing from 6–7 Oct is committed to git yet** (front-door, portal and email desk work). Commit and push only when the user asks.
+- **All work is on GitHub** (`main`, commit `c55f3bb`, 7 Oct 2026). Commit and push only when the user asks.
 - Housekeeping waits until the build is finished (the user's decision): test data removal, paid Gemini key, key rotation.
 
 ---
@@ -283,7 +283,8 @@ python3 tools/export_solution.py                   # sync solutions/ with Dev
 - [ ] Small polish seen in the run: the buyer confirmation said "Dear Buyer" (use the contact's name); a closed-deal "not this time" note to other sellers.
 - [ ] **Gemini billing** (the user decides; it's needed now): web seller discovery and reliable throughput. Then rotate the key → `.env` → `deploy_agents.py`. Test discovery with a requirement (`gc_DiscoverSellers`, `Force` = true).
 - [ ] **Check that the Google app is "In production"**, or the Gmail connection breaks after 7 days.
-- [ ] **Commit and push** the 6–7 Oct work when the user asks. Then run `export_solution.py`; its export failed earlier on the connector, which has since been added to the solution.
+- [x] Pushed to GitHub (`c55f3bb`).
+- [ ] Run `export_solution.py` so `solutions/` matches Dev. Its export failed earlier on the connector, which has since been added to the solution.
 - [ ] **User decisions:**
   - `trade.margin_percent`
   - `email.signature` (whose name)
