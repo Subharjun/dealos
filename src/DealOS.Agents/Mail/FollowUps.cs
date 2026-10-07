@@ -100,7 +100,9 @@ namespace DealOS.Agents.Mail
             if (sellers + buyers + reminders + offers > 0)
                 Desk.Brief(w, "Follow-ups drafted", "Buyers moved to the next queued seller (previous deal off or seller silent after a reminder): " + offers + "\nChasers to sellers who have not answered our enquiry or our bids: " + sellers + "\nChasers to buyers who have not answered our offer: " + buyers +
                            "\nReminders to lot buyers before offers close: " + reminders + "\n\nThey are in Gmail > Drafts.");
-            return J.Obj("next_seller", offers, "seller_chasers", sellers, "buyer_chasers", buyers, "lot_reminders", reminders);
+            // Decisions still waiting for a person get one reminder briefing (desk.approval_remind_hours after the first).
+            var approvalReminders = Approvals.Remind(w, now);
+            return J.Obj("next_seller", offers, "seller_chasers", sellers, "buyer_chasers", buyers, "lot_reminders", reminders, "approval_reminders", approvalReminders.Count);
         }
 
         /// <summary>The thread's last email is ours, older than the cutoff, unanswered, no draft waiting and not chased yet.</summary>

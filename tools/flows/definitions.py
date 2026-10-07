@@ -8,7 +8,7 @@ import glob
 import json
 import os
 
-from .lib import (AUTH, B, CONTRACT, GMAIL, gmail, minutes_trigger, scope, DISPUTE, DV, EMPTY_GUID, FAILURE, INSPECTION, INSPECTION_RESULT, INVITE, INVOICE, INVOICE_KIND, KYB,
+from .lib import (AUTH, B, CONTRACT, DOCUSIGN, GMAIL, docusign, gmail, minutes_trigger, scope, DISPUTE, DV, EMPTY_GUID, FAILURE, INSPECTION, INSPECTION_RESULT, INVITE, INVOICE, INVOICE_KIND, KYB,
                   LISTING, MATCH, MESSAGE, MESSAGE_KIND, MILESTONE, MILESTONE_INSPECTION, MILESTONE_PENDING, MILESTONE_TYPE, NOTIFY_FLOW, OFFER,
                   OUTLOOK, OVERLAY, OVERLAY_DISPUTED, OVERLAY_ON_HOLD, PARSE, PARTY, PAYMENT, PURPOSE, RELEASE, REQUIREMENT, REQUIREMENT_EXPIRED,
                   RESOLUTION, REVIEW_STATUS, ROOT, SCOPE, SHIPMENT, STAGE, TIER, TIER_TRADE_VERIFIED, VERIFICATION_CONFIRMED,
@@ -19,6 +19,7 @@ from .lib import (AUTH, B, CONTRACT, GMAIL, gmail, minutes_trigger, scope, DISPU
 DESK_SOURCE_EMAIL = B + 1  # gc_buyerrequirement.gc_source = Email
 DESK_STAGE = dict(Qualifying=B, Sourcing=B + 1, Quoted=B + 2, Negotiating=B + 3, Agreed=B + 4, ContractSent=B + 5, Signed=B + 6, Closed=B + 7)
 DRAFT = dict(Pending=B, Sent=B + 1, Discarded=B + 2)
+ESIGN = dict(NotUsed=B, AwaitingApproval=B + 1, Sending=B + 2, Sent=B + 3, Completed=B + 4, Declined=B + 5, Voided=B + 6, Failed=B + 7, Rejected=B + 8)
 DIRECTION = dict(Inbound=B, Outbound=B + 1, Draft=B + 2)
 TRIAGE = dict(Genuine=B, Review=B + 1, Ignored=B + 2)
 
@@ -277,12 +278,15 @@ def review_decisions():
         ("Screening_clearance", PURPOSE["ScreeningClearance"], [
             ("Deal_or_party", condition(f"@not(empty({deal}))", [
                 ("Clearance_decision", condition("@" + approved, [
-                    ("Screened_deal", get_row("gc_deals", S(deal), select="gc_name,gc_statusoverlay")),
+                    ("Screened_deal", get_row("gc_deals", S(deal), select="gc_name,gc_statusoverlay,gc_stage")),
                     ("Lift_compliance_hold", condition(f"@equals(body('Screened_deal')?['gc_statusoverlay'], {OVERLAY['ComplianceHold']})",
                                                        [("Clear_overlay", update("gc_deals", S(deal), gc_statusoverlay=OVERLAY["None_"]))])),
-                    ("To_contracting", transition(S(deal), STAGE["Contracting"], "Compliance cleared by officer")),
-                    ("Contracting_refused", condition(allowed("To_contracting"), [
-                        ("Cleared_stuck_task", stuck_task("concat('Cleared but contracting refused: ', coalesce(body('Screened_deal')?['gc_name'], ''))", deal, "To_contracting"))])),
+                    # Only a deal still waiting at Compliance Check moves on (a re-check may have cleared it already)
+                    ("Still_at_compliance", condition(f"@equals(body('Screened_deal')?['gc_stage'], {STAGE['ComplianceCheck']})", [
+                        ("To_contracting", transition(S(deal), STAGE["Contracting"], "Compliance cleared by officer")),
+                        ("Contracting_refused", condition(allowed("To_contracting"), [
+                            ("Cleared_stuck_task", stuck_task("concat('Cleared but contracting refused: ', coalesce(body('Screened_deal')?['gc_name'], ''))", deal, "To_contracting"))])),
+                    ])),
                 ], [("Cancel_deal", transition(S(deal), STAGE["Cancelled"], "Compliance not cleared"))])),
             ], [
                 ("Party_hold", condition(f"@not(empty({account}))", [("Set_compliance_hold", update("accounts", S(account), gc_compliancehold=f"@not({approved})"))])),
@@ -298,6 +302,17 @@ def review_decisions():
             ])),
             ("Desk_contract_signed", condition(f"@and({approved}, equals({pl('action')}, 'desk.contract_signed'))", [
                 ("Mark_contract_signed", update("gc_contracts", S(pl("contractId")), gc_status=CONTRACT["Signed"], gc_signedon="@utcNow()")),
+            ])),
+            # Send for e-signature: approved → the Desk e-signature flow sends both envelopes; rejected → nothing goes out
+            ("Desk_esign_send", condition(f"@equals({pl('action')}, 'desk.esign_send')", [
+                ("Esign_decision", condition("@" + approved, [
+                    ("Esign_sending", update("gc_contracts", S(pl("contractId")), gc_esignstatus=ESIGN["Sending"])),
+                ], [
+                    ("Esign_rejected", update("gc_contracts", S(pl("contractId")), gc_esignstatus=ESIGN["Rejected"])),
+                    ("Esign_rejected_brief", unbound("gc_DeskBrief", retry_none=True, Subject=S(f"concat('Not sent for e-signature: ', coalesce({T('gc_name')}, ''))"),
+                                                     Text=S(f"concat('Nothing was sent to the parties. ', coalesce({T('gc_decisionreason')}, ''), "
+                                                            "decodeUriComponent('%0A%0A'), 'To correct the terms: set the contract to Void, fix the deal and approve a new contract.')"))),
+                ])),
             ])),
         ]),
         ("Shipment_booking", PURPOSE["ShipmentBooking"], [
@@ -335,11 +350,17 @@ def approvals():
     trig["subscriptionRequest/filterexpression"] = "(gc_kind eq 303300000 or gc_kind eq 303300001) and gc_status eq 303300000"
     tried = defn["actions"]["Try"]["actions"]
     tried.pop("Apply_decision", None)
-    tried["Audit"]["runAfter"] = {"Link_decider": ["Succeeded"]}
+    # The owner may have answered the briefing by email first (approve by reply): a Teams/Outlook answer only counts while the task is still open.
+    decided = {k: tried.pop(k) for k in ("Responder", "Record_decision", "Link_decider")}
+    decided["Responder"]["runAfter"] = {}
+    tried["Task_now"] = dict(get_row("gc_reviewtasks", "@{triggerOutputs()?['body/gc_reviewtaskid']}", select="gc_status"), runAfter={"Ask_staff": ["Succeeded"]})
+    tried["Still_open"] = dict(condition(f"@equals(body('Task_now')?['gc_status'], {REVIEW_STATUS['Open']})", []), runAfter={"Task_now": ["Succeeded"]})
+    tried["Still_open"]["actions"] = decided
+    tried["Audit"]["runAfter"] = {"Still_open": ["Succeeded"]}
     tried["Audit"]["inputs"]["parameters"]["item/gc_hash"] = "set-by-invariants-plugin"
     return {"name": name, "id": EXISTING[name], "connections": (DV, "shared_approvals"), "definition": defn,
-            "description": "Review task opened (Approval or Review) → Teams/Outlook approval to the role's assignee → decision recorded on the task. "
-                           "The Review decisions flow applies it."}
+            "description": "Review task opened (Approval or Review) → Teams/Outlook approval to the role's assignee → decision recorded on the task, "
+                           "unless the owner already decided it by replying to the briefing. The Review decisions flow applies it."}
 
 
 # ---------------------------------------------------------------- operations
@@ -352,15 +373,17 @@ def daily_digest():
     actions = agent_result("AdminSupervisor", "actions")
     nl = "decodeUriComponent('%0A')"
     steps = [
-        *run_agent("AdminSupervisor", None, "daily-digest", name),
+        ("Pipeline", unbound("gc_DeskPipeline", retry_none=True)),
+        *run_agent("AdminSupervisor", None, "daily-digest", name, on_fail="record"),
         ("Section_lines", {"type": "Select", "inputs": {"from": f"@coalesce({sections}, json('[]'))",
                                                         "select": f"@concat(item()?['title'], ':', {nl}, '- ', join(coalesce(item()?['items'], json('[]')), concat({nl}, '- ')))"}}),
         ("Action_lines", {"type": "Select", "inputs": {"from": f"@coalesce({actions}, json('[]'))",
                                                        "select": "@concat('- [', item()?['priority'], '] ', item()?['action'], ' (', item()?['owner_role'], ')')"}}),
         ("Send_digest", unbound("gc_DeskBrief", retry_none=True,
                                 Subject=S(f"concat('Daily digest: ', coalesce({agent_result('AdminSupervisor', 'headline')}, 'operations'))"),
-                                Text=S(f"concat(coalesce(outputs('Run_AdminSupervisor')?['body/Summary'], ''), {nl}, {nl}, 'Actions:', {nl}, join(body('Action_lines'), {nl}), "
-                                       f"{nl}, {nl}, join(body('Section_lines'), concat({nl}, {nl})))"))),
+                                Text=S(f"concat(coalesce(outputs('Run_AdminSupervisor')?['body/Summary'], 'The AI summary is not available today; the pipeline is below.'), {nl}, {nl}, "
+                                       f"'PIPELINE', {nl}, coalesce(outputs('Pipeline')?['body/Text'], ''), {nl}, {nl}, 'Actions:', {nl}, join(body('Action_lines'), {nl}), "
+                                       f"{nl}, {nl}, join(body('Section_lines'), concat({nl}, {nl})), {nl}, {nl}, 'Reply PIPELINE to any briefing for the latest view.')"))),
     ]
     return flow(name, "Every day 03:00 UTC → AdminSupervisor digest (approvals waiting, stuck deals, failures, AI spend) → briefing email to the desk owner "
                       "(gc_DeskBrief, desk.owner_email).", daily_trigger("Every_day_0300_UTC", 3), steps)
@@ -547,9 +570,30 @@ def mailbox_sync():
         ("Label_pairs", {"type": "Select", "inputs": {"from": "@body('DealOS_labels')",
                                                       "select": "@concat('\"', item()?['name'], '\":\"', item()?['id'], '\"')"}}),
         ("Label_map", compose("@json(concat('{', join(body('Label_pairs'), ','), '}'))")),
+        # The owner's corrections: emails moved to another DealOS label in Gmail since the last run (Gmail history, labelAdded)
+        ("History_setting", list_rows("gc_platformsettings", filter="gc_key eq 'email.gmail.history_id'", select="gc_platformsettingid,gc_value", top=1)),
+        ("Label_corrections", scope([
+            ("Has_history_id", condition(f"@not(empty({first_value('History_setting', 'gc_value')}))", [
+                ("Label_history", gmail("ListHistory", startHistoryId=S(first_value("History_setting", "gc_value")), historyTypes="labelAdded", maxResults=500)),
+                ("History_ok", condition("@equals(outputs('Label_history')?['statusCode'], 200)", [
+                    ("Apply_corrections", unbound("gc_TriageCorrections", retry_none=True, HistoryJson="@{string(body('Label_history'))}", LabelMap="@{string(outputs('Label_map'))}")),
+                    ("Next_history_id", update("gc_platformsettings", S(first_value("History_setting", "gc_platformsettingid")),
+                                               gc_value=S("coalesce(body('Label_history')?['historyId'], body('Profile')?['historyId'])"))),
+                ], [
+                    # History id too old (Gmail keeps about a week): start again from now
+                    ("Restart_history_id", update("gc_platformsettings", S(first_value("History_setting", "gc_platformsettingid")), gc_value=S("body('Profile')?['historyId']"))),
+                ]), {"Label_history": ["Succeeded", "Failed"]}),
+            ], [
+                ("Start_history_id", update("gc_platformsettings", S(first_value("History_setting", "gc_platformsettingid")), gc_value=S("body('Profile')?['historyId']"))),
+            ])),
+        ])),
+        ("On_corrections_failure", scope([
+            ("Record_corrections_failure", flow_failure(name, "Label_corrections", "@{take(string(result('Label_corrections')), 3000)}")),
+        ]), {"Label_corrections": ["Failed", "TimedOut"]}),
         # New mail: the configured search, minus what is already handled
         ("New_email", gmail("ListMessages", q="@{outputs('Search')}",
-                            maxResults=f"@int(coalesce({first_value('Max_setting', 'gc_value')}, '5'))")),
+                            maxResults=f"@int(coalesce({first_value('Max_setting', 'gc_value')}, '5'))"),
+         {"On_corrections_failure": ["Succeeded", "Skipped"]}),
         ("Each_email", foreach("@coalesce(body('New_email')?['messages'], json('[]'))", [
             ("Handle_email", scope(handle)),
             ("On_email_failure", scope([
@@ -580,6 +624,7 @@ def mailbox_sync():
     return flow(name, "Every 3 minutes (when email.enabled = true): Gmail messages matching email.sync.query that are not yet labelled → gc_IngestEmail "
                       "(+ attachments, Quarantined) → Mail Triage agent → labels DealOS/Buyer, Seller, Genuine, Review or Ignored plus DealOS/Processed. "
                       "Then sent mail: replies sent from desk threads are recorded (their drafts close); other sent mail gets the hidden label DealOS/Seen. "
+                      "Before new mail, the owner's label corrections (Gmail history since email.gmail.history_id) are applied. Replies to briefings are commands (approve by reply). "
                       "Failures are recorded and labelled DealOS/Error (remove the label to retry).",
                 minutes_trigger("Every_3_minutes", 3), steps, connections=(DV, GMAIL))
 
@@ -605,7 +650,8 @@ def trade_desk():
                                        "coalesce(outputs('Run_TradeDesk')?['body/Summary'], 'The desk could not handle this email; a task is open.'), "
                                        "decodeUriComponent('%0A%0ANext: '), coalesce(json(coalesce(outputs('Run_TradeDesk')?['body/Result'], '{}'))?['result']?['next_step'], '-'), "
                                        "decodeUriComponent('%0A%0A'), if(equals(json(coalesce(outputs('Run_TradeDesk')?['body/Result'], '{}'))?['result']?['drafted'], true), "
-                                       "'Drafts are waiting in Gmail > Drafts (unless auto-send sent them).', 'No email was drafted.'))")),
+                                       "'Drafts are waiting in Gmail > Drafts (unless auto-send sent them).', 'No email was drafted.'))"),
+                                Drafts=S("string(coalesce(json(coalesce(outputs('Run_TradeDesk')?['body/Result'], '{}'))?['result']?['draft_ids'], json('[]')))")),
          {"Desk_failed": ["Succeeded", "Skipped"]}),
         ("Audit", audit("flow:trade-desk", "email.worked", "gc_message", S(mid), props(summary="outputs('Run_TradeDesk')?['body/Summary']"))),
     ]
@@ -627,7 +673,7 @@ def desk_drafts():
     mid, conv = T("gc_messageid"), T("_gc_conversation_value")
     build = lambda col: f"outputs('Build')?['body/{col}']"
     created = lambda path: f"coalesce(body('Draft_in_thread')?{path}, body('Draft_new_thread')?{path})"
-    pending = [
+    create = [
         ("Profile", gmail("GetProfile")),
         ("Build", unbound("gc_BuildEmailRaw", retry_none=True, MessageId=S(mid), MailboxAddress="@{body('Profile')?['emailAddress']}")),
         ("Has_thread", condition(f"@not(empty({build('ThreadId')}))",
@@ -639,6 +685,12 @@ def desk_drafts():
         ("Auto_send", condition(f"@equals({T('gc_autosend')}, true)", [("Send_now", gmail("SendDraft", body__id=S(created("['id']"))))])),
         ("Audit_draft", audit("flow:desk-drafts", "email.drafted", "gc_message", S(mid), props(to=build("To"), draft=created("['id']"), auto_send=T("gc_autosend")))),
     ]
+    release = [
+        # The owner replied SEND to a briefing: the Gmail draft goes out as it stands (with any edits made in Gmail)
+        ("Send_released", gmail("SendDraft", body__id=S(T("gc_gmaildraftid")))),
+        ("Audit_released", audit("flow:desk-drafts", "email.sent_on_owner_reply", "gc_message", S(mid), props(draft=T("gc_gmaildraftid")))),
+    ]
+    pending = [("New_or_released", condition(f"@empty({T('gc_gmaildraftid')})", create, release))]
     discarded = [
         ("Delete_gmail_draft", gmail("DeleteDraft", id=S(T("gc_gmaildraftid")))),
         ("Draft_gone", compose("deleted or already sent"), {"Delete_gmail_draft": ["Succeeded", "Failed"]}),
@@ -647,10 +699,11 @@ def desk_drafts():
         ("Pending_or_discarded", condition(f"@equals({T('gc_draftstatus')}, {DRAFT['Pending']})", pending, discarded)),
     ]
     return flow(name, "A desk draft (gc_message, Draft, Pending) → gc_BuildEmailRaw → Gmail draft in the thread (new thread for a first enquiry; the "
-                      "thread id is saved). A draft replaced by a newer one (Discarded) is deleted from Gmail.",
-                row_trigger("When_a_desk_draft_changes", "gc_message", 4, attributes="gc_draftstatus", concurrency=1, conditions=[
+                      "thread id is saved). A draft replaced by a newer one (Discarded) is deleted from Gmail. A draft the owner released by replying SEND is sent.",
+                row_trigger("When_a_desk_draft_changes", "gc_message", 4, attributes="gc_draftstatus,gc_autosend", concurrency=1, conditions=[
                     f"@or(and(equals({T('gc_draftstatus')}, {DRAFT['Pending']}), empty({T('gc_gmaildraftid')})), "
-                    f"and(equals({T('gc_draftstatus')}, {DRAFT['Discarded']}), not(empty({T('gc_gmaildraftid')}))))"]),
+                    f"and(equals({T('gc_draftstatus')}, {DRAFT['Discarded']}), not(empty({T('gc_gmaildraftid')}))), "
+                    f"and(equals({T('gc_draftstatus')}, {DRAFT['Pending']}), not(empty({T('gc_gmaildraftid')})), equals({T('gc_autosend')}, true)))"]),
                 steps, connections=(DV, GMAIL))
 
 
@@ -661,13 +714,11 @@ def desk_contract():
         ("Deal", get_row("gc_deals", S(T("_gc_deal_value")), select="gc_emaildesk,gc_name")),
         ("Desk_only", condition("@not(equals(body('Deal')?['gc_emaildesk'], true))", [("Marketplace_contract", terminate("Succeeded"))])),
         ("Contract_out", unbound("gc_DeskContract", retry_none=True, ContractId=S(cid))),
-        ("Brief_owner", unbound("gc_DeskBrief", retry_none=True, Subject=S(f"concat('Contracts ready to send: ', coalesce(body('Deal')?['gc_name'], ''))"),
-                                Text="Both contracts are generated (sales contract to the buyer at our price, purchase contract from the seller at their price) and "
-                                     "attached to drafts in each thread. Check them in Gmail > Drafts and send. When a signed copy comes back, the desk opens a task to confirm it.")),
         ("Audit", audit("flow:desk-contract", "contract.sent_by_email", "gc_contract", S(cid), props(result="outputs('Contract_out')?['body/Result']"))),
     ]
-    return flow(name, "Contract approved (Sent For Signature) on an email desk deal → gc_DeskContract: back-to-back contract PDFs, each attached to a draft "
-                      "in its thread (buyer: sales contract at our price; seller: purchase contract at their price).",
+    return flow(name, "Contract approved (Sent For Signature) on an email desk deal → gc_DeskContract: back-to-back contract PDFs. Scan and return: each attached "
+                      "to a draft in its thread and briefed with the PDFs (reply SEND). contract.esign = docusign: nothing is sent; a 'Send for e-signature' "
+                      "approval with both PDFs is opened instead.",
                 row_trigger("When_a_contract_is_issued", "gc_contract", 3, filter=f"gc_status eq {CONTRACT['SentForSignature']}", attributes="gc_status", concurrency=1),
                 steps)
 
@@ -738,6 +789,150 @@ def desk_timers():
                 minutes_trigger("Every_15_minutes", 15), steps)
 
 
+def approval_briefing():
+    """Every decision a person must take is briefed by email with a reply code, so the owner can answer APPROVE / REJECT."""
+    name = "DealOS | Approval briefing"
+    tid = T("gc_reviewtaskid")
+    steps = [
+        ("Brief_task", unbound("gc_DeskBriefTask", retry_none=True, TaskId=S(tid))),
+    ]
+    return flow(name, "A review task is opened (Confirm deal, contract terms, e-signature, KYB tier, compliance, signed copy, ...) → gc_DeskBriefTask: a briefing "
+                      "to the desk owner with the details, any documents and a reply code. Replying APPROVE / REJECT applies the decision (Review decisions); "
+                      "Desk timers send one reminder after desk.approval_remind_hours.",
+                row_trigger("When_a_decision_is_needed", "gc_reviewtask", 1, concurrency=1,
+                            conditions=[f"@equals({T('gc_status')}, {REVIEW_STATUS['Open']})"]),
+                steps)
+
+
+def desk_tracking(kind):
+    """Inspection or shipment status of an Email Desk deal changed → masked updates drafted to the buyer and the seller."""
+    table, statuses = ("gc_inspection", [INSPECTION["Booked"], INSPECTION["Passed"], INSPECTION["Failed"]]) if kind == "inspection" \
+        else ("gc_shipment", [B + 2, B + 3, B + 4, B + 6])  # Loading, In Transit, Arrived, Delivered
+    name = f"DealOS | Desk tracking: {kind}"
+    rid = T(f"{table}id")
+    steps = [
+        ("Track", unbound("gc_DeskTrack", retry_none=True, Kind=kind, RecordId=S(rid))),
+        ("Audit", audit(f"flow:desk-tracking", f"{kind}.tracked", table, S(rid), props(result="outputs('Track')?['body/Result']"))),
+    ]
+    status_ok = "or(" + ", ".join(f"equals({T('gc_status')}, {v})" for v in statuses) + ")"
+    return flow(name, f"A {kind} of a deal changes status → gc_DeskTrack: short masked updates drafted to the buyer and the seller in their threads "
+                      "(each status once per side) and a briefing (reply SEND to send them). Other deals are skipped.",
+                row_trigger(f"When_a_{kind}_status_changes", table, 4, attributes="gc_status", concurrency=1, conditions=[f"@{status_ok}"]),
+                steps)
+
+
+def desk_tracking_inspection():
+    return desk_tracking("inspection")
+
+
+def desk_tracking_shipment():
+    return desk_tracking("shipment")
+
+
+def kyb_recheck():
+    """A party's KYB is approved (Passed) → its email desk deals waiting at Compliance Check are checked again at once."""
+    name = "DealOS | KYB passed: compliance re-check"
+    acc = T("accountid")
+    each = "items('Each_waiting_deal')"
+    decision = "json(coalesce(outputs('Run_Compliance')?['body/Result'], '{}'))?['result']?['decision']"
+    steps = [
+        ("Waiting_deals", list_rows("gc_deals", select="gc_dealid,gc_name", top=20,
+                                    filter=f"gc_emaildesk eq true and gc_stage eq {STAGE['ComplianceCheck']} and (_gc_buyer_value eq {S(acc)} or _gc_seller_value eq {S(acc)})")),
+        ("Each_waiting_deal", foreach("@outputs('Waiting_deals')?['body/value']", [
+            ("Run_Compliance", unbound("gc_Agent_Compliance", retry_none=True, SubjectId=S(f"{each}?['gc_dealid']"),
+                                       Input=json.dumps({"trigger": "flow:kyb-recheck"}))),
+            ("Clear_now", condition(f"@and(equals(outputs('Run_Compliance')?['body/Status'], 'Succeeded'), equals({decision}, 'Clear'))", [
+                ("To_contracting", transition(S(f"{each}?['gc_dealid']"), STAGE["Contracting"], "Compliance clear after KYB passed")),
+                ("Brief_clear", unbound("gc_DeskBrief", retry_none=True, Subject=S(f"concat('Compliance clear: ', {each}?['gc_name'])"),
+                                        Text="KYB is approved and the compliance re-check is Clear, so the deal moved to Contracting. The contract terms come to you for approval next. "
+                                             "Any older compliance task for this deal can be closed; approving it changes nothing.")),
+            ], [
+                ("Brief_not_clear", unbound("gc_DeskBrief", retry_none=True, Subject=S(f"concat('Compliance still open: ', {each}?['gc_name'])"),
+                                            Text=S("concat('KYB is approved but the compliance re-check says ', coalesce(" + decision + ", 'it could not run'), ': ', "
+                                                   "coalesce(outputs('Run_Compliance')?['body/Summary'], ''), decodeUriComponent('%0A%0A'), "
+                                                   "'Answer the compliance task (screening, permits) when ready.')"))),
+            ]), {"Run_Compliance": ["Succeeded", "Failed", "TimedOut"]}),
+        ])),
+    ]
+    return flow(name, "A party's KYB status becomes Passed (a person approved the tier) → its email desk deals at Compliance Check run the Compliance agent again; "
+                      "Clear → Contracting; otherwise the owner is briefed with what is still missing.",
+                row_trigger("When_KYB_passes", "account", 3, attributes="gc_kybstatus", concurrency=1, conditions=[f"@equals({T('gc_kybstatus')}, {KYB['Passed']})"]),
+                steps)
+
+
+# ---------------------------------------------------------------- e-signature (DocuSign; deployed with --esign once the connection exists)
+
+ESIGN_RECIPIENT_TYPE = "signers"   # DocuSign recipient type for a signer
+ESIGN_TAB_TYPE = "signHereTabs"     # signature tab, placed with an anchor string
+ESIGN_COMBINED = "combined"         # all documents of the envelope as one signed PDF
+
+
+def desk_esign_send():
+    """The owner approved 'Send for e-signature' → one DocuSign envelope per side: contract PDF, party signs first, our signatory countersigns."""
+    name = "DealOS | Desk e-signature send"
+    cid = T("gc_contractid")
+    env = "items('Each_envelope')"
+    signer = "items('Each_signer')"
+    account = S("first(outputs('Account_setting')?['body/value'])?['gc_value']")
+    created = "body('Create_envelope')?['envelopeId']"
+    steps = [
+        ("Account_setting", list_rows("gc_platformsettings", filter="gc_key eq 'esign.docusign.account_id'", select="gc_value", top=1)),
+        ("Envelopes", unbound("gc_EsignEnvelopes", retry_none=True, ContractId=S(cid))),
+        ("Each_envelope", foreach("@json(outputs('Envelopes')?['body/Result'])", [
+            ("Create_envelope", docusign("CreateBlankEnvelopeV2", accountId=account, emailSubject=S(f"{env}?['subject']"), body__emailBlurb=S(f"{env}?['blurb']"))),
+            ("Add_contract", docusign("AddDocumentsToEnvelope", accountId=account, envelopeId=S(created),
+                                      body__documents=f"@createArray(json(concat('{{\"documentBase64\":\"', {env}?['document_base64'], '\",\"fileExtension\":\"pdf\",\"name\":\"', {env}?['document_name'], '\",\"documentId\":\"1\"}}')))")),
+            ("Each_signer", foreach(f"@{env}?['signers']", [
+                ("Add_signer", docusign("AddRecipientToEnvelopeV2", accountId=account, envelopeId=S(created), recipientType=ESIGN_RECIPIENT_TYPE,
+                                        recipientId=S(f"{signer}?['recipient_id']"), routingOrder=S(f"{signer}?['routing_order']"),
+                                        additionalRecipientParams__name=S(f"{signer}?['name']"), additionalRecipientParams__email=S(f"{signer}?['email']"))),
+                ("Add_signature_tab", docusign("AddRecipientTabs", accountId=account, envelopeId=S(created), recipientId=S(f"{signer}?['recipient_id']"),
+                                               tabType=ESIGN_TAB_TYPE, tabDetails__anchorString=S(f"{signer}?['anchor']"), tabDetails__anchorXOffset="110",
+                                               tabDetails__anchorYOffset="-4", tabDetails__anchorUnits="pixels", tabDetails__anchorIgnoreIfNotPresent="false")),
+            ])),
+            ("Send_envelope", docusign("SendDraftEnvelope", accountId=account, envelopeId=S(created))),
+            ("Record_envelope", unbound("gc_EsignRecord", retry_none=True, ContractId=S(cid), Side=S(f"{env}?['side']"), EnvelopeId=S(created))),
+        ])),
+    ]
+    catch = [
+        ("Mark_failed", update("gc_contracts", S(cid), gc_esignstatus=ESIGN["Failed"])),
+        ("Brief_failed", unbound("gc_DeskBrief", Subject=S(f"concat('E-signature not sent: ', coalesce({T('gc_name')}, ''))"),
+                                 Text=S("concat('DocuSign could not send the contracts: ', take(string(result('Try')), 1500), decodeUriComponent('%0A%0A'), "
+                                        "'Check the DocuSign connection and esign.docusign.account_id / contract.signatory, then set the contract e-signature status to Sending again.')"))),
+    ]
+    return flow(name, "Contract e-signature status → Sending (the owner approved 'Send for e-signature') → gc_EsignEnvelopes → per side a DocuSign envelope: the contract PDF, "
+                      "the party signs first, our signatory (contract.signatory) countersigns → sent → gc_EsignRecord. Any failure: status Failed and a briefing.",
+                row_trigger("When_esign_is_approved", "gc_contract", 3, attributes="gc_esignstatus", concurrency=1, conditions=[f"@equals({T('gc_esignstatus')}, {ESIGN['Sending']})"]),
+                steps, connections=(DV, DOCUSIGN), catch_extra=catch)
+
+
+def desk_esign_status():
+    """Every 15 minutes: envelopes out for signature → their signers' status; completed → signed PDF stored, both → contract Signed."""
+    name = "DealOS | Desk e-signature status"
+    item_ = "items('Each_envelope')"
+    account = S("first(outputs('Account_setting')?['body/value'])?['gc_value']")
+    signers = "coalesce(body('Signers')?['signers'], json('[]'))"
+    steps = [
+        ("Account_setting", list_rows("gc_platformsettings", filter="gc_key eq 'esign.docusign.account_id'", select="gc_value", top=1)),
+        ("Out_for_signature", unbound("gc_EsignPending", retry_none=True)),
+        ("Each_envelope", foreach("@json(coalesce(outputs('Out_for_signature')?['body/Result'], '[]'))", [
+            ("Signers", docusign("GetRecipientStatus", accountId=account, envelopeId=S(f"{item_}?['envelope']"))),
+            ("Signed_signers", {"type": "Query", "inputs": {"from": "@" + signers, "where": "@equals(toLower(coalesce(item()?['status'], '')), 'completed')"}}),
+            ("All_signed", condition(f"@and(greater(length({signers}), 0), equals(length({signers}), length(body('Signed_signers'))))", [
+                ("Signed_pdf", docusign("GetDocumentsV2", accountId=account, envelopeId=S(f"{item_}?['envelope']"), documentId=ESIGN_COMBINED)),
+                ("Store_signed", unbound("gc_EsignUpdate", retry_none=True, ContractId=S(f"{item_}?['contract']"), Side=S(f"{item_}?['side']"),
+                                         RecipientsJson="@{string(body('Signers'))}", SignedPdf="@{base64(body('Signed_pdf'))}")),
+            ], [
+                ("Update_status", unbound("gc_EsignUpdate", retry_none=True, ContractId=S(f"{item_}?['contract']"), Side=S(f"{item_}?['side']"),
+                                          RecipientsJson="@{string(body('Signers'))}")),
+            ])),
+        ])),
+    ]
+    return flow(name, "Every 15 minutes: DocuSign envelopes still out (gc_EsignPending) → List recipients → all signed: the signed PDF (combined) is stored and, when both "
+                      "sides are done, the contract becomes Signed (Contract signed → inspection); declined → task and briefing (gc_EsignUpdate).",
+                minutes_trigger("Every_15_minutes", 15), steps, connections=(DV, DOCUSIGN))
+
+
 def email_test_kit():
     """Test only (not in ALL; deployed with --tests and switched on only while tools/mail_test.py runs):
     HTTP-triggered access to the DealOS Gmail connector, so tests can put mail into the inbox and send drafts."""
@@ -771,7 +966,11 @@ def email_test_kit():
 
 TESTS = [email_test_kit]
 
-ALL = [document_intake, party_onboarding, offer_pricing, offer_accepted, terms_agreed, compliance_check, contracting, contract_signed, deal_cancelled, review_decisions, approvals, daily_digest, inspection_booking, inspection_result, flow_failure_triage, mailbox_sync, trade_desk, desk_drafts, desk_contract, seller_discovery, buyer_discovery, desk_timers]
+# E-signature flows need the DocuSign connection (gc_docusign): python3 tools/deploy_flows.py --esign once it is bound.
+ESIGN_FLOWS = [desk_esign_send, desk_esign_status]
+
+ALL = [document_intake, party_onboarding, offer_pricing, offer_accepted, terms_agreed, compliance_check, contracting, contract_signed, deal_cancelled, review_decisions, approvals, daily_digest, inspection_booking, inspection_result, flow_failure_triage, mailbox_sync, trade_desk, desk_drafts, desk_contract, seller_discovery, buyer_discovery, desk_timers,
+       approval_briefing, desk_tracking_inspection, desk_tracking_shipment, kyb_recheck]
 
 # Flows removed with the website and marketplace (7 Oct 2026); deploy_flows.py turns them off and deletes them in Dev.
 RETIRED = ['DealOS | Commission invoice', 'DealOS | Daily deadlines', 'DealOS | Daily sweep', 'DealOS | Deal settled', 'DealOS | Dispute closed', 'DealOS | Dispute opened', 'DealOS | Escrow funded', 'DealOS | Listing verification', 'DealOS | Match accepted', 'DealOS | Match notifications', 'DealOS | Milestone progress', 'DealOS | New listing matching', 'DealOS | Notify party', 'DealOS | RFQ invite answered', 'DealOS | RFQ invite sent', 'DealOS | RFQ matching', 'DealOS | Rating received', 'DealOS | Release settled']

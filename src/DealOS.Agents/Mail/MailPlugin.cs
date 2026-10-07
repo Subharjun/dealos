@@ -64,7 +64,36 @@ namespace DealOS.Agents.Mail
                     context.OutputParameters["Result"] = Json.Serialize(J.Obj("offered", marketed));
                     break;
                 case "gc_DeskBrief":
-                    context.OutputParameters["MessageId"] = Desk.Brief(new DeskWriter(dv), Get<string>(context, "Subject") ?? "Update", Get<string>(context, "Text") ?? "").ToString();
+                    context.OutputParameters["MessageId"] = Desk.BriefWithDrafts(new DeskWriter(dv), Get<string>(context, "Subject") ?? "Update", Get<string>(context, "Text") ?? "",
+                                                                                Ids(Get<string>(context, "Drafts"))).ToString();
+                    break;
+                case "gc_DeskBriefTask":
+                    var briefed = Approvals.BriefTask(new DeskWriter(dv), Get<Guid>(context, "TaskId"));
+                    context.OutputParameters["MessageId"] = briefed == null ? "" : briefed.Value.ToString();
+                    break;
+                case "gc_DeskPipeline":
+                    context.OutputParameters["Text"] = Approvals.Pipeline(dv);
+                    break;
+                case "gc_TriageCorrections":
+                    var corrected = Corrections.FromHistory(new DeskWriter(dv), Get<string>(context, "HistoryJson"), Get<string>(context, "LabelMap"));
+                    context.OutputParameters["Corrected"] = Convert.ToInt32(J.Get(corrected, "corrected") ?? 0);
+                    context.OutputParameters["Result"] = Json.Serialize(corrected);
+                    break;
+                case "gc_DeskTrack":
+                    context.OutputParameters["Result"] = Json.Serialize(Tracking.Run(new DeskWriter(dv), (Get<string>(context, "Kind") ?? "").Trim().ToLowerInvariant(), Get<Guid>(context, "RecordId")));
+                    break;
+                case "gc_EsignEnvelopes":
+                    context.OutputParameters["Result"] = Json.Serialize(Esign.Envelopes(dv, Get<Guid>(context, "ContractId")));
+                    break;
+                case "gc_EsignRecord":
+                    context.OutputParameters["Result"] = Json.Serialize(Esign.Record(new DeskWriter(dv), Get<Guid>(context, "ContractId"), Get<string>(context, "Side"), Get<string>(context, "EnvelopeId")));
+                    break;
+                case "gc_EsignPending":
+                    context.OutputParameters["Result"] = Json.Serialize(Esign.Pending(dv));
+                    break;
+                case "gc_EsignUpdate":
+                    context.OutputParameters["Result"] = Json.Serialize(Esign.Update(new DeskWriter(dv), Get<Guid>(context, "ContractId"), Get<string>(context, "Side"),
+                                                                                     Get<string>(context, "RecipientsJson"), Get<string>(context, "SignedPdf")));
                     break;
                 case "gc_DeskContract":
                     context.OutputParameters["Result"] = Json.Serialize(Desk.ContractOut(new DeskWriter(dv), Get<Guid>(context, "ContractId")));
@@ -110,7 +139,9 @@ namespace DealOS.Agents.Mail
                 o["MessageId"] = existing.Id.ToString();
                 o["ConversationId"] = existing.GetAttributeValue<EntityReference>("gc_conversation").Id.ToString();
                 o["Direction"] = isOut ? "Outbound" : "Inbound";
-                o["NeedsTriage"] = !isOut && existing.GetAttributeValue<OptionSetValue>("gc_triage") == null;
+                // A reply to a desk briefing is a command, never trade mail.
+                o["NeedsTriage"] = !isOut && existing.GetAttributeValue<OptionSetValue>("gc_triage") == null &&
+                                   !Approvals.IsBriefingReply(dv, existing.GetAttributeValue<EntityReference>("gc_conversation").Id, m.Subject);
                 o["Attachments"] = Json.Serialize(Pending(dv, existing.Id, m, maxBytes));
                 o["Summary"] = "Already stored.";
                 return;
@@ -194,7 +225,8 @@ namespace DealOS.Agents.Mail
             // A person sent the desk's reply from Gmail: the pending draft of this thread is done.
             // Only drafts that existed when this mail was sent: a newer draft in the same thread is still waiting.
             var sentAt = m.InternalDate ?? m.Date ?? DateTime.UtcNow;
-            if (outbound)
+            var briefingReply = Approvals.IsBriefingReply(dv, convId, m.Subject);
+            if (outbound && !briefingReply)
                 foreach (var d in dv.Query("gc_message", new[] { "gc_messageid", "createdon" }, 10, "gc_conversation", Microsoft.Xrm.Sdk.Query.ConditionOperator.Equal, convId,
                                            "gc_draftstatus", Microsoft.Xrm.Sdk.Query.ConditionOperator.Equal, DeskChoice.DraftStatus.Pending)
                                      .Where(x => x.GetAttributeValue<DateTime>("createdon") <= sentAt.AddSeconds(5)))
@@ -203,6 +235,23 @@ namespace DealOS.Agents.Mail
                     sent["gc_draftstatus"] = new OptionSetValue(DeskChoice.DraftStatus.Sent);
                     dv.Svc.Update(sent);
                 }
+
+            // The owner answering a briefing (APPROVE / REJECT / SEND / PIPELINE): a command, not trade mail; never triaged.
+            if (briefingReply)
+            {
+                var command = Approvals.FromReply(new DeskWriter(dv), m.From == null ? null : m.From.Address, m.IsSent, signals.Authenticated, mailbox, m.Subject, m.BodyText);
+                var mark = new Entity("gc_message", msgId);
+                mark["gc_emailmeta"] = Cut(Json.Serialize(J.Obj("gmail_id", m.Id, "thread_id", m.ThreadId, "headers", headers, "command", command)), 100000);
+                dv.Svc.Update(mark);
+                o["Status"] = "Command";
+                o["MessageId"] = msgId.ToString();
+                o["ConversationId"] = convId.ToString();
+                o["Direction"] = outbound ? "Outbound" : "Inbound";
+                o["NeedsTriage"] = false;
+                o["Attachments"] = "[]";
+                o["Summary"] = "Reply to a desk briefing: " + J.Str(command, "status") + ".";
+                return;
+            }
 
             // Small attachments arrive inline; store them now so the flow only fetches the large ones.
             var stored = 0;
@@ -263,8 +312,10 @@ namespace DealOS.Agents.Mail
             string inReplyTo = null, references = null;
             if (!string.IsNullOrEmpty(threadId))
             {
+                // Headers of the last stored email (drafts and briefings keep other JSON in gc_emailmeta).
                 var last = dv.Query("gc_message", new[] { "gc_emailmeta", "gc_direction" }, 20, "gc_conversation", Microsoft.Xrm.Sdk.Query.ConditionOperator.Equal, convId)
-                             .FirstOrDefault(x => !string.IsNullOrEmpty(x.GetAttributeValue<string>("gc_emailmeta")));
+                             .FirstOrDefault(x => !string.IsNullOrEmpty(x.GetAttributeValue<string>("gc_emailmeta")) &&
+                                                  (x.GetAttributeValue<OptionSetValue>("gc_direction") ?? new OptionSetValue(0)).Value != MailChoice.Direction.Draft);
                 if (last != null)
                 {
                     try
@@ -363,6 +414,23 @@ namespace DealOS.Agents.Mail
         {
             object v;
             return context.InputParameters.TryGetValue(name, out v) && v is T ? (T)v : default(T);
+        }
+
+        /// <summary>A JSON array of ids (as the flows pass them) → the ids; anything else → none.</summary>
+        private static List<Guid> Ids(string json)
+        {
+            var ids = new List<Guid>();
+            if (string.IsNullOrWhiteSpace(json)) return ids;
+            try
+            {
+                foreach (var x in (Json.Parse(json) as List<object>) ?? new List<object>())
+                {
+                    Guid g;
+                    if (x is string && Guid.TryParse((string)x, out g)) ids.Add(g);
+                }
+            }
+            catch (FormatException) { }
+            return ids;
         }
 
         private static string Cut(string s, int max) { return s == null ? null : s.Length <= max ? s : s.Substring(0, max); }

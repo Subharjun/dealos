@@ -1,6 +1,6 @@
 # HANDOFF: resume here
 
-**Last updated:** 7 October 2026, about 15:45 IST (email desk only; OpenAI **out of credits**, E2E run stopped; sellers take turns; seller-first lots; house style)
+**Last updated:** 7 October 2026, about 16:45 IST (email desk only; OpenAI **out of credits**, E2E run stopped; owner in control by email: approve by reply, label corrections, tracking updates, KYB from email, company profile, DocuSign e-signature (off), pipeline view)
 **Read first in any new chat:**
 1. this file
 2. [docs/EMAIL_DESK.md](docs/EMAIL_DESK.md), the current front door
@@ -23,11 +23,12 @@ An **email trade desk in Gmail** for minerals and metals. The bot is the trader 
    - **Buyer first:** requirement → enquiries to seller leads (trade-data imports + **AI web search across Google, IndiaMART, Globalwitz/Volza/TradeIndia pages**). **Sellers take turns:** the first seller to quote is negotiated with the buyer; later quotes queue in reply order; non-responders stay open; "not interested" is left alone. If the deal breaks (seller withdraws or goes silent after a reminder, buyer turns the offer down) and the buyer still wants it, the next queued seller comes up.
    - **Seller first:** a seller's stock with price and quantity → **seller lot** → offered (masked, + margin) to known buyers and buyers found by web search. **Window per lot** from the seller's email (24 h, 48 h, ...) or the default; **open-ended** ("until sold") lets the seller decide: every bid goes to them at once. Timed lots: highest price wins at the deadline; if no bid reaches the seller's price, the best bid goes to the seller and the lot goes open-ended.
 3. **Negotiation:** seller price + margin to the buyer; buyer price − margin to the seller; counters both ways. Acceptance → **Confirm deal** task (a person approves).
-4. **Contract:** KYB + screening → Compliance agent → Contract agent → Contract Issue approval → two PDF contracts (sales to the buyer, purchase from the seller) drafted to each thread → signed copy → task → deal **Signed** (no escrow) → **inspection** requested.
-5. **Briefings:** a `[DealOS] ...` email to the owner after each step; Desk timers every 15 min (lot closing, seller queue, chasers, reminders).
+4. **Contract:** KYB (documents from the email attachments, `save_kyb_documents`) + screening → Compliance agent → Contract agent → Contract Issue approval → two PDF contracts (sales to the buyer, purchase from the seller) drafted to each thread → signed copy → task → deal **Signed** (no escrow) → **inspection** requested. With `contract.esign` = docusign: a **Send for e-signature** approval instead, then one DocuSign envelope per side (off in Dev; setup in [docs/EMAIL_DESK.md](docs/EMAIL_DESK.md) "E-signature setup").
+5. **Tracking:** inspection booked / passed / failed and loading / sailing / arrival / delivery are drafted to each side, masked, each status once.
+6. **Briefings and approve by reply:** a `[DealOS] ...` email to the owner after each step. Every decision is briefed with a reply code; the owner replies `APPROVE`, `REJECT <reason>`, `SEND` (sends the drafts the briefing lists) or `PIPELINE`. Only the owner's replies count (the mailbox itself, or `desk.owner_email` passing DMARC). Moving an email to another `DealOS/...` label in Gmail corrects its triage. Desk timers every 15 min (lot closing, seller queue, chasers, reminders, approval reminders).
 
 ### House style (7 Oct, from the owner's real coal chat)
-Short and plain like a trader: bulleted indicative specs with "~", one clear ask, "Let me confirm and revert". `draft_email` refuses template/AI phrases ("I hope this email finds you well", "We are pleased to", "do not hesitate"...), em dashes, exclamation marks and markdown; all code-written emails were rewritten the same way. Buyers' requests for **company profile / quality report** and **prices for another port** become a task for a person (no invented prices, seller documents masked first).
+Short and plain like a trader: bulleted indicative specs with "~", one clear ask, "Let me confirm and revert". `draft_email` refuses template/AI phrases ("I hope this email finds you well", "We are pleased to", "do not hesitate"...), em dashes, exclamation marks and markdown; all code-written emails were rewritten the same way. A request for our **company profile** gets the stored PDF attached (`tools/company_profile.py set <pdf>`; none on file → a task). Requests for a **quality report** and **prices for another port** become a task for a person (no invented prices, seller documents masked first).
 
 ### BLOCKER (7 Oct 15:41): the OpenAI account has no credits
 Every model call fails with `429 insufficient_quota / credit_balance_exhausted`, so triage and the Trade Desk stop. The full E2E run was stopped after triage passed. **Add credits at platform.openai.com → Billing**, then `python3 tools/e2e_all.py`. Or switch back to Gemini meanwhile: `python3 tools/deploy_agents.py --provider gemini` (free tier: slow, no web search).
@@ -39,8 +40,8 @@ Every model call fails with `429 insufficient_quota / credit_balance_exhausted`,
 
 ### Totals in Dev
 - **8 agents:** Mail Triage, Trade Desk, Document Intelligence, Onboarding KYB, Buyer Verification, Compliance, Contract, Admin Supervisor
-- **22 product flows** + 1 test-kit flow (list in [docs/WORKFLOWS.md](docs/WORKFLOWS.md))
-- operations: `gc_AcceptOffer`, `gc_ReleaseDeal`, `gc_IngestEmail`, `gc_AttachEmailFile`, `gc_BuildEmailRaw`, `gc_SourceRequirement`, `gc_DiscoverSellers`, `gc_DiscoverBuyers`, `gc_MarketLot`, `gc_DeskBrief`, `gc_DeskContract`, `gc_CloseLots`, `gc_DeskFollowUps`
+- **26 product flows** + 1 test-kit flow, plus 2 e-signature flows saved off until DocuSign is connected (list in [docs/WORKFLOWS.md](docs/WORKFLOWS.md))
+- operations: `gc_AcceptOffer`, `gc_ReleaseDeal`, `gc_IngestEmail`, `gc_AttachEmailFile`, `gc_BuildEmailRaw`, `gc_SourceRequirement`, `gc_DiscoverSellers`, `gc_DiscoverBuyers`, `gc_MarketLot`, `gc_DeskBrief`, `gc_DeskContract`, `gc_CloseLots`, `gc_DeskFollowUps`, `gc_DeskBriefTask`, `gc_DeskPipeline`, `gc_TriageCorrections`, `gc_DeskTrack`, `gc_EsignEnvelopes`, `gc_EsignRecord`, `gc_EsignPending`, `gc_EsignUpdate`
 
 ### Testing
 - **All scenarios in one command:** `python3 tools/e2e_all.py` (about 1.5 to 2 h; logs in `build/e2e/`, summary in `build/e2e/summary.json`). It switches web discovery off while the scenarios run (`email.discovery.enabled` = false, so real companies never get test drafts), then checks discovery on its own (leads only, no drafts).
@@ -55,12 +56,17 @@ Every model call fails with `429 insufficient_quota / credit_balance_exhausted`,
   | timed lot, best bid below price | `desk_lot_e2e.py below` | pending |
   | coal: other port, profile, report | `desk_lot_e2e.py coal` | pending |
   | web discovery (sellers + buyers) | `e2e_all.py discovery` | pending |
-- Offline: `dotnet run --project tests/DealOS.Agents.Harness -- build/agents` (all checks pass).
+  | tracking updates (no AI calls) | `tracking_e2e.py` | **PASS** 7 Oct 16:14 |
+  | label corrections from Gmail | `corrections_e2e.py` | **PASS** 7 Oct 16:37 |
+  | approve by reply (no AI calls) | `approval_e2e.py` | steps 1 to 3 passed 16:24–16:25 (APPROVE, REJECT with reason, a reply from someone else ignored); **step 4 failed**: after `SEND` the probe draft was never sent from Gmail (timed out at 16:35). Look at the **Desk drafts** flow runs (the release-by-SEND branch). |
+  | e-signature, company profile, pipeline app | — | not run live (e-signature needs a DocuSign sandbox connection first) |
+- Offline: `dotnet run --project tests/DealOS.Agents.Harness -- build/agents` (all checks pass, 7 Oct 16:41, including `approvals:`, `corrections:`, `esign:`, `tracking:`).
 
 ### GitHub
-`main` is at `41855d2`. **Everything from 7 Oct is uncommitted** (lots, follow-ups, seller first, windows, OpenAI, seller queue, removal of site and marketplace, house style, tests). Commit and push only when the user asks.
+`main` on https://github.com/Subharjun/dealos holds all the 7 Oct work (pushed 7 Oct about 16:45). Commit and push only when the user asks.
 
 ### History (most recent first)
+- **7 Oct late afternoon:** the owner in control by email: approve by reply (`Mail/Approvals.cs`, flow **Approval briefing**, reply codes, one reminder), SEND releases drafts, label corrections from Gmail (`Mail/Corrections.cs`), KYB documents filed from email (`save_kyb_documents`, flow **KYB passed: compliance re-check**), tracking updates (`Mail/Tracking.cs`, two **Desk tracking** flows), company profile PDF (`tools/company_profile.py`), DocuSign e-signature (`Mail/Esign.cs`, off by default), pipeline (`PIPELINE` reply, daily digest, admin app area **Email desk** from `tools/deploy_app.py`). Tracking and corrections passed live; approve by reply passed except SEND.
 - **7 Oct afternoon:** OpenAI replaces Gemini; sellers take turns; website and marketplace removed (repo and Dev); house style; discovery across Google / IndiaMART / Globalwitz; `e2e_all.py`. Found by the tests and fixed: a seller's own wording (with their price) copied into an offer to the buyer (`Desk.SafeTerms`); the agent overwriting a draft the desk had just written (draft lock per run); OpenAI filling empty optional output (`S.Prune`).
 - **7 Oct midday:** seller first (buyer web search, offers, counters both ways) and per-lot windows; open-ended live test passed (deal at seller USD 31,500 / buyer USD 32,445).
 - **7 Oct morning:** competing-buyer and single-buyer lot tests passed; chasers; duplicate COA fix; lot spec masking.
@@ -109,6 +115,9 @@ The problem it solves: mineral trade runs on WhatsApp and email chains, with for
 | 7 Oct 2026 | Seller and buyer discovery: **AI web search** across Google, IndiaMART listings, Globalwitz / Volza / TradeIndia trade-data pages and company sites (public business contacts only); **no logins, no scraping, no LinkedIn** | OpenAI `web_search`; the user asked for Globalwitz, IndiaMART and Google |
 | 7 Oct 2026 | **House style for every email:** short and plain like a trader on WhatsApp/email (bulleted indicative specs with "~", one clear ask); `draft_email` refuses template/AI phrases, em dashes, exclamation marks and markdown | From the user's real coal chat (Tanzanian coal, FOB Mtwara / CIF Ennore) |
 | 7 Oct 2026 | The bot briefs the owner by email after each step; optional auto-send of routine mail (`email.autosend`) | Default off |
+| 7 Oct 2026 | **The owner decides by replying to briefings** (APPROVE / REJECT / SEND / PIPELINE); only the owner's authenticated replies count; the admin app and Teams approvals still work, first answer counts | Built the same day |
+| 7 Oct 2026 | **E-signature through DocuSign, optional** (`contract.esign` = off / docusign); scan and return stays the default; nothing goes out before a person approves | Sandbox first; production needs a paid plan |
+| 7 Oct 2026 | **No IndiaMART scraping** (against its terms); only the paid Lead Manager API, later | IndiaMART pages still come in through web search |
 | 6 Oct 2026 | Leads: trade-data exports (`import_leads.py`), warehouses, email offers, web search; IndiaMART only via its official API (later) | No scraping |
 
 ---
@@ -128,6 +137,7 @@ The problem it solves: mineral trade runs on WhatsApp and email chains, with for
 | Gmail | Mailbox `desk@gmail.com`. Google Cloud project **"My First Project"**: Gmail API on, OAuth consent screen "DealOS Email Desk" (External), scope `gmail.modify`. OAuth client "DealOS Power Automate", **Client ID** `set-the-google-client-id` (also in `.env` `GMAIL_CLIENT_ID`). The secret is only in the connector's Security tab. Redirect URI `https://global.consent.azure-apim.net/redirect/gc-5fdealos-20gmail-5fc12c8485be9726a2`. |
 | Google app status | **Check whether it was published** ("In production"). If it's still in Testing with the user as test user, the Gmail connection **expires every 7 days**. Fix: Google Auth Platform → Audience → Publish app. |
 | Power Automate | Custom connector **DealOS Gmail** (`shared_gc-5fdealos-20gmail-5fc12c8485be9726a2`, in the solution), connection reference `gc_gmail` → connection `fcbe6c4cbf774649b49bfe659161b8a8` (Connected) |
+| DocuSign | Connection reference `gc_docusign` on **Docusign Demo** exists in Dev; **no connection yet** (needs a DocuSign developer account). Steps: [docs/EMAIL_DESK.md](docs/EMAIL_DESK.md) "E-signature setup". |
 | Old site (removed from the build) | https://dealos-gigacore.powerappsportals.com still exists in Dev, parked, until its trial ends (about 4 Jan 2027). Delete it in the Power Pages admin centre whenever convenient. |
 | Dev settings changed | plug-in trace log = All (set back to Exception before go-live) |
 | Team | Krishna Shukla (`krishna38@…`) is in the tenant but not yet in the Dev environment |
@@ -141,7 +151,7 @@ The problem it solves: mineral trade runs on WhatsApp and email chains, with for
 | `docs/EMAIL_DESK.md` | **The email desk**: design, mailbox setup, triage, Trade Desk, leads, contract, data model, build status, **section 12 = what a person does** |
 | `docs/AGENTS.md`, `docs/WORKFLOWS.md` | Agent and flow catalogues, including the email desk agents and flows |
 | `docs/ARCHITECTURE_AND_BUILD_PLAN.md`, `docs/TEAM_SETUP.md` | Original plan (background), team setup |
-| `src/DealOS.Agents/` | Plug-in assembly (net462, signed). Model providers: `Infrastructure/ModelClient.cs` (OpenAI Responses API + provider switch), `Infrastructure/GeminiClient.cs`. Email desk code:<br>• `Mail/GmailMessage.cs` (parser)<br>• `Mail/MailSignals.cs` (hard signals, verdict)<br>• `Mail/MailPlugin.cs` (email operations)<br>• `Mail/Desk.cs` (margin maths, drafts, sourcing, contracts, briefings, auto-send)<br>• `Mail/Discovery.cs` (web search for sellers and buyers)<br>• `Mail/Lots.cs` (seller lots: windows, bids, seller decisions, close)<br>• `Mail/FollowUps.cs` (chasers, reminders)<br>• `Mail/Mime.cs` (RFC 2822 builder, PDF writer)<br>• `Agents/MailAgents.cs` (Mail Triage, Trade Desk)<br>• `Tools/DeskTools.cs` (Trade Desk tools and draft masking checks) |
+| `src/DealOS.Agents/` | Plug-in assembly (net462, signed). Model providers: `Infrastructure/ModelClient.cs` (OpenAI Responses API + provider switch), `Infrastructure/GeminiClient.cs`. Email desk code:<br>• `Mail/GmailMessage.cs` (parser)<br>• `Mail/MailSignals.cs` (hard signals, verdict)<br>• `Mail/MailPlugin.cs` (email operations)<br>• `Mail/Desk.cs` (margin maths, drafts, sourcing, contracts, briefings, auto-send)<br>• `Mail/Discovery.cs` (web search for sellers and buyers)<br>• `Mail/Lots.cs` (seller lots: windows, bids, seller decisions, close)<br>• `Mail/FollowUps.cs` (chasers, reminders)<br>• `Mail/Approvals.cs` (approve by reply, SEND, PIPELINE)<br>• `Mail/Corrections.cs` (triage corrections from Gmail labels)<br>• `Mail/Tracking.cs` (inspection and shipment updates to the parties)<br>• `Mail/Esign.cs` (DocuSign envelopes and status)<br>• `Mail/Mime.cs` (RFC 2822 builder, PDF writer)<br>• `Agents/MailAgents.cs` (Mail Triage, Trade Desk)<br>• `Tools/DeskTools.cs` (Trade Desk tools and draft masking checks) |
 | `tests/DealOS.Agents.Harness/` | Offline checks (all pass; email desk ones are named `gmail:`, `signals:`, `triage:`, `desk:`) |
 | `tools/flows/definitions.py` | All flows as code. Email desk:<br>• `mailbox_sync`, `trade_desk`, `desk_drafts`, `desk_contract`, `seller_discovery`<br>• `email_test_kit` (in `TESTS`) |
 | `tools/connectors/gmail.swagger.json`, `tools/deploy_connector.py` | The DealOS Gmail connector. `deploy_connector.py` creates or updates it, adds it to the solution and binds the connection. |
@@ -152,6 +162,10 @@ The problem it solves: mineral trade runs on WhatsApp and email chains, with for
 | `tools/desk_lot_e2e.py` | Seller-lot tests on the real mailbox: `run` (two buyers compete), `single`, `open` (seller first, open-ended), `below` (timed, best bid to the seller) |
 | `tools/e2e_all.py` | **Every scenario in one run** (triage, buyer first, seller queue, lots, open-ended, below, coal, web discovery); discovery off during the run; logs in `build/e2e/` |
 | `tools/desk_queue_e2e.py` | Buyer first, sellers take turns: `run` (first quote active, later one queued, decline ignored, buyer rejects → next seller, accept) |
+| `tools/approval_e2e.py`, `tools/corrections_e2e.py`, `tools/tracking_e2e.py` | Live tests of approve by reply, label corrections and tracking updates (approval and tracking make no AI calls) |
+| `tools/company_profile.py` | `set <pdf>`: stores our company profile PDF (`desk.company_profile`) for the desk to attach |
+| `tools/deploy_app.py` | The admin app area **Email desk** (pipeline views and chart), idempotent |
+| `tools/deploy_connector.py docusign` / `docusign-bind`, `tools/deploy_flows.py --esign` | DocuSign connection reference and the two e-signature flows |
 | `tools/deploy_schema.py`, `deploy_agents.py`, `deploy_flows.py` (`--tests` for the kit), `run_agent.py`, `watch.py`, `seed_test_data.py`, `export_solution.py` | Deploy and run tools |
 | `solutions/DealOS/` | Unpacked solution, exported from Dev on 7 Oct 2026 |
 
@@ -170,6 +184,7 @@ The problem it solves: mineral trade runs on WhatsApp and email chains, with for
 - `gc_offer.gc_terms`
 - **new table `gc_lead`**
 - `gc_agent` options Mail Triage (14), Trade Desk (15)
+- 7 Oct late: `gc_reviewtask`: `gc_replycode`, `gc_briefedon`, `gc_remindedon`; `gc_message`: `gc_triagecorrection`, `gc_correctedon`; `gc_contract`: `gc_esignstatus`, `gc_envelopes`; `gc_shipment` / `gc_inspection`: `gc_deskupdates`
 
 **Agents:**
 - `gc_Agent_MailTriage`: category + score. The verdict is decided in code from the hard signals: DMARC/SPF, dangerous attachments, link shorteners, Reply-To redirect, known sender, our own thread, injection.
@@ -195,7 +210,13 @@ The problem it solves: mineral trade runs on WhatsApp and email chains, with for
 | **Desk contract** | contract Sent For Signature on a desk deal | PDFs and drafts → briefing |
 | **Seller discovery** | requirement desk stage → Sourcing | web search → new enquiries → briefing |
 | **Buyer discovery** | a seller lot is created | web search → lot offered to new buyers → briefing |
-| **Desk timers** | every 15 minutes | close timed lots, seller queue, chasers, reminders |
+| **Desk timers** | every 15 minutes | close timed lots, seller queue, chasers, reminders, approval reminders |
+| **Approval briefing** | a review task is opened | the decision briefed to the owner with a reply code (APPROVE / REJECT by reply) |
+| **Desk tracking: inspection** / **shipment** | inspection or shipment status changes | masked updates drafted to both sides → briefing (SEND) |
+| **KYB passed: compliance re-check** | an account's KYB → Passed | Compliance again for its deals waiting at Compliance Check |
+| **Desk e-signature send** / **status** | saved off; `deploy_flows.py --esign` once DocuSign is connected | envelopes out; poll every 15 min; both signed → contract Signed |
+
+Mailbox sync also reads Gmail's label history first (owner corrections) and treats a reply to a briefing as a command, never triaging it.
 
 **The deal path flows (kept from the original build, desk-only since 7 Oct):** Document intake, Party onboarding, Offer pricing, Offer accepted, Terms agreed, Compliance check, Contracting, Contract signed (→ Signed, no escrow), Inspection booking (on Signed), Inspection result, Deal cancelled, Approvals, Review decisions (`desk.accept_offer`, `desk.contract_signed`), Daily digest, Flow failure triage. Full list: [docs/WORKFLOWS.md](docs/WORKFLOWS.md).
 
@@ -210,6 +231,9 @@ The problem it solves: mineral trade runs on WhatsApp and email chains, with for
 - `trade.company_name`, `trade.governing_law`
 - `email.triage.proceed` = 65 / `email.triage.ignore` = 30
 - `email.attachments.max_mb` = 10
+- `desk.approval_remind_hours` = 12, `desk.company_profile` (empty until `company_profile.py set`), `desk.tracking.enabled` = true
+- `contract.esign` = off, `contract.signatory`, `esign.docusign.account_id` (both empty)
+- `email.gmail.history_id` (kept by Mailbox sync)
 
 ### Earlier work (5–6 Oct 2026)
 
@@ -293,7 +317,8 @@ $D build -c Release src/DealOS.Agents && $D run --project tests/DealOS.Agents.Ha
 python3 tools/deploy_schema.py                     # tables / columns / options (only what is missing)
 python3 tools/deploy_agents.py                     # plug-in, agents, operations, settings (idempotent)
 python3 tools/deploy_flows.py --only "Trade desk"  # one flow (all without --only also deletes retired flows); --tests for the test kit
-python3 tools/deploy_connector.py [status|bind]    # Gmail connector / connection
+python3 tools/deploy_connector.py [status|bind]    # Gmail connector / connection (docusign / docusign-bind for e-signature)
+python3 tools/approval_e2e.py                      # approve by reply on the real mailbox (no AI calls)
 python3 tools/import_leads.py <file.csv> --source "<provider>"   # trade-data leads
 python3 tools/run_agent.py TradeDesk <conversation-guid> --dry --input '{"message_id":"<gc_message guid>"}'
 python3 tools/export_solution.py                   # sync solutions/ with Dev
@@ -305,18 +330,21 @@ python3 tools/export_solution.py                   # sync solutions/ with Dev
 
 ### Next
 - [ ] **OpenAI credits** (blocker, section 0), then **run the full E2E** (`python3 tools/e2e_all.py`); fix whatever fails and rerun that scenario (`e2e_all.py <name>`).
+- [ ] **Fix approve by reply step 4 (SEND)**: the owner's `SEND` did not send the listed draft from Gmail (`approval_e2e.py` timed out 16:35). Check the Desk drafts flow's release branch, then rerun `python3 tools/approval_e2e.py` (no AI calls, so it runs without OpenAI credits).
+- [ ] **Try the rest live:** `company_profile.py set <pdf>` with a real profile, `deploy_app.py` (Email desk area in the admin app), and DocuSign in the sandbox (EMAIL_DESK.md "E-signature setup": developer account, connection, `docusign-bind`, `deploy_flows.py --esign`, settings, one test deal).
 - [ ] Optional resilience: fall back from OpenAI to Gemini automatically when OpenAI says `insufficient_quota`, so the desk keeps working when credits run out.
 - [ ] **Re-export the solution** (`python3 tools/export_solution.py`) after the run: `solutions/` still contains the removed site plug-ins, marketplace flows and agents until it is exported again.
-- [ ] **Commit and push** the 7 Oct work when the user asks.
+- [x] **Commit and push** the 7 Oct work (pushed 7 Oct about 16:45).
 - [ ] **Rotate the OpenAI key** (pasted in chat): new key → `.env` `OPENAI_API_KEY` → `python3 tools/deploy_agents.py`.
 - [ ] **Check that the Google app is "In production"**, or the Gmail connection breaks after 7 days.
-- [ ] **Company profile PDF**: buyers ask for it early (as in the coal chat). Today the desk opens a task; storing a profile document the desk can attach would remove that manual step.
+- [x] **Company profile PDF**: `tools/company_profile.py set <pdf>`; the desk attaches it when asked (none on file → a task). No real profile stored yet.
 - [x] E2E proof (7 Oct 00:40 and 09:21, Gemini); polish ("Dear <name>", "not this time" notes); OpenAI replaces Gemini billing (7 Oct).
 - [ ] **User decisions:**
   - `trade.margin_percent`
   - `email.signature` (whose name): for the human tone a person's name reads better than "Trade Desk" (the coal chat is signed by the owner)
   - `email.autosend`: off / routine / all. The user's last message ("myself = bot/AI automation") suggests they may want more automation; ask before switching.
   - contract template: governing law with counsel
+  - `contract.esign`: stay with scan and return, or DocuSign (paid plan for production); and `contract.signatory` (who signs for us)
 - [ ] **Go live on the real inbox:** `email.sync.query` = `in:inbox newer_than:7d` and `email.reply_to` = empty (OpenAI has the throughput now; decide when).
 
 ### Many buyers and sellers over days (7 Oct 2026; the user's decisions: highest buyer price wins, bids close at a deadline per lot)
@@ -341,14 +369,14 @@ python3 tools/export_solution.py                   # sync solutions/ with Dev
 - [ ] Live test `desk_lot_e2e.py below` (48 h window from the email; best bid below the price → to the seller): in the 7 Oct afternoon run.
 
 ### Email desk: still to build
-- [ ] Approve by reply: the owner answers a briefing ("CONFIRM", "SEND") instead of using the admin app.
-- [ ] Label corrections from Gmail feed triage (EMAIL_DESK.md 4.4).
-- [ ] KYB documents read from email attachments (today a person sets KYB and screening).
+- [x] Approve by reply: the owner answers a briefing (`APPROVE` / `REJECT <reason>` / `SEND` / `PIPELINE`) instead of using the admin app (7 Oct; SEND still to fix, see Next).
+- [x] Label corrections from Gmail feed triage (EMAIL_DESK.md 4.4; live test passed 7 Oct 16:37).
+- [x] KYB documents filed from email attachments (`save_kyb_documents` → Document Intelligence → KYB agents → tier upgrade approval; a person still records the sanctions screening).
 - [x] A polite "not this time" draft to sellers whose deal was closed (7 Oct).
-- [ ] Tracking updates (inspection booked, shipped, delivered) drafted to the parties.
-- [ ] IndiaMART Lead Manager API (paid seller account): IndiaMART pages already come in through the web search; the API would bring in the enquiries IndiaMART sends us.
-- [ ] E-signature instead of scan-and-return.
-- [ ] Deal pipeline view for the owner (a model-driven app view or a simple dashboard of requirements by desk stage).
+- [x] Tracking updates (inspection, loading, sailing, arrival, delivery) drafted to the parties (live test passed 7 Oct 16:14).
+- [ ] IndiaMART Lead Manager API (paid seller account): IndiaMART pages already come in through the web search; the API would bring in the enquiries IndiaMART sends us. No scraping.
+- [x] E-signature through DocuSign (built, off; needs the sandbox connection to test).
+- [x] Deal pipeline view: `PIPELINE` reply, the daily digest, and the admin app area **Email desk** (`tools/deploy_app.py`).
 
 ### Parked
 - [ ] Add Krishna to Dev (System Administrator) and as co-owner of the flows.

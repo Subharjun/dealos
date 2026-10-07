@@ -9,6 +9,8 @@ Usage:
   python3 tools/deploy_connector.py --client-id <id>   # same, with the Google OAuth client id
   python3 tools/deploy_connector.py bind               # attach the Gmail connection you created to gc_gmail
   python3 tools/deploy_connector.py status             # show connector, redirect URL and connection reference
+  python3 tools/deploy_connector.py docusign [--prod]  # e-signature: connection reference gc_docusign (DocuSign Demo, or production)
+  python3 tools/deploy_connector.py docusign-bind      # attach the DocuSign connection you created to gc_docusign
 
 After the first deploy the connector's API name is written to tools/flows/connectors.json; the flow definitions read it.
 """
@@ -22,6 +24,7 @@ SWAGGER = os.path.join(ROOT, "tools", "connectors", "gmail.swagger.json")
 NAMES = os.path.join(ROOT, "tools", "flows", "connectors.json")
 SOL = {"MSCRM.SolutionUniqueName": "DealOS"}
 NAME, DISPLAY, REF = "gc_dealosgmail", "DealOS Gmail", "gc_gmail"
+DOCUSIGN_REF = "gc_docusign"
 ENV_ID = os.environ.get("PP_ENV_ID", "b77eedc7-f980-e3bb-a07e-757db98002d2")
 SCOPE = "https://www.googleapis.com/auth/gmail.modify"
 
@@ -80,9 +83,7 @@ def deploy():
     # Creating with the solution header does not add a connector to the solution; without it the solution can't be exported.
     ok(*dv.request("POST", "AddSolutionComponent", {"ComponentId": row["connectorid"], "ComponentType": 372, "SolutionUniqueName": "DealOS",
                                                      "AddRequiredComponents": False}), "add connector to solution")
-    with open(NAMES, "w") as f:
-        json.dump({"gmail": api}, f, indent=2)
-        f.write("\n")
+    save_name("gmail", api)
     refs = ok(*dv.get(f"connectionreferences?$select=connectionreferenceid,connectorid&$filter=connectionreferencelogicalname eq '{REF}'"), "read ref").get("value", [])
     connector_path = f"/providers/Microsoft.PowerApps/apis/{api}"
     if not refs:
@@ -112,6 +113,43 @@ def status():
     print(f"connection ({REF}) : {refs[0].get('connectionid') if refs else None}")
 
 
+def save_name(key, api):
+    names = json.load(open(NAMES)) if os.path.exists(NAMES) else {}
+    names[key] = api
+    with open(NAMES, "w") as f:
+        json.dump(names, f, indent=2)
+        f.write("\n")
+
+
+def ensure_reference(ref, display, api, description):
+    connector_path = f"/providers/Microsoft.PowerApps/apis/{api}"
+    refs = ok(*dv.get(f"connectionreferences?$select=connectionreferenceid,connectorid&$filter=connectionreferencelogicalname eq '{ref}'"), "read ref").get("value", [])
+    if not refs:
+        ok(*dv.request("POST", "connectionreferences", {"connectionreferencelogicalname": ref, "connectionreferencedisplayname": display,
+                                                        "connectorid": connector_path, "description": description}, SOL), "create ref")
+        print(f"+ connection reference {ref} ({api})")
+    elif refs[0]["connectorid"] != connector_path:
+        # Switching sandbox ↔ production: the reference points at the other connector and loses its connection until bound again.
+        ok(*dv.patch(f"connectionreferences({refs[0]['connectionreferenceid']})", {"connectorid": connector_path, "connectionid": None}), "update ref")
+        print(f"= connection reference {ref} now uses {api} (bind a connection again)")
+    else:
+        print(f"= connection reference {ref} ({api})")
+
+
+def docusign():
+    """E-signature: connection reference gc_docusign on Microsoft's DocuSign connector (Demo = sandbox; --prod = production)."""
+    api = "shared_docusign" if "--prod" in sys.argv else "shared_docusigndemo"
+    save_name("docusign", api)
+    ensure_reference(DOCUSIGN_REF, "DealOS DocuSign", api, "DocuSign account that sends the contracts for e-signature")
+    print(f"Next: Power Automate → Connections → New connection → {'Docusign' if api == 'shared_docusign' else 'Docusign Demo'} (sign in), then:\n"
+          "  python3 tools/deploy_connector.py docusign-bind\n  python3 tools/deploy_flows.py --esign")
+
+
+def docusign_bind():
+    names = json.load(open(NAMES)) if os.path.exists(NAMES) else {}
+    bind_connection(names.get("docusign", "shared_docusigndemo"), DOCUSIGN_REF, "Docusign")
+
+
 def powerapps_token():
     """Exchanges the cached Dataverse refresh token for a Power Apps API token (same tenant, same public client)."""
     with open(dv.TOKEN_FILE) as f:
@@ -125,7 +163,10 @@ def powerapps_token():
 
 def bind():
     row = find() or sys.exit("deploy the connector first")
-    api = row["connectorinternalid"]
+    bind_connection(row["connectorinternalid"], REF, DISPLAY)
+
+
+def bind_connection(api, ref_name, display):
     url = (f"https://api.powerapps.com/providers/Microsoft.PowerApps/apis/{api}/connections"
            f"?api-version=2016-11-01&$filter=environment%20eq%20%27{ENV_ID}%27")
     req = urllib.request.Request(url, headers={"Authorization": f"Bearer {powerapps_token()}", "Accept": "application/json"})
@@ -136,12 +177,12 @@ def bind():
         p = c.get("properties", {})
         print(f"  {c['name']}  {p.get('displayName')}  {[s.get('status') for s in p.get('statuses', [])]}")
     if not good:
-        sys.exit("No connected DealOS Gmail connection yet. Create one in Power Automate → Connections → New connection → DealOS Gmail.")
-    ref = dv.get(f"connectionreferences?$select=connectionreferenceid&$filter=connectionreferencelogicalname eq '{REF}'")[1]["value"][0]
+        sys.exit(f"No connected {display} connection yet. Create one in Power Automate → Connections → New connection → {display}.")
+    ref = dv.get(f"connectionreferences?$select=connectionreferenceid&$filter=connectionreferencelogicalname eq '{ref_name}'")[1]["value"][0]
     ok(*dv.patch(f"connectionreferences({ref['connectionreferenceid']})", {"connectionid": good[0]["name"]}), "bind")
-    print(f"= {REF} → {good[0]['name']} ({good[0]['properties'].get('displayName')})")
+    print(f"= {ref_name} → {good[0]['name']} ({good[0]['properties'].get('displayName')})")
 
 
 if __name__ == "__main__":
     cmd = sys.argv[1] if len(sys.argv) > 1 and not sys.argv[1].startswith("--") else "deploy"
-    {"deploy": deploy, "bind": bind, "status": status}.get(cmd, lambda: print(__doc__))()
+    {"deploy": deploy, "bind": bind, "status": status, "docusign": docusign, "docusign-bind": docusign_bind}.get(cmd, lambda: print(__doc__))()

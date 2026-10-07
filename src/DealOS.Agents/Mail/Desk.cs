@@ -105,6 +105,13 @@ namespace DealOS.Agents.Mail
 
         public static string CompanyName(Dv dv) { return dv.Setting("trade.company_name") ?? "Gigacore Energy Pvt Ltd"; }
 
+        /// <summary>Our company profile PDF (setting desk.company_profile = its gc_document id, set by tools/company_profile.py); null when none.</summary>
+        public static Guid? CompanyProfile(Dv dv)
+        {
+            Guid id;
+            return Guid.TryParse((dv.Setting("desk.company_profile") ?? "").Trim(), out id) && dv.Exists("gc_document", id) ? id : (Guid?)null;
+        }
+
         // ---------------------------------------------------------------- drafts
 
         /// <summary>
@@ -213,18 +220,20 @@ namespace DealOS.Agents.Mail
         /// <summary>
         /// A short briefing email to the desk owner (setting desk.owner_email; "{mailbox}" = the connected mailbox), all in one
         /// "DealOS desk briefing" thread. Sent automatically: it only goes to us.
+        /// documents are attached (e.g. contracts to check before they go out); meta (JSON on the briefing: reply code, task, drafts)
+        /// lets the owner answer the briefing by reply (Approvals).
         /// </summary>
-        public static Guid Brief(DeskWriter w, string subject, string text)
+        public static Guid Brief(DeskWriter w, string subject, string text, IEnumerable<Guid> documents = null, Dictionary<string, object> meta = null)
         {
             var owner = w.Dv.Setting("desk.owner_email") ?? "{mailbox}";
             if (owner.Trim().ToLowerInvariant() == "off") return Guid.Empty;
-            var conv = w.Dv.Query("gc_conversation", new[] { "gc_conversationid" }, 1, "gc_name", ConditionOperator.Equal, "DealOS desk briefing").FirstOrDefault();
+            var conv = w.Dv.Query("gc_conversation", new[] { "gc_conversationid" }, 1, "gc_name", ConditionOperator.Equal, Approvals.BriefingThread).FirstOrDefault();
             Guid convId;
             if (conv != null) convId = conv.Id;
             else
             {
                 var c = new Entity("gc_conversation");
-                c["gc_name"] = "DealOS desk briefing";
+                c["gc_name"] = Approvals.BriefingThread;
                 c["gc_channel"] = new OptionSetValue(MailChoice.ChannelEmail);
                 convId = w.Create(c, "create_briefing_thread");
             }
@@ -239,7 +248,25 @@ namespace DealOS.Agents.Mail
             m["gc_subject"] = Cut("[DealOS] " + subject, 400);
             m["gc_senderlabel"] = "Email Desk (briefing)";
             m["gc_autosend"] = true;
-            return w.Create(m, "brief_owner", J.Obj("subject", subject));
+            var docs = (documents ?? new Guid[0]).ToList();
+            if (docs.Count > 0) m["gc_attachments"] = Json.Serialize(J.Obj("documents", docs.Select(d => (object)d.ToString()).ToList()));
+            if (meta != null) m["gc_emailmeta"] = Json.Serialize(meta);
+            return w.Create(m, "brief_owner", J.Obj("subject", subject, "attachments", docs.Count));
+        }
+
+        /// <summary>
+        /// A briefing that lists drafts a person may release by replying SEND (and, with a task, APPROVE): the drafts and the code
+        /// are stored on the briefing. No drafts: a plain briefing.
+        /// </summary>
+        public static Guid BriefWithDrafts(DeskWriter w, string subject, string text, IEnumerable<Guid> drafts, IEnumerable<Guid> documents = null)
+        {
+            var ids = (drafts ?? new Guid[0]).Where(d => d != Guid.Empty).Distinct().ToList();
+            if (ids.Count == 0) return Brief(w, subject, text, documents);
+            var code = Approvals.NewCode();
+            var body = text.TrimEnd() + "\n\nReply SEND to send the " + (ids.Count == 1 ? "draft" : ids.Count + " drafts") +
+                       " as they stand in Gmail now (edit them there first if needed), or send them yourself from Gmail.\nRef " + code + ".";
+            return Brief(w, subject + " (ref " + code + ")", body, documents,
+                         J.Obj("code", code, "drafts", ids.Select(d => (object)d.ToString()).ToList()));
         }
 
         /// <summary>A stored draft's text without the desk signature that Draft appended (so an agent can rework it).</summary>
@@ -837,6 +864,15 @@ namespace DealOS.Agents.Mail
             var salesDoc = Document(w, deal.Id, "Contract-Sales-" + number + ".pdf", salesPdf);
             var purchaseDoc = Document(w, deal.Id, "Contract-Purchase-" + number + ".pdf", purchasePdf);
 
+            var summary = "Sales contract to " + buyerName + ": " + Num(qty) + " " + unit + " " + commodity + " at " + currency + " " + Num(buyerPrice) + " per " + unit +
+                          ". Purchase contract from " + sellerName + ": at " + currency + " " + Num(sellerPrice) + " per " + unit + ".";
+            if (Esign.On(dv))
+            {
+                // E-signature: nothing goes out yet. The owner sees both PDFs and approves sending them through DocuSign.
+                var approval = Esign.RequestApproval(w, contractId, deal, salesDoc, purchaseDoc, summary);
+                return J.Obj("status", "AwaitingEsignApproval", "documents", 2, "esign", approval);
+            }
+
             var drafts = new List<object>();
             var buyerThread = req == null ? null : w.Dv.Query("gc_conversation", new[] { "gc_conversationid" }, 1, "gc_requirement", ConditionOperator.Equal, req.Id,
                                                                "gc_side", ConditionOperator.Equal, DeskChoice.Side.Buyer).FirstOrDefault();
@@ -864,6 +900,10 @@ namespace DealOS.Agents.Mail
                 r["gc_deskstage"] = new OptionSetValue(DeskChoice.Stage.ContractSent);
                 w.Update(r, "requirement_contract_sent");
             }
+            BriefWithDrafts(w, "Contracts ready to send: " + deal.GetAttributeValue<string>("gc_name"),
+                            summary + "\n\nBoth PDFs are attached here for your check and to the drafts in each thread (buyer: sales contract at our price; " +
+                            "seller: purchase contract at their price). When a signed copy comes back, the desk opens a task to confirm it.",
+                            drafts.Select(d => Guid.Parse((string)d)), new[] { salesDoc, purchaseDoc });
             return J.Obj("status", "Created", "documents", 2, "drafts", drafts);
         }
 

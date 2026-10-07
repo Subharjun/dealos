@@ -227,13 +227,46 @@ namespace DealOS.Agents.Tools
 
             yield return new Tool
             {
+                Name = "save_kyb_documents",
+                Description = "The counterparty sends company documents for our KYB (company registration / incorporation certificate, GST, IEC, PAN, director or authorised signatory ID, " +
+                              "UBO / shareholder list, bank reference, export licence). Files them on their company and starts the KYB check; a person approves the result.",
+                Writes = true,
+                Parameters = S.Obj(null,
+                    "documents", S.Arr("Attachments of the latest email that are KYB documents.", S.Obj(null,
+                        "file", S.Str("File name exactly as in latest_email.attachments."),
+                        "type", S.Enum("What the document is.", KybTypes))),
+                    "company?", S.Str("Legal company name as written in the documents or email."),
+                    "registration_number?", S.Str("Company registration / CIN / GST / IEC number as written, if stated.")),
+                Run = SaveKybDocuments
+            };
+
+            yield return new Tool
+            {
+                Name = "record_shipment_update",
+                Description = "After signing: the seller (or buyer) reports loading, sailing, arrival or delivery. Updates the deal's shipment; the update to the OTHER side is drafted for you " +
+                              "(masked). You only draft a short reply in this thread.",
+                Writes = true,
+                Parameters = S.Obj(null,
+                    "status", S.Enum("What happened.", "Loading", "In Transit", "Arrived", "Delivered"),
+                    "bl_number?", S.Str("B/L or AWB number as written."),
+                    "etd?", S.Str("Departure date, YYYY-MM-DD, if written."),
+                    "eta?", S.Str("Arrival date, YYYY-MM-DD, if written."),
+                    "origin_port?", S.Str("Loading port as written."),
+                    "destination_port?", S.Str("Discharge port as written."),
+                    "evidence", S.Str("Their words, quoted.")),
+                Run = RecordShipmentUpdate
+            };
+
+            yield return new Tool
+            {
                 Name = "draft_email",
                 Description = "Draft an email for a person to check and send from Gmail. Plain text only, no greeting line needed if replying, no signature (added automatically). Replaces any earlier unsent draft of that thread.",
                 Writes = true,
                 Parameters = S.Obj(null,
                     "thread", S.Enum("Where: this thread, the buyer's thread, or a seller thread (give thread_id).", "this_thread", "buyer_thread", "seller_thread"),
                     "thread_id?", S.Str("For seller_thread: the seller thread id from CONTEXT or a tool result."),
-                    "body", S.Str("The email text, written like an experienced commodity trader: short, specific, polite.")),
+                    "body", S.Str("The email text, written like an experienced commodity trader: short, specific, polite."),
+                    "attach?", S.Enum("Attach our company profile PDF (only when CONTEXT.company_profile_on_file is true and the buyer or seller asked for it).", "company_profile")),
                 Run = DraftEmail
             };
         }
@@ -748,6 +781,97 @@ namespace DealOS.Agents.Tools
             return J.Obj("ok", true, "task_id", ctx.DryRun ? null : id.ToString());
         }
 
+        // ---------------------------------------------------------------- KYB documents and tracking
+
+        private static readonly string[] KybTypes = { "Incorporation Certificate", "Tax Or Trade Registration", "Id Document", "UBO Declaration", "Shareholder Register",
+                                                      "Bank Reference", "Proof Of Funds", "Export Permit", "Mining Licence", "Other" };
+
+        /// <summary>KYB documents from email → filed on the counterparty's company (released from quarantine to Document Intelligence) → KYB agent → Tier upgrade approval.</summary>
+        private static object SaveKybDocuments(AgentContext ctx, Dictionary<string, object> a)
+        {
+            var conv = ctx.Subject;
+            var side = Side(conv);
+            var accountId = Ref(conv, "gc_counterparty");
+            if (accountId == null)
+            {
+                var dealId = Ref(conv, "gc_deal") ?? (Ref(conv, "gc_requirement") == null ? null : Desk.ActiveDeal(ctx.Dv, Ref(conv, "gc_requirement").Value));
+                var deal = dealId == null ? null : ctx.Dv.Retrieve("gc_deal", dealId.Value, "gc_buyer", "gc_seller");
+                accountId = Ref(deal, side == DeskChoice.Side.Seller ? "gc_seller" : "gc_buyer");
+            }
+            if (accountId == null) throw new ToolRefusal("This thread is not linked to a company yet (no deal or known sender); create_review_task for a Deal Manager to file the documents.");
+            var msg = Latest(ctx);
+            var attached = ctx.Dv.Query("gc_document", new[] { "gc_documentid", "gc_filename", "gc_parsestatus" }, 10, "gc_message", ConditionOperator.Equal, msg.Id);
+            var filed = new List<object>();
+            foreach (var d in J.Arr(a, "documents").OfType<Dictionary<string, object>>())
+            {
+                var file = J.Str(d, "file");
+                var doc = attached.FirstOrDefault(x => string.Equals(x.GetAttributeValue<string>("gc_filename"), file, StringComparison.OrdinalIgnoreCase));
+                if (doc == null) throw new ToolRefusal("No attachment named '" + file + "' on the latest email. Use the names in latest_email.attachments.");
+                var type = J.Str(d, "type");
+                var docType = type == "Tax Or Trade Registration" ? "Incorporation Certificate" : type;
+                var u = new Entity("gc_document", doc.Id);
+                u["gc_account"] = new EntityReference("account", accountId.Value);
+                var dt = Choice.ValueOf(Choice.DocTypes, docType);
+                if (dt >= 0) u["gc_doctype"] = new OptionSetValue(dt);
+                u["gc_name"] = Desk.Cut("KYB: " + type + " (" + file + ")", 200);
+                if (Opt(doc, "gc_parsestatus") == MailChoice.DocumentQuarantined) u["gc_parsestatus"] = new OptionSetValue(Choice.ParseStatus.Pending);
+                ctx.Update(u, "file_kyb_document", J.Obj("file", file, "type", type));
+                filed.Add(file);
+            }
+            if (filed.Count == 0) throw new ToolRefusal("List the KYB attachments in documents.");
+            var acc = ctx.Dv.Retrieve("account", accountId.Value, "name", "gc_partyrole", "gc_registrationnumber");
+            var upd = new Entity("account", accountId.Value);
+            // The KYB agents run for a company with a party role (seller: Onboarding KYB; buyer: Buyer Verification).
+            var roles = (acc.GetAttributeValue<OptionSetValueCollection>("gc_partyrole") ?? new OptionSetValueCollection()).Select(x => x.Value).ToList();
+            var role = side == DeskChoice.Side.Seller ? Choice.Base : Choice.Base + 1;
+            if (!roles.Contains(role)) { roles.Add(role); upd["gc_partyrole"] = new OptionSetValueCollection(roles.Select(x => new OptionSetValue(x)).ToList()); }
+            var reg = J.Str(a, "registration_number");
+            if (!string.IsNullOrWhiteSpace(reg) && string.IsNullOrWhiteSpace(acc.GetAttributeValue<string>("gc_registrationnumber"))) upd["gc_registrationnumber"] = Desk.Cut(reg.Trim(), 100);
+            if (upd.Attributes.Count > 0) ctx.Update(upd, "kyb_party", J.Obj("role", side == DeskChoice.Side.Seller ? "Seller" : "Buyer"));
+            return J.Obj("ok", true, "filed", filed, "company", acc.GetAttributeValue<string>("name"),
+                         "note", "The KYB check runs now; a person approves the result. Draft a short thanks: documents received, we will revert if anything else is needed.");
+        }
+
+        private static object RecordShipmentUpdate(AgentContext ctx, Dictionary<string, object> a)
+        {
+            var conv = ctx.Subject;
+            Guid? dealId = Ref(conv, "gc_deal");
+            if (dealId == null && Ref(conv, "gc_requirement") != null)
+            {
+                var d = ctx.Dv.Query("gc_deal", new[] { "gc_dealid", "gc_stage" }, 20, "gc_requirement", ConditionOperator.Equal, Ref(conv, "gc_requirement").Value)
+                          .FirstOrDefault(x => Opt(x, "gc_stage") >= DeskChoice.DealStage.TermsAgreed && Opt(x, "gc_stage") != DeskChoice.DealStage.Cancelled);
+                dealId = d == null ? (Guid?)null : d.Id;
+            }
+            if (dealId == null) throw new ToolRefusal("No agreed deal on this thread.");
+            var deal = ctx.Dv.Retrieve("gc_deal", dealId.Value, "gc_name", "gc_stage");
+            var status = J.Str(a, "status");
+            var w = new DeskWriter(ctx.Dv, ctx);
+            var existing = ctx.Dv.Query("gc_shipment", new[] { "gc_shipmentid", "gc_status" }, 1, "gc_deal", ConditionOperator.Equal, dealId.Value).FirstOrDefault();
+            var s = new Entity("gc_shipment");
+            if (existing != null) s.Id = existing.Id;
+            s["gc_status"] = new OptionSetValue(Choice.ValueOf(Tracking.ShipmentStatuses, status));
+            if (!string.IsNullOrWhiteSpace(J.Str(a, "bl_number"))) s["gc_blnumber"] = Desk.Cut(J.Str(a, "bl_number"), 100);
+            if (!string.IsNullOrWhiteSpace(J.Str(a, "origin_port"))) s["gc_originport"] = Desk.Cut(J.Str(a, "origin_port"), 100);
+            if (!string.IsNullOrWhiteSpace(J.Str(a, "destination_port"))) s["gc_destinationport"] = Desk.Cut(J.Str(a, "destination_port"), 100);
+            DateTime when;
+            if (DateTime.TryParse(J.Str(a, "etd"), CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out when)) s["gc_etd"] = when;
+            if (DateTime.TryParse(J.Str(a, "eta"), CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out when)) s["gc_eta"] = when;
+            Guid shipmentId;
+            if (existing != null) { ctx.Update(s, "shipment_update", J.Obj("status", status)); shipmentId = existing.Id; }
+            else
+            {
+                s["gc_name"] = Desk.Cut("Shipment - " + deal.GetAttributeValue<string>("gc_name"), 100);
+                s["gc_deal"] = new EntityReference("gc_deal", dealId.Value);
+                shipmentId = ctx.Create(s, "shipment_created", J.Obj("status", status));
+            }
+            if (ctx.DryRun) return J.Obj("ok", true, "status", status, "note", "dry run");
+            // The other side's update is drafted now (masked); this side's answer is the agent's own draft.
+            var reporter = Side(conv) == DeskChoice.Side.Buyer ? "buyer" : "seller";
+            var tracked = Tracking.Run(w, "shipment", shipmentId, reporter);
+            return J.Obj("ok", true, "status", status, "other_side", J.Get(tracked, "drafted_to"),
+                         "note", "The update to the other side is drafted. Draft only a short reply in this thread (thanks; ask for the shipping documents if they are not attached).");
+        }
+
         // ---------------------------------------------------------------- drafting
 
         private static object DraftEmail(AgentContext ctx, Dictionary<string, object> a)
@@ -793,8 +917,15 @@ namespace DealOS.Agents.Tools
                 to = account == null ? null : account.GetAttributeValue<string>("emailaddress1");
             }
             if (string.IsNullOrWhiteSpace(to)) throw new ToolRefusal("No email address is known for that thread.");
+            Guid[] files = null;
+            if (J.Str(a, "attach") == "company_profile")
+            {
+                var profile = Desk.CompanyProfile(ctx.Dv);
+                if (profile == null) throw new ToolRefusal("No company profile is on file. Say it will follow and create_review_task for a Deal Manager to send it.");
+                files = new[] { profile.Value };
+            }
             var auto = Desk.AutoSend(ctx.Dv, "reply", body);
-            var draftId = Desk.Draft(new DeskWriter(ctx.Dv, ctx), target, to, Desk.ReplySubject(ctx.Dv, target), body, null, "draft_email", auto);
+            var draftId = Desk.Draft(new DeskWriter(ctx.Dv, ctx), target, to, Desk.ReplySubject(ctx.Dv, target), body, files, "draft_email", auto);
             ctx.Scratch["drafted"] = true;
             return J.Obj("ok", true, "draft_id", ctx.DryRun ? null : draftId.ToString(), "thread", target.ToString(),
                          "delivery", auto ? "sent automatically (email.autosend)" : "waits in Gmail Drafts for a person to send");

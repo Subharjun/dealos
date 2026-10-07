@@ -253,6 +253,17 @@ EXTRA_COLUMNS = [  # (table logical name, column spec)
     ("gc_conversation", when("gc_ChasedOn", "Chased on", "When the last follow-up was drafted.")),
     # Sellers take turns (7 Oct 2026)
     ("gc_buyerrequirement", lookup("gc_ActiveDeal", "Active seller deal", "The seller deal the buyer is negotiating now (the first seller to quote); later sellers wait in the queue.", "gc_deal")),
+    # Approve by reply, triage corrections, tracking, e-signature (7 Oct 2026)
+    ("gc_reviewtask", text("gc_ReplyCode", "Reply code", "Reference the owner quotes when answering the briefing (APPROVE / REJECT by email).", 12)),
+    ("gc_reviewtask", when("gc_BriefedOn", "Briefed on", "When the decision was briefed to the desk owner by email.")),
+    ("gc_reviewtask", when("gc_RemindedOn", "Reminded on", "When the one reminder briefing went out.")),
+    ("gc_message", text("gc_TriageCorrection", "Triage correction", "The owner moved this email to another DealOS label in Gmail: old → new verdict.", 200)),
+    ("gc_message", when("gc_CorrectedOn", "Corrected on", "When the owner's label correction was applied.")),
+    ("gc_contract", choice("gc_EsignStatus", "E-signature status", "DocuSign progress of the back-to-back contracts.",
+                           ["Not Used", "Awaiting Approval", "Sending", "Sent", "Completed", "Declined", "Voided", "Failed", "Rejected"])),
+    ("gc_contract", memo("gc_Envelopes", "E-signature envelopes", "JSON per side (buyer, seller): DocuSign envelope id, status, signed document.")),
+    ("gc_shipment", memo("gc_DeskUpdates", "Desk updates sent", "JSON: status and side of each tracking update the desk drafted (each once).")),
+    ("gc_inspection", memo("gc_DeskUpdates", "Desk updates sent", "JSON: status and side of each tracking update the desk drafted (each once).")),
 ]
 
 # Options added to local choices after their column was created: (table, column, value, label)

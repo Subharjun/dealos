@@ -479,6 +479,105 @@
           }
         }
       }
+    },
+    "/history": {
+      "get": {
+        "operationId": "ListHistory",
+        "summary": "List history",
+        "description": "Changes to the mailbox since a history id (used for the owner's label corrections).",
+        "parameters": [
+          {
+            "name": "startHistoryId",
+            "in": "query",
+            "required": true,
+            "type": "string",
+            "description": "History id to start after (from the profile or the previous call)."
+          },
+          {
+            "name": "historyTypes",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "messageAdded, messageDeleted, labelAdded or labelRemoved."
+          },
+          {
+            "name": "labelId",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "Only changes to messages with this label."
+          },
+          {
+            "name": "maxResults",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "description": "Up to 500."
+          },
+          {
+            "name": "pageToken",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "Next page."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "History",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "history": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "labelsAdded": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "message": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "threadId": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            "labelIds": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "historyId": {
+                  "type": "string"
+                },
+                "nextPageToken": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The start history id is too old: start again from the profile's historyId."
+          }
+        }
+      }
     }
   },
   "definitions": {

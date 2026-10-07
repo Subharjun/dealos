@@ -207,5 +207,39 @@ foreach (var a in AgentCatalog.All)
                        "model_setting", a.ModelSettingKey, "tools", a.Tools, "read_tables", a.ReadTables));
 }
 File.WriteAllText(Path.Combine(outDir, "agents.manifest.json"), Json.Serialize(manifest));
+// Approve by reply, triage corrections, tracking, e-signature (7 Oct 2026)
+{
+    var A = typeof(DealOS.Agents.Mail.Approvals);
+    var p1 = DealOS.Agents.Mail.Approvals.Parse("Re: [DealOS] Approve? Confirm deal: V2O5 (ref K7P2QM)", "Approve\n\nOn Tue, 7 Oct 2026 at 10:00, Desk <d@x.com> wrote:\n> REJECT\n> Ref K7P2QM");
+    Check(p1.Command == DealOS.Agents.Mail.Approvals.Command.Approve && p1.Code == "K7P2QM", "approvals: APPROVE above the quoted briefing, code from the subject");
+    var p2 = DealOS.Agents.Mail.Approvals.Parse("Re: [DealOS] Approve? x (ref K7P2QM)", "reject - price too low for us\nthanks\n> Approve");
+    Check(p2.Command == DealOS.Agents.Mail.Approvals.Command.Reject && p2.Reason != null && p2.Reason.StartsWith("price too low"), "approvals: REJECT keeps the reason");
+    var p3 = DealOS.Agents.Mail.Approvals.Parse("Re: [DealOS] Contracts ready to send (ref ABCD23)", "Send");
+    Check(p3.Command == DealOS.Agents.Mail.Approvals.Command.Send, "approvals: SEND");
+    var p4 = DealOS.Agents.Mail.Approvals.Parse("Re: x (ref ABCD23)", "Approve and send");
+    Check(p4.Command == DealOS.Agents.Mail.Approvals.Command.ApproveAndSend, "approvals: APPROVE SEND does both");
+    var p5 = DealOS.Agents.Mail.Approvals.Parse("Re: [DealOS] Update", "Can you call me about this?\n> Approve");
+    Check(p5.Command == DealOS.Agents.Mail.Approvals.Command.None, "approvals: a question is not a command, and quoted text is never read");
+    Check(DealOS.Agents.Mail.Approvals.Parse("Re: [DealOS] Daily digest", "pipeline").Command == DealOS.Agents.Mail.Approvals.Command.Pipeline, "approvals: PIPELINE");
+    Check(DealOS.Agents.Mail.Approvals.Parse("Re: hi", "NOTED, approve later").Command == DealOS.Agents.Mail.Approvals.Command.None, "approvals: only the first word decides");
+    var code = DealOS.Agents.Mail.Approvals.NewCode();
+    Check(code.Length == 6 && DealOS.Agents.Mail.Approvals.Parse("Re: x (ref " + code + ")", "ok").Code == code, "approvals: generated codes are found again");
+    var lines = DealOS.Agents.Mail.Approvals.Summary(new Dictionary<string, object> { { "action", "desk.accept_offer" }, { "offerId", "x" }, { "buyerPrice", 10145.5 },
+                                                                                       { "agent", "a" }, { "evidence", "We confirm the order" } });
+    Check(lines.Contains("- Buyer price: 10,145.5") && lines.All(l => !l.Contains("Offer id") && !l.Contains("Agent")), "approvals: payload summary hides ids and bookkeeping");
+    Check(DealOS.Agents.Mail.Corrections.VerdictOf("DealOS/Buyer") == "Genuine" && DealOS.Agents.Mail.Corrections.VerdictOf("DealOS/Ignored") == "Ignored" &&
+          DealOS.Agents.Mail.Corrections.VerdictOf("DealOS/Processed") == null, "corrections: Gmail labels map to verdicts; system labels are not corrections");
+    Check(DealOS.Agents.Mail.Esign.RecipientsState("{\"signers\":[{\"status\":\"completed\"},{\"status\":\"completed\"}]}") == "completed" &&
+          DealOS.Agents.Mail.Esign.RecipientsState("{\"signers\":[{\"status\":\"completed\"},{\"status\":\"sent\"}]}") == "sent" &&
+          DealOS.Agents.Mail.Esign.RecipientsState("{\"signers\":[{\"status\":\"declined\"},{\"status\":\"created\"}]}") == "declined",
+          "esign: envelope state from the signers");
+    var ship = new Microsoft.Xrm.Sdk.Entity("gc_shipment");
+    ship["gc_originport"] = "Mtwara"; ship["gc_destinationport"] = "Ennore"; ship["gc_eta"] = new DateTime(2026, 11, 2);
+    var told = DealOS.Agents.Mail.Tracking.Shipment(ship, "In Transit");
+    Check(told["buyer"].Contains("ETA Ennore: 2 Nov 2026") && told["seller"].Contains("B/L") && !told["buyer"].Contains("!") && !told["buyer"].Contains("—"),
+          "tracking: sailing update to the buyer (ETA) and a documents request to the seller, house style");
+    Check(DealOS.Agents.Mail.Tracking.Shipment(ship, "Planned") == null, "tracking: nothing to say for a planned shipment");
+}
+
 Console.WriteLine(failures == 0 ? "ALL CHECKS PASSED" : failures + " CHECK(S) FAILED");
 return failures == 0 ? 0 : 1;

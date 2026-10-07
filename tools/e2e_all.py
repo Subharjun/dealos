@@ -1,8 +1,11 @@
 """Runs every end-to-end scenario on the real mailbox and Dev, one after the other, and writes a summary.
 
+  approve     tools/approval_e2e.py run           approve by reply: APPROVE, REJECT <reason>, a forged sender ignored, SEND, PIPELINE (no AI)
+  corrections tools/corrections_e2e.py run        the owner moves an email to another DealOS label in Gmail → the verdict follows (no AI for the correction)
   triage      tools/mail_test.py run              7 sample emails: genuine trade vs scam, pitch, broker chain
   buyer       tools/desk_e2e.py run               buyer first: sourcing → sellers take turns → counter → bid → Confirm deal →
                                                   compliance → contract PDFs → signed → inspection
+  tracking    tools/tracking_e2e.py run           on the signed deal: inspection booked, sailing, delivery → masked drafts to both sides, each once (no AI)
   queue       tools/desk_queue_e2e.py run         first seller active, later one queued, decline ignored, buyer rejects → next seller
   lot         tools/desk_lot_e2e.py run           seller lot, two buyers compete, highest price wins at the deadline
   single      tools/desk_lot_e2e.py single        seller lot, one buyer, early close
@@ -27,8 +30,11 @@ ROOT = dv.ROOT
 TOOLS = os.path.join(ROOT, "tools")
 LOGS = os.path.join(ROOT, "build", "e2e")
 SCENARIOS = [
+    ("approve", ["approval_e2e.py", "run"], "APPROVE BY REPLY END TO END PASSED"),
+    ("corrections", ["corrections_e2e.py", "run"], "TRIAGE CORRECTIONS END TO END PASSED"),
     ("triage", ["mail_test.py", "run"], "TRIAGE PASSED"),
     ("buyer", ["desk_e2e.py", "run"], "END TO END PASSED"),
+    ("tracking", ["tracking_e2e.py", "run"], "TRACKING END TO END PASSED"),
     ("queue", ["desk_queue_e2e.py", "run"], "SELLERS TAKE TURNS END TO END PASSED"),
     ("lot", ["desk_lot_e2e.py", "run"], "LOT END TO END PASSED"),
     ("single", ["desk_lot_e2e.py", "single"], "SINGLE-BUYER LOT END TO END PASSED"),

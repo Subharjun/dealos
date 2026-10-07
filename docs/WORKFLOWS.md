@@ -41,14 +41,20 @@ flowchart TD
 
 ---
 
-## Flow catalogue (22 flows)
+## Flow catalogue (26 flows, plus 2 e-signature flows once DocuSign is connected)
 
 | Flow | Trigger | What it does | Human gate |
 |---|---|---|---|
-| **Mailbox sync** | every 3 minutes, when `email.enabled` = true | Gmail (custom connector **DealOS Gmail**, connection reference `gc_gmail`) → `gc_IngestEmail` + `gc_AttachEmailFile` → Mail Triage agent → Gmail labels; then the sent-mail pass | — |
-| **Trade desk** | a received email's triage → Genuine | Trade Desk agent on the email's thread → briefing. On failure, a Deal Manager task. | — |
-| **Desk drafts** | desk draft `gc_message` (Pending, or Discarded) | Pending → `gc_BuildEmailRaw` → a Gmail draft in the thread (auto-sent only when flagged). Discarded → the Gmail draft is deleted. | A person sends it |
-| **Desk contract** | contract → Sent For Signature on a desk deal | `gc_DeskContract`: back-to-back PDFs (sales contract to the buyer at our price, purchase contract from the seller at their price), each on a draft in its thread → briefing | — |
+| **Mailbox sync** | every 3 minutes, when `email.enabled` = true | Gmail (custom connector **DealOS Gmail**, connection reference `gc_gmail`): first the owner's label corrections (Gmail history since `email.gmail.history_id` → `gc_TriageCorrections`), then new mail → `gc_IngestEmail` + `gc_AttachEmailFile` → Mail Triage agent → Gmail labels; then the sent-mail pass. A reply to a briefing is a command (approve by reply), never triaged. | — |
+| **Trade desk** | a received email's triage → Genuine | Trade Desk agent on the email's thread → briefing listing the drafts of the run (reply SEND). On failure, a Deal Manager task. | — |
+| **Desk drafts** | desk draft `gc_message` (Pending, Discarded, or released by SEND) | Pending → `gc_BuildEmailRaw` → a Gmail draft in the thread (auto-sent only when flagged). Released by the owner's SEND → the Gmail draft is sent. Discarded → the Gmail draft is deleted. | A person sends it (Gmail or SEND) |
+| **Desk contract** | contract → Sent For Signature on a desk deal | `gc_DeskContract`: back-to-back PDFs (sales contract to the buyer at our price, purchase contract from the seller at their price). Scan and return: each on a draft in its thread, briefed with the PDFs (SEND). DocuSign on: a **Send for e-signature** approval with both PDFs; nothing goes out before it. | Send (SEND) / Send for e-signature |
+| **Approval briefing** | review task created (Open) | `gc_DeskBriefTask`: the decision briefed to the owner with its details, documents and a reply code; one reminder later (Desk timers). | APPROVE / REJECT by reply |
+| **Desk tracking: inspection** | inspection → Booked, Passed or Failed | `gc_DeskTrack`: masked updates drafted to the buyer and the seller (each status once per side) → briefing (SEND). | A person sends them |
+| **Desk tracking: shipment** | shipment → Loading, In Transit, Arrived or Delivered | Same, for the shipment (sailing and ETA to the buyer, shipping documents request to the seller, delivery). | A person sends them |
+| **KYB passed: compliance re-check** | account KYB status → Passed | Its email desk deals waiting at Compliance Check run the Compliance agent again: Clear → Contracting; otherwise a briefing with what is missing. | — |
+| **Desk e-signature send** (`--esign`) | contract e-signature status → Sending (the owner approved) | `gc_EsignEnvelopes` → per side a DocuSign envelope (contract PDF; the party signs, then `contract.signatory`) → sent → `gc_EsignRecord`. Failure → status Failed and a briefing. | Approved before it runs |
+| **Desk e-signature status** (`--esign`) | every 15 minutes | Envelopes out (`gc_EsignPending`) → DocuSign recipients → all signed: signed PDF stored; both sides → contract Signed. Declined → task. | — |
 | **Seller discovery** | requirement desk stage → Sourcing | `gc_DiscoverSellers` (AI web search: producers and exporters, public contacts) → enquiries to new leads with an email → briefing | — |
 | **Buyer discovery** | a seller lot is created (seller first) | `gc_DiscoverBuyers` (AI web search: companies that use, import or distribute the material) → the lot is offered to the new buyer leads (`gc_MarketLot`) → briefing | — |
 | **Desk timers** | every 15 minutes | 1. `gc_CloseLots`: timed seller lots past their deadline: highest buyer prices win while quantity lasts; no bid at the seller's price → best bid to the seller, lot goes open-ended. 2. `gc_DeskFollowUps`: next queued seller when the active seller's deal closed or the seller is silent after a reminder; one chaser to silent sellers and buyers; reminders before lots close. | — |
@@ -63,9 +69,9 @@ flowchart TD
 | **Inspection booking** | deal stage → Signed | One `gc_inspection` (Requested) and a Logistics Coordinator task to book an independent agency. | Booking (task) |
 | **Inspection result** | inspection → Passed or Failed | Passed: a `gc_verification` (independent inspection, Confirmed) with the report. Failed: deal On Hold and a Deal Manager task (renegotiate or cancel). | — |
 | **Deal cancelled** | deal stage → Cancelled | `gc_ReleaseDeal` rejects the deal's open offers. The desk drafts any note to the parties itself. | — |
-| **Approvals** | review task opened, kind Approval or Review | Sends an approval to the assignee of the task's role (`approvals.assignees`) and records the answer on the task. | — |
+| **Approvals** | review task opened, kind Approval or Review | Sends an approval to the assignee of the task's role (`approvals.assignees`) and records the answer on the task, unless the owner already answered by email. | — |
 | **Review decisions** | review task → Approved / Rejected | Applies the decision; see below. | — |
-| **Daily digest** | 03:00 UTC daily | AdminSupervisor agent → the digest as a desk briefing (`gc_DeskBrief`, Gmail). | — |
+| **Daily digest** | 03:00 UTC daily | The pipeline (`gc_DeskPipeline`) and the AdminSupervisor agent's digest as a desk briefing (`gc_DeskBrief`, Gmail); the pipeline goes out even when the agent fails. | — |
 | **Flow failure triage** | every hour | Groups new `gc_flowfailure` rows per flow into one Support review task with the run links. | Resubmit the runs |
 
 ### What each decision does (Review decisions)
@@ -74,14 +80,15 @@ flowchart TD
 |---|---|---|
 | Other: `desk.accept_offer` (**Confirm deal**) | Deal's buyer price set, offer → Accepted; Offer accepted takes over (Terms Agreed, compliance, contract) | nothing |
 | Other: `desk.contract_signed` (**Signed contract received**) | Contract → Signed (Contract signed takes over) | nothing |
+| Other: `desk.esign_send` (**Send for e-signature**) | Contract e-signature status → Sending (Desk e-signature send takes over) | Status Rejected; nothing is sent; briefing |
 | Message Send | A request an agent drafted (e.g. KYB documents) → Approved; the desk sends requests as Gmail drafts | Rejected |
 | Tier Upgrade | Trust tier from the payload; KYB status Passed at KYB Verified or higher | — |
-| Screening Clearance (deal) | Compliance Hold lifted, deal → Contracting | Deal → Cancelled |
+| Screening Clearance (deal) | Compliance Hold lifted, deal → Contracting (only while it is still at Compliance Check) | Deal → Cancelled |
 | Screening Clearance (party) | Compliance hold off | Compliance hold on |
 | Contract Issue | Contract → Sent For Signature (Desk contract takes over) | Contract → Void |
 | Shipment Booking | `gc_shipment` Planned (Domestic or International) | — |
 
-An approval answered in Outlook or Teams and a status changed by hand in the admin app follow the same path.
+An answer by email reply (approve by reply), an approval answered in Outlook or Teams and a status changed by hand in the admin app all follow the same path; the first answer counts.
 
 ---
 
@@ -94,7 +101,11 @@ An approval answered in Outlook or Teams and a status changed by hand in the adm
 | `gc_IngestEmail`, `gc_AttachEmailFile`, `gc_BuildEmailRaw` | `Mail.MailPlugin` | Gmail message → thread + message (idempotent); attachment → Quarantined document; desk draft → RFC 2822 reply with In-Reply-To and attachments. |
 | `gc_SourceRequirement`, `gc_DiscoverSellers` | `Mail.MailPlugin` | Enquiries to matching seller leads; AI web search for sellers. |
 | `gc_DiscoverBuyers`, `gc_MarketLot`, `gc_CloseLots` | `Mail.MailPlugin` | AI web search for buyers of a lot; offer a lot to buyers not offered yet; close timed lots. |
-| `gc_DeskBrief`, `gc_DeskContract`, `gc_DeskFollowUps` | `Mail.MailPlugin` | Briefing to the owner; back-to-back contract PDFs and drafts; seller queue, chasers and reminders. |
+| `gc_DeskBrief`, `gc_DeskContract`, `gc_DeskFollowUps` | `Mail.MailPlugin` | Briefing to the owner (optionally listing drafts for SEND); back-to-back contract PDFs and drafts (or the e-signature approval); seller queue, chasers, reminders and approval reminders. |
+| `gc_DeskBriefTask`, `gc_DeskPipeline` | `Mail.MailPlugin` | A decision briefed with a reply code; the pipeline as text. |
+| `gc_TriageCorrections` | `Mail.MailPlugin` | Gmail label history → the owner's corrections applied to the stored verdicts. |
+| `gc_DeskTrack` | `Mail.MailPlugin` | Inspection or shipment status → masked tracking drafts to both sides, each once. |
+| `gc_EsignEnvelopes`, `gc_EsignRecord`, `gc_EsignPending`, `gc_EsignUpdate` | `Mail.MailPlugin` | DocuSign envelopes to send; envelope ids; envelopes still out; signers' status → signed PDF stored, contract Signed when both sides are done. |
 
 ---
 

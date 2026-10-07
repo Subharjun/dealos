@@ -53,6 +53,12 @@ namespace DealOS.Agents.Mail
         public readonly List<string> ForeignLinkDomains = new List<string>();
         public readonly List<string> ShortLinks = new List<string>();
 
+        /// <summary>Positively authenticated: DMARC pass, or SPF and DKIM both pass (stricter than "not failed").</summary>
+        public bool Authenticated
+        {
+            get { return Dmarc == "pass" || (Spf == "pass" && Dkim == "pass"); }
+        }
+
         public bool AuthFailed
         {
             get { return Dmarc == "fail" || (Spf == "fail" || Spf == "softfail") && Dkim != "pass"; }

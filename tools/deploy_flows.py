@@ -9,6 +9,7 @@ Usage:
   python3 tools/deploy_flows.py --off                 # deploy but leave them off
   python3 tools/deploy_flows.py --dump build/flows    # write the generated JSON only, no deployment
   python3 tools/deploy_flows.py --tests --off         # the test-only flows (Email Desk test kit), left off
+  python3 tools/deploy_flows.py --esign               # the DocuSign e-signature flows (after deploy_connector.py docusign + docusign-bind)
 """
 import argparse
 import json
@@ -75,8 +76,9 @@ def main():
     ap.add_argument("--off", action="store_true")
     ap.add_argument("--dump")
     ap.add_argument("--tests", action="store_true", help="deploy the test-only flows instead of the product flows")
+    ap.add_argument("--esign", action="store_true", help="deploy the DocuSign e-signature flows (needs the gc_docusign connection)")
     args = ap.parse_args()
-    flows = [build() for build in (definitions.TESTS if args.tests else definitions.ALL)]
+    flows = [build() for build in (definitions.TESTS if args.tests else definitions.ESIGN_FLOWS if args.esign else definitions.ALL)]
     if args.only:
         flows = [f for f in flows if args.only.lower() in f["name"].lower()]
     if args.dump:
@@ -93,7 +95,7 @@ def main():
         failed += line.startswith("!")
         print(line, flush=True)
     print(f"{len(flows) - failed} of {len(flows)} flows deployed" + ("" if args.off else " and on"))
-    if not args.tests and not args.only and not failed:
+    if not args.tests and not args.esign and not args.only and not failed:
         retire()
     sys.exit(1 if failed else 0)
 

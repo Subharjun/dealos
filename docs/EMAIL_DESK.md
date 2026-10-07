@@ -168,8 +168,8 @@ The verdict is a score from 0 to 100, the category and the reasons (shown to you
 
 Genuine means "worth working on". It does **not** mean the buyer is verified. KYB and screening still happen before the contract (step 5).
 
-### 4.4 Learning from corrections
-When you move an email between `DealOS/Ignored`, `DealOS/Review` and `DealOS/Buyer`, sync records the correction. Corrections become the test set and, later, examples in the triage prompt. Precision and recall are reported weekly.
+### 4.4 Learning from corrections (built 7 Oct 2026)
+When you move an email to `DealOS/Genuine`, `DealOS/Buyer`, `DealOS/Seller`, `DealOS/Review` or `DealOS/Ignored` in Gmail, the next sync reads Gmail's label history and the email takes that verdict (Genuine starts the Trade Desk). The correction is kept on the email (`gc_triagecorrection`, `gc_correctedon`), and the latest 8 corrections are shown to the Mail Triage agent as examples. Labels the desk added itself change nothing.
 
 ## 5. Steps 2–4: from requirement to agreed price
 
@@ -342,12 +342,26 @@ Signed → **Inspection** (agency booked by you, report attached by email) → *
 - [x] `report_signed_contract` → task → approval marks the contract Signed → **Contract signed** (no escrow for desk deals) → **Inspection booking** on Signed
 - [x] End-to-end test by email only: [desk_e2e.py](../tools/desk_e2e.py) (results below)
 
-**Later**
-- [ ] Label corrections from Gmail (section 4.4)
-- [ ] IndiaMART Lead Manager API
-- [ ] Tracking updates (inspection, shipment) drafted to the parties: today they go to the review tasks and the audit trail
-- [ ] KYB documents read automatically from the email attachments: today a person checks them and sets KYB and screening
-- [ ] E-signature
+**Phase 5: the owner in control by email (7 Oct 2026).** Built.
+- [x] **Approve by reply** ([Approvals.cs](../src/DealOS.Agents/Mail/Approvals.cs), flow **Approval briefing**): every decision task is briefed to the owner with its details, any documents and a reply code `(ref XXXXXX)`. Reply `APPROVE` / `REJECT <reason>` / `SEND` / `PIPELINE`. Only the owner's replies count: sent from the mailbox itself, or from `desk.owner_email` **and** passing DMARC (or SPF and DKIM). A forged sender gets nothing done and the owner is told. One reminder after `desk.approval_remind_hours` (12). A Teams/Outlook approval answered later does not overwrite an email decision. Live test: [approval_e2e.py](../tools/approval_e2e.py).
+- [x] **SEND by reply:** briefings list the drafts of that step (Trade desk runs, contracts, tracking). `SEND` sends them from Gmail as they stand (with any edits made there).
+- [x] **Label corrections** (section 4.4): Mailbox sync reads Gmail's label history (`ListHistory`, `email.gmail.history_id`); an email moved to `DealOS/Genuine`, `Buyer`, `Seller`, `Review` or `Ignored` takes that verdict (Genuine starts the Trade Desk). Corrections are kept on the email (`gc_triagecorrection`) and the latest 8 are shown to Mail Triage as examples. Live test: [corrections_e2e.py](../tools/corrections_e2e.py).
+- [x] **KYB documents from email:** `save_kyb_documents` files the attachments on the party's company (type, registration number), releases them to Document Intelligence and sets the party role, so Onboarding KYB / Buyer Verification run and open the Tier upgrade approval. A person approves; when KYB passes, flow **KYB passed: compliance re-check** runs Compliance again for that party's deals waiting at Compliance Check.
+- [x] **Tracking updates** ([Tracking.cs](../src/DealOS.Agents/Mail/Tracking.cs), flows **Desk tracking: inspection / shipment**): inspection booked / passed / failed and loading / sailing / arrival / delivery are drafted to each side, masked (the buyer never sees the seller's name, warehouse or documents), each status once per side, briefed for SEND. `record_shipment_update` lets the Trade Desk record what a party reports. Live test: [tracking_e2e.py](../tools/tracking_e2e.py).
+- [x] **Company profile:** `python3 tools/company_profile.py set <pdf>`; the Trade Desk attaches it (`draft_email attach=company_profile`) when a party asks. No profile on file: a task, as before.
+- [x] **E-signature (DocuSign)**, off until switched on (`contract.esign` = docusign): after the contract terms are approved, both PDFs are generated and a **Send for e-signature** approval with the PDFs is briefed. Nothing goes out before APPROVE. Then one envelope per side (the party signs, then `contract.signatory` countersigns); Desk e-signature status polls every 15 minutes and stores the signed PDFs; both signed → contract Signed → inspection. Declined → task. See "E-signature setup" below.
+- [x] **Pipeline:** reply `PIPELINE` to any briefing, the daily digest (it goes out even when the AI summary fails), and the admin app area **Email desk** (requirements by stage with a chart, lots, deals, contracts out, decisions waiting, drafts waiting) from [deploy_app.py](../tools/deploy_app.py).
+
+**Not built**
+- [ ] IndiaMART Lead Manager API (needs a paid IndiaMART seller account). IndiaMART listings already come in through the web search; scraping IndiaMART is against its terms and gets the account blocked, so the desk does not scrape it.
+
+### E-signature setup (DocuSign)
+1. A DocuSign developer (sandbox) account: https://developers.docusign.com (free). Note the **API Account ID** (Settings → Apps and Keys).
+2. `python3 tools/deploy_connector.py docusign` (done in Dev: connection reference `gc_docusign` on **Docusign Demo**).
+3. Power Automate → Connections → New connection → **Docusign Demo** → sign in with the sandbox account.
+4. `python3 tools/deploy_connector.py docusign-bind`, then `python3 tools/deploy_flows.py --esign` (the two e-signature flows; saved off in Dev until then).
+5. Settings: `esign.docusign.account_id` = the API Account ID; `contract.signatory` = `Name <email>` of our authorised signatory; `contract.esign` = `docusign`.
+6. Run one test deal end to end in the sandbox (signatures there are not legally binding). For production: a paid DocuSign plan, `deploy_connector.py docusign --prod`, a **Docusign** (production) connection, bind and `deploy_flows.py --esign` again.
 
 ## 11. Risks and open points
 
@@ -368,12 +382,13 @@ The bot reads the mailbox, classifies, records and drafts. A person stays in con
 
 | When | Where | What you do |
 |---|---|---|
-| A draft is waiting | **Gmail → Drafts** (in the thread) | Read it, edit if needed, press **Send**. Unsent drafts are replaced when a newer email arrives in the thread. |
-| An email is labelled `DealOS/Review` | Gmail | Decide. To let the desk work it, set the email's Triage to Genuine in the admin app (Messages). |
+| A briefing asks for a decision (`Approve? ... (ref XXXXXX)`) | **Gmail**, the "DealOS desk briefing" thread | Reply with one word on the first line: `APPROVE` (or CONFIRM / YES / OK / DONE), `REJECT <reason>`. `SEND` sends the drafts the briefing lists; `APPROVE SEND` does both; `PIPELINE` shows where everything stands. The admin app and Teams approvals still work too; the first answer counts. |
+| A draft is waiting | **Gmail → Drafts** (in the thread) | Read it, edit if needed, press **Send** (or reply `SEND` to its briefing). Unsent drafts are replaced when a newer email arrives in the thread. |
+| An email is labelled `DealOS/Review`, or labelled wrongly | Gmail | Move it to `DealOS/Genuine` (or `Buyer` / `Seller`) to let the desk work it, or to `DealOS/Ignored`. The next sync applies it and the triage learns from it. |
 | "Find contacts for sourcing: …" | Admin app → Review tasks | Find an email for the listed sellers, put it on the lead, then ask the desk to source again (reply in the buyer thread, or run `gc_SourceRequirement`). |
 | "Confirm deal: …" | Review tasks (or Approvals in Teams/Outlook) | Check the price and terms in the payload, then approve. That makes the agreement binding. Then send the confirmation drafts. |
-| KYB documents arrive | Admin app → the account | Check the documents, set KYB status and trust tier, and record the screening. Compliance then lets the deal go to contracting. |
-| "Review contract terms: …" (Contract Issue) | Review tasks | Approve. Both contracts are generated and drafted to each side. Send them. |
+| KYB documents arrive | Briefing "Approve? Tier upgrade ..." | The desk files them on the company and the KYB agent checks them; approve the tier upgrade by reply. Record the sanctions screening in the admin app (the account); Compliance then lets the deal go to contracting. |
+| "Review contract terms: …" (Contract Issue) | Briefing | Approve. Both contracts are generated: with e-signature off they are drafted to each side (reply `SEND`); with DocuSign on you get **Send for e-signature** with both PDFs attached, and nothing goes out before you approve it. |
 | "Signed contract received: …" | Review tasks | Check the signed copy (attached to the deal). When both sides have signed, approve; the deal moves to Signed. |
 | "Book independent inspection: …" | Review tasks | Book the agency and set the inspection to Booked. |
 | "Trade desk could not handle: …" | Review tasks | Reply yourself from Gmail, or fix the cause and set the email back to Genuine. |
@@ -384,6 +399,8 @@ The bot reads the mailbox, classifies, records and drafts. A person stays in con
 - `trade.company_name`
 - `trade.governing_law`: confirm with counsel
 - `email.sourcing.max_sellers`
+- `contract.esign` (off / docusign), `contract.signatory`, `esign.docusign.account_id`
+- `desk.approval_remind_hours`, `desk.company_profile` (set with `tools/company_profile.py`)
 
 **To go live on the whole inbox:**
 - set `email.sync.query` = `in:inbox newer_than:7d`

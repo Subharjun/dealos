@@ -29,6 +29,9 @@ def _custom_connectors():
 
 GMAIL = _custom_connectors().get("gmail", "shared_gc-5fdealos-20gmail-not-deployed")
 CONNECTIONS[GMAIL] = {"runtimeSource": "embedded", "connection": {"connectionReferenceLogicalName": "gc_gmail"}, "api": {"name": GMAIL}}
+# DocuSign (Microsoft's certified connector): the sandbox one while testing, shared_docusign in production (connectors.json "docusign").
+DOCUSIGN = _custom_connectors().get("docusign", "shared_docusigndemo")
+CONNECTIONS[DOCUSIGN] = {"runtimeSource": "embedded", "connection": {"connectionReferenceLogicalName": "gc_docusign"}, "api": {"name": DOCUSIGN}}
 AUTH = "@parameters('$authentication')"
 NS = uuid.UUID("6a1f3c52-9d7e-4f0b-8c21-0d5e0a7b4f10")
 
@@ -97,6 +100,13 @@ def gmail(op, **params):
     """An action of the DealOS Gmail custom connector; body fields are passed as 'body/<field>'."""
     return {"type": "OpenApiConnection",
             "inputs": {"host": {"connectionName": GMAIL, "operationId": op, "apiId": f"/providers/Microsoft.PowerApps/apis/{GMAIL}"},
+                       "parameters": {k.replace("__", "/"): v for k, v in params.items()}, "authentication": AUTH}}
+
+
+def docusign(op, **params):
+    """An action of the DocuSign connector; nested body fields are passed as 'parent/<field>'."""
+    return {"type": "OpenApiConnection",
+            "inputs": {"host": {"connectionName": DOCUSIGN, "operationId": op, "apiId": f"/providers/Microsoft.PowerApps/apis/{DOCUSIGN}"},
                        "parameters": {k.replace("__", "/"): v for k, v in params.items()}, "authentication": AUTH}}
 
 
