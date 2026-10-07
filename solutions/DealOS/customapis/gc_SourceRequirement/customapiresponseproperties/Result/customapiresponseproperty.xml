@@ -1,0 +1,11 @@
+<customapiresponseproperty uniquename="Result">
+  <description default="JSON: matched leads, requests, leads without email.">
+    <label description="JSON: matched leads, requests, leads without email." languagecode="1033" />
+  </description>
+  <displayname default="Result">
+    <label description="Result" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <name>gc_SourceRequirement.Result</name>
+  <type>10</type>
+</customapiresponseproperty>

@@ -1,0 +1,11 @@
+<customapiresponseproperty uniquename="Attachments">
+  <description default="JSON array of {attachmentId, fileName, mimeType, size} to fetch and store.">
+    <label description="JSON array of {attachmentId, fileName, mimeType, size} to fetch and store." languagecode="1033" />
+  </description>
+  <displayname default="Attachments">
+    <label description="Attachments" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <name>gc_IngestEmail.Attachments</name>
+  <type>10</type>
+</customapiresponseproperty>

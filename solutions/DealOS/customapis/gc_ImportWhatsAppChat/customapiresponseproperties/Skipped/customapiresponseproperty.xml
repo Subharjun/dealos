@@ -1,0 +1,11 @@
+<customapiresponseproperty uniquename="Skipped">
+  <description default="Messages already imported earlier.">
+    <label description="Messages already imported earlier." languagecode="1033" />
+  </description>
+  <displayname default="Skipped">
+    <label description="Skipped" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <name>gc_ImportWhatsAppChat.Skipped</name>
+  <type>7</type>
+</customapiresponseproperty>

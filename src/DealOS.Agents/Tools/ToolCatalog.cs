@@ -97,84 +97,6 @@ namespace DealOS.Agents.Tools
 
             yield return new Tool
             {
-                Name = "resolve_evidence",
-                Description = "Re-run the deterministic evidence resolver for a subject; returns counts, summary and the system's own gap list.",
-                Parameters = S.Obj(null,
-                    "subject_type", S.Enum("Subject kind.", "Party", "Listing", "Deal", "Asset", "Licence", "Lot", "Document", "Contact"),
-                    "subject_id", S.Str("Subject GUID.")),
-                Run = (ctx, a) => Evidence.Resolve(ctx, Evidence.SubjectTypeOfLabel(J.Str(a, "subject_type")), RequireSubject(ctx, a))
-            };
-
-            yield return new Tool
-            {
-                Name = "calculate_price_quote",
-                Description = "Deterministic landed-cost engine for an offer. Recalculates with the cost inputs from TASK INPUT (the system reads them there; any values you pass are ignored). Refused when TASK INPUT has none.",
-                Writes = true,
-                Parameters = S.Obj(null,
-                    "offer_id", S.Str("gc_offer GUID."),
-                    "freight_per_unit?", S.Num("Freight per quantity unit, offer currency."),
-                    "insurance_rate_pct?", S.Num("Insurance rate %."),
-                    "origin_inland?", S.Num("Origin inland transport, total."),
-                    "loading?", S.Num("Loading cost, total."),
-                    "export_clearance?", S.Num("Export clearance, total."),
-                    "import_clearance?", S.Num("Import clearance, total."),
-                    "destination_inland?", S.Num("Destination inland transport, total."),
-                    "import_tax_pct?", S.Num("Import tax %.")),
-                Run = (ctx, a) =>
-                {
-                    var offerId = RequireId(a, "offer_id");
-                    var offer = ctx.Dv.Retrieve("gc_offer", offerId, "gc_deal", "gc_price", "gc_quantity");
-                    if (offer == null) throw new ToolRefusal("No gc_offer with id " + offerId + ".");
-                    if (offer.GetAttributeValue<EntityReference>("gc_deal") == null || offer.GetAttributeValue<decimal?>("gc_price") == null || offer.GetAttributeValue<decimal?>("gc_quantity") == null)
-                        throw new ToolRefusal("The offer needs a deal, price and quantity before it can be priced.");
-                    // Cost inputs come only from the caller's TASK INPUT, never from the model: an unprompted re-price
-                    // with assumed costs would replace the offer's quote.
-                    var input = ctx.Input ?? new Dictionary<string, object>();
-                    var costs = new[] { "freight_per_unit", "insurance_rate_pct", "origin_inland", "loading", "export_clearance", "import_clearance", "destination_inland", "import_tax_pct" };
-                    if (!costs.Any(k => J.Num(input, k) != null))
-                        throw new ToolRefusal("TASK INPUT has no cost inputs, so the quote is not recalculated. Explain the quotes in CONTEXT instead.");
-                    var req = new OrganizationRequest("gc_CalculatePriceQuote");
-                    req["OfferId"] = offerId;
-                    Map(input, req, "freight_per_unit", "FreightPerUnit");
-                    Map(input, req, "insurance_rate_pct", "InsuranceRatePct");
-                    Map(input, req, "origin_inland", "OriginInland");
-                    Map(input, req, "loading", "Loading");
-                    Map(input, req, "export_clearance", "ExportClearance");
-                    Map(input, req, "import_clearance", "ImportClearance");
-                    Map(input, req, "destination_inland", "DestinationInland");
-                    Map(input, req, "import_tax_pct", "ImportTaxPct");
-                    if (ctx.DryRun)
-                    {
-                        ctx.Actions.Add(J.Obj("action", "calculate_price_quote", "dry_run", true, "detail", J.Obj("offer_id", req["OfferId"].ToString())));
-                        return J.Obj("dry_run", true, "note", "Quote not recalculated in a dry run; use the quotes in CONTEXT.");
-                    }
-                    var r = ctx.Dv.Svc.Execute(req).Results;
-                    ctx.Actions.Add(J.Obj("action", "calculate_price_quote", "table", "gc_pricequote", "dry_run", false, "detail", J.Obj("offer_id", req["OfferId"].ToString())));
-                    var result = J.Obj(
-                        "landed_cost", r.Contains("LandedCost") ? r["LandedCost"] : null,
-                        "net_payout", r.Contains("NetPayout") ? r["NetPayout"] : null,
-                        "summary", r.Contains("Summary") ? r["Summary"] : null,
-                        "buyer_quote_id", r.Contains("BuyerQuoteId") ? r["BuyerQuoteId"] : null,
-                        "seller_quote_id", r.Contains("SellerQuoteId") ? r["SellerQuoteId"] : null);
-                    ctx.Scratch["last_quote"] = result;
-                    return result;
-                }
-            };
-
-            yield return new Tool
-            {
-                Name = "compute_release_schedule",
-                Description = "Deterministic escrow release maths: gross, commission and net per tranche, using the deal's commission plan from CONTEXT.",
-                Parameters = S.Obj(null,
-                    "contract_value", S.Num("Total contract value in deal currency."),
-                    "tranches", S.Arr("Release tranches in order; percentages must sum to 100.", S.Obj(null,
-                        "pct", S.Num("Percent of contract value."),
-                        "condition", S.Str("Release condition, e.g. 'Inspection passed and BL issued'.")))),
-                Run = (ctx, a) => ReleaseSchedule(ctx, J.Num(a, "contract_value") ?? 0, J.Arr(a, "tranches").OfType<Dictionary<string, object>>().ToList())
-            };
-
-            yield return new Tool
-            {
                 Name = "ask_question",
                 Description = "Record ONE question for the counterparty in the question ledger (do-not-ask-twice). Refused if the information is already present, already asked recently, or the per-run limit is reached. Then include the asks in draft_message.",
                 Writes = true,
@@ -215,18 +137,6 @@ namespace DealOS.Agents.Tools
 
             yield return new Tool
             {
-                Name = "propose_match",
-                Description = "Propose a buyer–seller match for one candidate in CONTEXT.candidates. You supply only the specification fit; the other dimensions are pre-computed.",
-                Writes = true,
-                Parameters = S.Obj(null,
-                    "candidate_id", S.Str("id of the candidate from CONTEXT.candidates."),
-                    "spec_score", S.Int("Specification fit 0-100, judged only from data shown."),
-                    "explanation", S.Str("Why this is (or is not) a fit, citing the data.")),
-                Run = ProposeMatch
-            };
-
-            yield return new Tool
-            {
                 Name = "record_kyc_check",
                 Description = "Record a KYB/KYC check as Pending (needs evidence or provider) or Refer (needs compliance review). Agents can never mark a check Pass or Fail.",
                 Writes = true,
@@ -250,18 +160,6 @@ namespace DealOS.Agents.Tools
                 Run = ContractDraft
             };
 
-            yield return new Tool
-            {
-                Name = "create_milestone",
-                Description = "Add a pending execution milestone to the deal (one per type).",
-                Writes = true,
-                Parameters = S.Obj(null,
-                    "type", S.Enum("Milestone type.", Choice.MilestoneTypes),
-                    "due_on?", S.Str("Due date YYYY-MM-DD, only if stated in the data.")),
-                Run = Milestone
-            };
-
-            foreach (var t in ChatTools.Build()) yield return t;
             foreach (var t in DeskTools.Build()) yield return t;
         }
 
@@ -462,46 +360,6 @@ namespace DealOS.Agents.Tools
             return ctx.Create(t, "create_review_task", J.Obj("purpose", purpose, "kind", kind, "title", title, "role", role));
         }
 
-        private static object ProposeMatch(AgentContext ctx, Dictionary<string, object> a)
-        {
-            object c;
-            if (!ctx.Scratch.TryGetValue("candidates", out c)) throw new ToolRefusal("No candidates in this run.");
-            var candidates = (Dictionary<string, Dictionary<string, object>>)c;
-            var cid = J.Str(a, "candidate_id") ?? "";
-            Dictionary<string, object> cand;
-            if (!candidates.TryGetValue(cid, out cand)) throw new ToolRefusal("candidate_id must be one of: " + string.Join(", ", candidates.Keys));
-            var spec = Math.Max(0, Math.Min(100, (int)(J.Num(a, "spec_score") ?? 0)));
-            var dims = new Dictionary<string, object>(J.ObjOf(cand, "dimensions")) { ["specification"] = spec };
-            var weights = J.Obj("quantity", 0.2, "specification", 0.35, "price", 0.2, "terms", 0.1, "trust", 0.15);
-            double total = 0, wsum = 0;
-            foreach (var w in weights)
-            {
-                var v = J.Num(dims, w.Key);
-                if (v == null) continue;
-                total += v.Value * (double)w.Value;
-                wsum += (double)w.Value;
-            }
-            var score = wsum == 0 ? 0 : Math.Round(total / wsum, 1);
-
-            var listingId = J.Id(cand, "listing_id").Value;
-            var requirementId = J.Id(cand, "requirement_id").Value;
-            var existing = ctx.Dv.Query("gc_match", new[] { "gc_matchid" }, 1,
-                "gc_listing", ConditionOperator.Equal, listingId, "gc_requirement", ConditionOperator.Equal, requirementId).FirstOrDefault();
-            if (existing != null) return J.Obj("ok", true, "match_id", existing.Id.ToString(), "score", score, "note", "Match already existed; not duplicated.");
-
-            var m = new Entity("gc_match");
-            m["gc_name"] = GeminiClient.Truncate("Match " + J.Str(cand, "label"), 100);
-            m["gc_listing"] = new EntityReference("gc_listing", listingId);
-            m["gc_requirement"] = new EntityReference("gc_buyerrequirement", requirementId);
-            m["gc_score"] = (decimal)score;
-            m["gc_explanation"] = Json.Serialize(J.Obj("overall", score, "dimensions", dims, "weights", weights, "notes", J.Get(cand, "notes"), "spec_reason", J.Str(a, "explanation")));
-            m["gc_status"] = new OptionSetValue(Choice.MatchStatus.Proposed);
-            m["gc_buyeroptin"] = false;
-            m["gc_selleroptin"] = false;
-            var id = ctx.Create(m, "propose_match", J.Obj("candidate", cid, "score", score));
-            return J.Obj("ok", true, "match_id", ctx.DryRun ? null : id.ToString(), "score", score, "dimensions", dims);
-        }
-
         private static object KycCheck(AgentContext ctx, Dictionary<string, object> a)
         {
             if (ctx.Agent.SubjectTable != "account" || ctx.SubjectId == null) throw new ToolRefusal("record_kyc_check is only available for account subjects.");
@@ -546,66 +404,6 @@ namespace DealOS.Agents.Tools
             var task = CreateReviewTask(ctx, "Contract Issue", "Approval", "Review contract terms: " + (ctx.Subject.GetAttributeValue<string>("gc_name") ?? "deal"),
                 J.Obj("contractId", ctx.DryRun ? null : id.ToString(), "terms", terms, "nonstandard", J.Bool(a, "nonstandard_clauses")), "Deal Manager", true);
             return J.Obj("ok", true, "contract_id", ctx.DryRun ? null : id.ToString(), "review_task_id", task == Guid.Empty ? null : task.ToString());
-        }
-
-        private static object Milestone(AgentContext ctx, Dictionary<string, object> a)
-        {
-            if (ctx.Agent.SubjectTable != "gc_deal" || ctx.SubjectId == null) throw new ToolRefusal("create_milestone needs a deal subject.");
-            var type = Choice.ValueOf(Choice.MilestoneTypes, J.Str(a, "type"));
-            if (type < 0) throw new ToolRefusal("type must be one of: " + string.Join(", ", Choice.MilestoneTypes));
-            var existing = ctx.Dv.Query("gc_milestone", new[] { "gc_milestoneid" }, 1,
-                "gc_deal", ConditionOperator.Equal, ctx.SubjectId.Value, "gc_type", ConditionOperator.Equal, type).FirstOrDefault();
-            if (existing != null) return J.Obj("ok", true, "milestone_id", existing.Id.ToString(), "note", "Already exists.");
-            var m = new Entity("gc_milestone");
-            m["gc_name"] = J.Str(a, "type");
-            m["gc_deal"] = new EntityReference("gc_deal", ctx.SubjectId.Value);
-            m["gc_type"] = new OptionSetValue(type);
-            m["gc_status"] = new OptionSetValue(Choice.MilestoneStatus.Pending);
-            DateTime due;
-            if (DateTime.TryParse(J.Str(a, "due_on"), CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal, out due)) m["gc_dueon"] = due;
-            var id = ctx.Create(m, "create_milestone", J.Obj("type", J.Str(a, "type"), "due_on", J.Str(a, "due_on")));
-            return J.Obj("ok", true, "milestone_id", ctx.DryRun ? null : id.ToString());
-        }
-
-        public static Dictionary<string, object> ReleaseSchedule(AgentContext ctx, double contractValue, List<Dictionary<string, object>> tranches)
-        {
-            if (contractValue <= 0) throw new ToolRefusal("contract_value must be positive.");
-            var pctSum = tranches.Sum(t => J.Num(t, "pct") ?? 0);
-            if (tranches.Count == 0 || Math.Abs(pctSum - 100) > 0.01) throw new ToolRefusal("Tranche percentages must sum to 100 (got " + pctSum + ").");
-            var plan = ctx.Scratch.ContainsKey("commission_plan") ? (Dictionary<string, object>)ctx.Scratch["commission_plan"] : null;
-            return ReleaseMath(contractValue, tranches, plan);
-        }
-
-        /// <summary>Deterministic tranche and commission maths, shared by the Payment agent and gc_OpenEscrow.</summary>
-        public static Dictionary<string, object> ReleaseMath(double contractValue, List<Dictionary<string, object>> tranches, Dictionary<string, object> plan)
-        {
-            var rate = (decimal)(J.Num(plan, "rate_pct") ?? 0);
-            var cv = (decimal)contractValue;
-            var commission = Math.Round(cv * rate / 100m, 2);
-            var min = J.Num(plan, "min_amount");
-            var max = J.Num(plan, "max_amount");
-            if (min != null && commission < (decimal)min.Value) commission = (decimal)min.Value;
-            if (max != null && max.Value > 0 && commission > (decimal)max.Value) commission = (decimal)max.Value;
-            var payer = J.Str(plan, "payer") ?? "Seller";
-            var sellerShare = payer == "Split" ? (decimal)(J.Num(plan, "seller_share_pct") ?? 50) / 100m : payer == "Seller" ? 1m : 0m;
-            var sellerCommission = Math.Round(commission * sellerShare, 2);
-
-            var rows = new List<object>();
-            decimal grossSum = 0, commSum = 0;
-            for (var i = 0; i < tranches.Count; i++)
-            {
-                var pct = (decimal)(J.Num(tranches[i], "pct") ?? 0);
-                var last = i == tranches.Count - 1;
-                var gross = last ? cv - grossSum : Math.Round(cv * pct / 100m, 2);
-                var comm = last ? sellerCommission - commSum : Math.Round(sellerCommission * pct / 100m, 2);
-                grossSum += gross;
-                commSum += comm;
-                rows.Add(J.Obj("sequence", i + 1, "pct", pct, "condition", J.Str(tranches[i], "condition"), "gross", gross, "commission_deducted", comm, "net_to_seller", gross - comm));
-            }
-            return J.Obj("contract_value", cv, "commission_total", commission, "commission_payer", payer,
-                         "commission_rate_pct", rate, "plan", plan == null ? "none on deal – commission 0" : J.Str(plan, "name"),
-                         "buyer_commission", commission - sellerCommission, "tranches", rows,
-                         "note", "Commission base = contract value. If the plan base is FOB and the contract is CIF, adjust after freight is known.");
         }
 
         // ---------- helpers ----------

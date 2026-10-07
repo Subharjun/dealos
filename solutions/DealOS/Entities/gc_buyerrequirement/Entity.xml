@@ -240,6 +240,107 @@
             <displayname description="Commodity" languagecode="1033" />
           </displaynames>
         </attribute>
+        <attribute PhysicalName="gc_CommodityText">
+          <Type>nvarchar</Type>
+          <Name>gc_commoditytext</Name>
+          <LogicalName>gc_commoditytext</LogicalName>
+          <RequiredLevel>none</RequiredLevel>
+          <DisplayMask>ValidForAdvancedFind|ValidForForm|ValidForGrid</DisplayMask>
+          <ImeMode>auto</ImeMode>
+          <ValidForUpdateApi>1</ValidForUpdateApi>
+          <ValidForReadApi>1</ValidForReadApi>
+          <ValidForCreateApi>1</ValidForCreateApi>
+          <IsCustomField>1</IsCustomField>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <IntroducedVersion>1.0.0.0</IntroducedVersion>
+          <IsCustomizable>1</IsCustomizable>
+          <IsRenameable>1</IsRenameable>
+          <CanModifySearchSettings>1</CanModifySearchSettings>
+          <CanModifyRequirementLevelSettings>1</CanModifyRequirementLevelSettings>
+          <CanModifyAdditionalSettings>1</CanModifyAdditionalSettings>
+          <SourceType>0</SourceType>
+          <IsGlobalFilterEnabled>0</IsGlobalFilterEnabled>
+          <IsSortableEnabled>0</IsSortableEnabled>
+          <CanModifyGlobalFilterSettings>1</CanModifyGlobalFilterSettings>
+          <CanModifyIsSortableSettings>1</CanModifyIsSortableSettings>
+          <IsDataSourceSecret>0</IsDataSourceSecret>
+          <AutoNumberFormat></AutoNumberFormat>
+          <IsSearchable>0</IsSearchable>
+          <IsFilterable>0</IsFilterable>
+          <IsRetrievable>0</IsRetrievable>
+          <IsLocalizable>0</IsLocalizable>
+          <Format>text</Format>
+          <MaxLength>400</MaxLength>
+          <Length>800</Length>
+          <displaynames>
+            <displayname description="Commodity (as written)" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The material exactly as the buyer wrote it." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="gc_Confidential">
+          <Type>bit</Type>
+          <Name>gc_confidential</Name>
+          <LogicalName>gc_confidential</LogicalName>
+          <RequiredLevel>none</RequiredLevel>
+          <DisplayMask>ValidForAdvancedFind|ValidForForm|ValidForGrid</DisplayMask>
+          <ImeMode>auto</ImeMode>
+          <ValidForUpdateApi>1</ValidForUpdateApi>
+          <ValidForReadApi>1</ValidForReadApi>
+          <ValidForCreateApi>1</ValidForCreateApi>
+          <IsCustomField>1</IsCustomField>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <IntroducedVersion>1.0.0.0</IntroducedVersion>
+          <IsCustomizable>1</IsCustomizable>
+          <IsRenameable>1</IsRenameable>
+          <CanModifySearchSettings>1</CanModifySearchSettings>
+          <CanModifyRequirementLevelSettings>1</CanModifyRequirementLevelSettings>
+          <CanModifyAdditionalSettings>1</CanModifyAdditionalSettings>
+          <SourceType>0</SourceType>
+          <IsGlobalFilterEnabled>0</IsGlobalFilterEnabled>
+          <IsSortableEnabled>0</IsSortableEnabled>
+          <CanModifyGlobalFilterSettings>1</CanModifyGlobalFilterSettings>
+          <CanModifyIsSortableSettings>1</CanModifyIsSortableSettings>
+          <IsDataSourceSecret>0</IsDataSourceSecret>
+          <AutoNumberFormat></AutoNumberFormat>
+          <IsSearchable>0</IsSearchable>
+          <IsFilterable>0</IsFilterable>
+          <IsRetrievable>0</IsRetrievable>
+          <IsLocalizable>0</IsLocalizable>
+          <AppDefaultValue>0</AppDefaultValue>
+          <optionset Name="gc_buyerrequirement_gc_confidential">
+            <OptionSetType>bit</OptionSetType>
+            <IntroducedVersion>1.0.0.0</IntroducedVersion>
+            <IsCustomizable>1</IsCustomizable>
+            <displaynames>
+              <displayname description="Confidential" languagecode="1033" />
+            </displaynames>
+            <Descriptions>
+              <Description description="The buyer asked to keep the requirement confidential." languagecode="1033" />
+            </Descriptions>
+            <options>
+              <option value="1" ExternalValue="" IsHidden="0">
+                <labels>
+                  <label description="Yes" languagecode="1033" />
+                </labels>
+              </option>
+              <option value="0" ExternalValue="" IsHidden="0">
+                <labels>
+                  <label description="No" languagecode="1033" />
+                </labels>
+              </option>
+            </options>
+          </optionset>
+          <displaynames>
+            <displayname description="Confidential" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The buyer asked to keep the requirement confidential." languagecode="1033" />
+          </Descriptions>
+        </attribute>
         <attribute PhysicalName="gc_currency">
           <Type>nvarchar</Type>
           <Name>gc_currency</Name>
@@ -314,6 +415,46 @@
             <displayname description="Delivery from" languagecode="1033" />
           </displaynames>
         </attribute>
+        <attribute PhysicalName="gc_DeliveryText">
+          <Type>nvarchar</Type>
+          <Name>gc_deliverytext</Name>
+          <LogicalName>gc_deliverytext</LogicalName>
+          <RequiredLevel>none</RequiredLevel>
+          <DisplayMask>ValidForAdvancedFind|ValidForForm|ValidForGrid</DisplayMask>
+          <ImeMode>auto</ImeMode>
+          <ValidForUpdateApi>1</ValidForUpdateApi>
+          <ValidForReadApi>1</ValidForReadApi>
+          <ValidForCreateApi>1</ValidForCreateApi>
+          <IsCustomField>1</IsCustomField>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <IntroducedVersion>1.0.0.0</IntroducedVersion>
+          <IsCustomizable>1</IsCustomizable>
+          <IsRenameable>1</IsRenameable>
+          <CanModifySearchSettings>1</CanModifySearchSettings>
+          <CanModifyRequirementLevelSettings>1</CanModifyRequirementLevelSettings>
+          <CanModifyAdditionalSettings>1</CanModifyAdditionalSettings>
+          <SourceType>0</SourceType>
+          <IsGlobalFilterEnabled>0</IsGlobalFilterEnabled>
+          <IsSortableEnabled>0</IsSortableEnabled>
+          <CanModifyGlobalFilterSettings>1</CanModifyGlobalFilterSettings>
+          <CanModifyIsSortableSettings>1</CanModifyIsSortableSettings>
+          <IsDataSourceSecret>0</IsDataSourceSecret>
+          <AutoNumberFormat></AutoNumberFormat>
+          <IsSearchable>0</IsSearchable>
+          <IsFilterable>0</IsFilterable>
+          <IsRetrievable>0</IsRetrievable>
+          <IsLocalizable>0</IsLocalizable>
+          <Format>text</Format>
+          <MaxLength>1000</MaxLength>
+          <Length>2000</Length>
+          <displaynames>
+            <displayname description="Delivery (as written)" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Delivery basis, place and timing as the buyer wrote them." languagecode="1033" />
+          </Descriptions>
+        </attribute>
         <attribute PhysicalName="gc_deliveryto">
           <Type>datetime</Type>
           <Name>gc_deliveryto</Name>
@@ -350,6 +491,96 @@
           <displaynames>
             <displayname description="Delivery to" languagecode="1033" />
           </displaynames>
+        </attribute>
+        <attribute PhysicalName="gc_DeskStage">
+          <Type>picklist</Type>
+          <Name>gc_deskstage</Name>
+          <LogicalName>gc_deskstage</LogicalName>
+          <RequiredLevel>none</RequiredLevel>
+          <DisplayMask>ValidForAdvancedFind|ValidForForm|ValidForGrid</DisplayMask>
+          <ImeMode>auto</ImeMode>
+          <ValidForUpdateApi>1</ValidForUpdateApi>
+          <ValidForReadApi>1</ValidForReadApi>
+          <ValidForCreateApi>1</ValidForCreateApi>
+          <IsCustomField>1</IsCustomField>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <IntroducedVersion>1.0.0.0</IntroducedVersion>
+          <IsCustomizable>1</IsCustomizable>
+          <IsRenameable>1</IsRenameable>
+          <CanModifySearchSettings>1</CanModifySearchSettings>
+          <CanModifyRequirementLevelSettings>1</CanModifyRequirementLevelSettings>
+          <CanModifyAdditionalSettings>1</CanModifyAdditionalSettings>
+          <SourceType>0</SourceType>
+          <IsGlobalFilterEnabled>0</IsGlobalFilterEnabled>
+          <IsSortableEnabled>0</IsSortableEnabled>
+          <CanModifyGlobalFilterSettings>1</CanModifyGlobalFilterSettings>
+          <CanModifyIsSortableSettings>1</CanModifyIsSortableSettings>
+          <IsDataSourceSecret>0</IsDataSourceSecret>
+          <AutoNumberFormat></AutoNumberFormat>
+          <IsSearchable>0</IsSearchable>
+          <IsFilterable>0</IsFilterable>
+          <IsRetrievable>0</IsRetrievable>
+          <IsLocalizable>0</IsLocalizable>
+          <optionset Name="gc_buyerrequirement_gc_deskstage">
+            <OptionSetType>picklist</OptionSetType>
+            <IntroducedVersion>1.0.0.0</IntroducedVersion>
+            <IsCustomizable>1</IsCustomizable>
+            <displaynames>
+              <displayname description="Desk stage" languagecode="1033" />
+            </displaynames>
+            <Descriptions>
+              <Description description="Email Desk progress for this requirement." languagecode="1033" />
+            </Descriptions>
+            <options>
+              <option value="303300000" ExternalValue="" IsHidden="0">
+                <labels>
+                  <label description="Qualifying" languagecode="1033" />
+                </labels>
+              </option>
+              <option value="303300001" ExternalValue="" IsHidden="0">
+                <labels>
+                  <label description="Sourcing" languagecode="1033" />
+                </labels>
+              </option>
+              <option value="303300002" ExternalValue="" IsHidden="0">
+                <labels>
+                  <label description="Quoted" languagecode="1033" />
+                </labels>
+              </option>
+              <option value="303300003" ExternalValue="" IsHidden="0">
+                <labels>
+                  <label description="Negotiating" languagecode="1033" />
+                </labels>
+              </option>
+              <option value="303300004" ExternalValue="" IsHidden="0">
+                <labels>
+                  <label description="Agreed" languagecode="1033" />
+                </labels>
+              </option>
+              <option value="303300005" ExternalValue="" IsHidden="0">
+                <labels>
+                  <label description="Contract Sent" languagecode="1033" />
+                </labels>
+              </option>
+              <option value="303300006" ExternalValue="" IsHidden="0">
+                <labels>
+                  <label description="Signed" languagecode="1033" />
+                </labels>
+              </option>
+              <option value="303300007" ExternalValue="" IsHidden="0">
+                <labels>
+                  <label description="Closed" languagecode="1033" />
+                </labels>
+              </option>
+            </options>
+          </optionset>
+          <displaynames>
+            <displayname description="Desk stage" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Email Desk progress for this requirement." languagecode="1033" />
+          </Descriptions>
         </attribute>
         <attribute PhysicalName="gc_destinationcountry">
           <Type>lookup</Type>
@@ -423,6 +654,46 @@
           <displaynames>
             <displayname description="Destination port / terminal" languagecode="1033" />
           </displaynames>
+        </attribute>
+        <attribute PhysicalName="gc_DiscoveredOn">
+          <Type>datetime</Type>
+          <Name>gc_discoveredon</Name>
+          <LogicalName>gc_discoveredon</LogicalName>
+          <RequiredLevel>none</RequiredLevel>
+          <DisplayMask>ValidForAdvancedFind|ValidForForm|ValidForGrid</DisplayMask>
+          <ImeMode>inactive</ImeMode>
+          <ValidForUpdateApi>1</ValidForUpdateApi>
+          <ValidForReadApi>1</ValidForReadApi>
+          <ValidForCreateApi>1</ValidForCreateApi>
+          <IsCustomField>1</IsCustomField>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <IntroducedVersion>1.0.0.0</IntroducedVersion>
+          <IsCustomizable>1</IsCustomizable>
+          <IsRenameable>1</IsRenameable>
+          <CanModifySearchSettings>1</CanModifySearchSettings>
+          <CanModifyRequirementLevelSettings>1</CanModifyRequirementLevelSettings>
+          <CanModifyAdditionalSettings>1</CanModifyAdditionalSettings>
+          <SourceType>0</SourceType>
+          <IsGlobalFilterEnabled>0</IsGlobalFilterEnabled>
+          <IsSortableEnabled>0</IsSortableEnabled>
+          <CanModifyGlobalFilterSettings>1</CanModifyGlobalFilterSettings>
+          <CanModifyIsSortableSettings>1</CanModifyIsSortableSettings>
+          <IsDataSourceSecret>0</IsDataSourceSecret>
+          <AutoNumberFormat></AutoNumberFormat>
+          <IsSearchable>0</IsSearchable>
+          <IsFilterable>0</IsFilterable>
+          <IsRetrievable>0</IsRetrievable>
+          <IsLocalizable>0</IsLocalizable>
+          <Format>datetime</Format>
+          <CanChangeDateTimeBehavior>1</CanChangeDateTimeBehavior>
+          <Behavior>1</Behavior>
+          <displaynames>
+            <displayname description="Sellers discovered on" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="When web seller discovery last ran for this requirement." languagecode="1033" />
+          </Descriptions>
         </attribute>
         <attribute PhysicalName="gc_incoterm">
           <Type>picklist</Type>
@@ -607,6 +878,46 @@
             <displayname description="Name" languagecode="1033" />
           </displaynames>
         </attribute>
+        <attribute PhysicalName="gc_OurPrice">
+          <Type>decimal</Type>
+          <Name>gc_ourprice</Name>
+          <LogicalName>gc_ourprice</LogicalName>
+          <RequiredLevel>none</RequiredLevel>
+          <DisplayMask>ValidForAdvancedFind|ValidForForm|ValidForGrid</DisplayMask>
+          <ImeMode>disabled</ImeMode>
+          <ValidForUpdateApi>1</ValidForUpdateApi>
+          <ValidForReadApi>1</ValidForReadApi>
+          <ValidForCreateApi>1</ValidForCreateApi>
+          <IsCustomField>1</IsCustomField>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <IntroducedVersion>1.0.0.0</IntroducedVersion>
+          <IsCustomizable>1</IsCustomizable>
+          <IsRenameable>1</IsRenameable>
+          <CanModifySearchSettings>1</CanModifySearchSettings>
+          <CanModifyRequirementLevelSettings>1</CanModifyRequirementLevelSettings>
+          <CanModifyAdditionalSettings>1</CanModifyAdditionalSettings>
+          <SourceType>0</SourceType>
+          <IsGlobalFilterEnabled>0</IsGlobalFilterEnabled>
+          <IsSortableEnabled>0</IsSortableEnabled>
+          <CanModifyGlobalFilterSettings>1</CanModifyGlobalFilterSettings>
+          <CanModifyIsSortableSettings>1</CanModifyIsSortableSettings>
+          <IsDataSourceSecret>0</IsDataSourceSecret>
+          <AutoNumberFormat></AutoNumberFormat>
+          <IsSearchable>0</IsSearchable>
+          <IsFilterable>0</IsFilterable>
+          <IsRetrievable>0</IsRetrievable>
+          <IsLocalizable>0</IsLocalizable>
+          <MinValue>-100000000000</MinValue>
+          <MaxValue>100000000000</MaxValue>
+          <Accuracy>4</Accuracy>
+          <displaynames>
+            <displayname description="Our price" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Latest price per unit we quoted to the buyer." languagecode="1033" />
+          </Descriptions>
+        </attribute>
         <attribute PhysicalName="gc_packaging">
           <Type>nvarchar</Type>
           <Name>gc_packaging</Name>
@@ -643,6 +954,46 @@
           <displaynames>
             <displayname description="Packaging" languagecode="1033" />
           </displaynames>
+        </attribute>
+        <attribute PhysicalName="gc_PaymentText">
+          <Type>nvarchar</Type>
+          <Name>gc_paymenttext</Name>
+          <LogicalName>gc_paymenttext</LogicalName>
+          <RequiredLevel>none</RequiredLevel>
+          <DisplayMask>ValidForAdvancedFind|ValidForForm|ValidForGrid</DisplayMask>
+          <ImeMode>auto</ImeMode>
+          <ValidForUpdateApi>1</ValidForUpdateApi>
+          <ValidForReadApi>1</ValidForReadApi>
+          <ValidForCreateApi>1</ValidForCreateApi>
+          <IsCustomField>1</IsCustomField>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <IntroducedVersion>1.0.0.0</IntroducedVersion>
+          <IsCustomizable>1</IsCustomizable>
+          <IsRenameable>1</IsRenameable>
+          <CanModifySearchSettings>1</CanModifySearchSettings>
+          <CanModifyRequirementLevelSettings>1</CanModifyRequirementLevelSettings>
+          <CanModifyAdditionalSettings>1</CanModifyAdditionalSettings>
+          <SourceType>0</SourceType>
+          <IsGlobalFilterEnabled>0</IsGlobalFilterEnabled>
+          <IsSortableEnabled>0</IsSortableEnabled>
+          <CanModifyGlobalFilterSettings>1</CanModifyGlobalFilterSettings>
+          <CanModifyIsSortableSettings>1</CanModifyIsSortableSettings>
+          <IsDataSourceSecret>0</IsDataSourceSecret>
+          <AutoNumberFormat></AutoNumberFormat>
+          <IsSearchable>0</IsSearchable>
+          <IsFilterable>0</IsFilterable>
+          <IsRetrievable>0</IsRetrievable>
+          <IsLocalizable>0</IsLocalizable>
+          <Format>text</Format>
+          <MaxLength>1000</MaxLength>
+          <Length>2000</Length>
+          <displaynames>
+            <displayname description="Payment terms (as written)" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Payment terms as the buyer wrote them." languagecode="1033" />
+          </Descriptions>
         </attribute>
         <attribute PhysicalName="gc_quantity">
           <Type>decimal</Type>
@@ -716,6 +1067,76 @@
           <displaynames>
             <displayname description="Quantity unit" languagecode="1033" />
           </displaynames>
+        </attribute>
+        <attribute PhysicalName="gc_Source">
+          <Type>picklist</Type>
+          <Name>gc_source</Name>
+          <LogicalName>gc_source</LogicalName>
+          <RequiredLevel>none</RequiredLevel>
+          <DisplayMask>ValidForAdvancedFind|ValidForForm|ValidForGrid</DisplayMask>
+          <ImeMode>auto</ImeMode>
+          <ValidForUpdateApi>1</ValidForUpdateApi>
+          <ValidForReadApi>1</ValidForReadApi>
+          <ValidForCreateApi>1</ValidForCreateApi>
+          <IsCustomField>1</IsCustomField>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <IntroducedVersion>1.0.0.0</IntroducedVersion>
+          <IsCustomizable>1</IsCustomizable>
+          <IsRenameable>1</IsRenameable>
+          <CanModifySearchSettings>1</CanModifySearchSettings>
+          <CanModifyRequirementLevelSettings>1</CanModifyRequirementLevelSettings>
+          <CanModifyAdditionalSettings>1</CanModifyAdditionalSettings>
+          <SourceType>0</SourceType>
+          <IsGlobalFilterEnabled>0</IsGlobalFilterEnabled>
+          <IsSortableEnabled>0</IsSortableEnabled>
+          <CanModifyGlobalFilterSettings>1</CanModifyGlobalFilterSettings>
+          <CanModifyIsSortableSettings>1</CanModifyIsSortableSettings>
+          <IsDataSourceSecret>0</IsDataSourceSecret>
+          <AutoNumberFormat></AutoNumberFormat>
+          <IsSearchable>0</IsSearchable>
+          <IsFilterable>0</IsFilterable>
+          <IsRetrievable>0</IsRetrievable>
+          <IsLocalizable>0</IsLocalizable>
+          <optionset Name="gc_buyerrequirement_gc_source">
+            <OptionSetType>picklist</OptionSetType>
+            <IntroducedVersion>1.0.0.0</IntroducedVersion>
+            <IsCustomizable>1</IsCustomizable>
+            <displaynames>
+              <displayname description="Source" languagecode="1033" />
+            </displaynames>
+            <Descriptions>
+              <Description description="Where the requirement came from." languagecode="1033" />
+            </Descriptions>
+            <options>
+              <option value="303300000" ExternalValue="" IsHidden="0">
+                <labels>
+                  <label description="Portal" languagecode="1033" />
+                </labels>
+              </option>
+              <option value="303300001" ExternalValue="" IsHidden="0">
+                <labels>
+                  <label description="Email" languagecode="1033" />
+                </labels>
+              </option>
+              <option value="303300002" ExternalValue="" IsHidden="0">
+                <labels>
+                  <label description="IndiaMART" languagecode="1033" />
+                </labels>
+              </option>
+              <option value="303300003" ExternalValue="" IsHidden="0">
+                <labels>
+                  <label description="Manual" languagecode="1033" />
+                </labels>
+              </option>
+            </options>
+          </optionset>
+          <displaynames>
+            <displayname description="Source" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Where the requirement came from." languagecode="1033" />
+          </Descriptions>
         </attribute>
         <attribute PhysicalName="gc_specification">
           <Type>ntext</Type>

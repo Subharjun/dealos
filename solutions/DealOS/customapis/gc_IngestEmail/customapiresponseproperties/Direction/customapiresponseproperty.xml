@@ -1,0 +1,11 @@
+<customapiresponseproperty uniquename="Direction">
+  <description default="Inbound or Outbound.">
+    <label description="Inbound or Outbound." languagecode="1033" />
+  </description>
+  <displayname default="Direction">
+    <label description="Direction" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <name>gc_IngestEmail.Direction</name>
+  <type>10</type>
+</customapiresponseproperty>

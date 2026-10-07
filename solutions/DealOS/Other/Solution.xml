@@ -109,6 +109,7 @@
       <RootComponent type="1" schemaName="gc_inspection" behavior="0" />
       <RootComponent type="1" schemaName="gc_invoice" behavior="0" />
       <RootComponent type="1" schemaName="gc_kyccheck" behavior="0" />
+      <RootComponent type="1" schemaName="gc_lead" behavior="0" />
       <RootComponent type="1" schemaName="gc_licence" behavior="0" />
       <RootComponent type="1" schemaName="gc_listing" behavior="0" />
       <RootComponent type="1" schemaName="gc_lot" behavior="0" />
@@ -130,6 +131,7 @@
       <RootComponent type="1" schemaName="gc_rfqinvite" behavior="0" />
       <RootComponent type="1" schemaName="gc_screening" behavior="0" />
       <RootComponent type="1" schemaName="gc_secret" behavior="0" />
+      <RootComponent type="1" schemaName="gc_sellerlot" behavior="0" />
       <RootComponent type="1" schemaName="gc_shipment" behavior="0" />
       <RootComponent type="1" schemaName="gc_shipmentdocument" behavior="0" />
       <RootComponent type="1" schemaName="gc_stagetransition" behavior="0" />
@@ -140,16 +142,21 @@
       <RootComponent type="29" id="{02bdd963-de7f-412e-829d-b86ad5bb05ff}" behavior="0" />
       <RootComponent type="29" id="{092d439d-a667-5fc9-a7cd-ec371ff34eeb}" behavior="0" />
       <RootComponent type="29" id="{0ec3ad54-ab2c-587b-a526-48f3c27db996}" behavior="0" />
+      <RootComponent type="29" id="{0f61a1ff-1ad2-58af-b2bc-82725bec4054}" behavior="0" />
       <RootComponent type="29" id="{1623822d-565c-5c1d-b186-cabd670f8241}" behavior="0" />
       <RootComponent type="29" id="{1788b368-938d-5d2f-a7c6-1c40ef018b46}" behavior="0" />
       <RootComponent type="29" id="{1e2f0031-c13b-5b80-96de-0c2b508f3c98}" behavior="0" />
+      <RootComponent type="29" id="{2b04d080-980d-57c6-8fbb-2b1db3a92f1d}" behavior="0" />
+      <RootComponent type="29" id="{2b854027-54d9-5891-a485-84531b3163f1}" behavior="0" />
       <RootComponent type="29" id="{2c1791d3-2d16-55c3-9253-4eec0ec52f2a}" behavior="0" />
       <RootComponent type="29" id="{2d215c02-ecd7-5533-8150-009dfd316544}" behavior="0" />
       <RootComponent type="29" id="{46432db9-f80d-551d-ad8c-3010f30a99c4}" behavior="0" />
       <RootComponent type="29" id="{4a7e104d-8846-5360-bdd5-9e9a09862eea}" behavior="0" />
+      <RootComponent type="29" id="{4b09261c-68dd-5b08-a85d-14de1de0551b}" behavior="0" />
       <RootComponent type="29" id="{4bcbe65b-20cd-5709-9d6d-577fae2a24b7}" behavior="0" />
       <RootComponent type="29" id="{4f7bfa4c-432c-512b-b763-c703a64a583b}" behavior="0" />
       <RootComponent type="29" id="{54c86828-b789-43ff-a057-9b0e19c37ae2}" behavior="0" />
+      <RootComponent type="29" id="{560deefb-b9c1-f111-aaaf-7ced8daf451f}" behavior="0" />
       <RootComponent type="29" id="{61380d6e-9294-51f5-a0aa-1ed88162da6d}" behavior="0" />
       <RootComponent type="29" id="{61c32774-5e2d-5fb2-a3f3-18bb71f245ee}" behavior="0" />
       <RootComponent type="29" id="{7da5c3b7-2538-5589-bb26-48f0273dd9a3}" behavior="0" />
@@ -161,15 +168,19 @@
       <RootComponent type="29" id="{aa21e3d3-d8fa-595c-9edb-fdfe8712ca67}" behavior="0" />
       <RootComponent type="29" id="{ab731b3f-b904-566b-b700-d8848a2e90cd}" behavior="0" />
       <RootComponent type="29" id="{b17c4dcd-f6cb-5a85-be8c-66d4a4d029f5}" behavior="0" />
+      <RootComponent type="29" id="{b3e366e6-0df5-53f4-b52b-47bceb9e1d34}" behavior="0" />
+      <RootComponent type="29" id="{ccf9be6e-ef36-53e2-8e76-4cca72bd145e}" behavior="0" />
       <RootComponent type="29" id="{d32f376a-16b5-5f06-beb6-32bf4d4e3087}" behavior="0" />
       <RootComponent type="29" id="{d709bc0a-8952-53c5-b7bc-f0c6add2e360}" behavior="0" />
       <RootComponent type="29" id="{dbe63e93-8844-40c7-a9c8-037b23dfdb6f}" behavior="0" />
       <RootComponent type="29" id="{e1847659-907f-5371-ac5d-9429973835e9}" behavior="0" />
       <RootComponent type="29" id="{e1ef2b29-ffd9-40ad-8640-6dbc3b362d18}" behavior="0" />
+      <RootComponent type="29" id="{edd31acb-b9c1-f111-aaaf-7ced8daf451f}" behavior="0" />
       <RootComponent type="29" id="{f650a3e8-418c-5d0f-a500-e1dc0f376e31}" behavior="0" />
       <RootComponent type="29" id="{fa5124db-a65c-5ba0-abf5-669992d2f834}" behavior="0" />
       <RootComponent type="29" id="{fc52243e-a274-5838-a3eb-f06af64e4bbd}" behavior="0" />
       <RootComponent type="29" id="{fe36875e-9ff5-5cf8-a3fe-dd12670dad9f}" behavior="0" />
+      <RootComponent type="372" id="{16068bbc-a9c1-f111-aaaf-7ced8daf451f}" schemaName="gc_dealosgmail" behavior="0" />
       <RootComponent type="372" id="{fad0f388-c5c0-f111-aaaf-7ced8daf451f}" schemaName="new_dealos-20openai" behavior="0" />
       <RootComponent type="62" schemaName="gc_DealOSAdmin" behavior="0" />
       <RootComponent type="80" schemaName="gc_DealOSAdmin" behavior="0" />
@@ -185,6 +196,7 @@
       <RootComponent type="9" schemaName="gc_recordstatus" behavior="0" />
       <RootComponent type="9" schemaName="gc_subjecttype" behavior="0" />
       <RootComponent type="91" id="{7de9c839-6ac1-f111-aaaf-7ced8daf451f}" schemaName="DealOS.Agents, Version=1.0.0.0, Culture=neutral, PublicKeyToken=6a7897f805501b8c" behavior="0" />
+      <RootComponent type="91" id="{6dddf24e-b9c1-f111-aaaf-7ced8daf451f}" schemaName="DealOS.Channels, Version=1.0.0.0, Culture=neutral, PublicKeyToken=86365882dd551a78" behavior="0" />
       <RootComponent type="91" id="{aaf1218a-c7c0-f111-aaaf-7ced8daf451f}" schemaName="DealOS.Plugins, Version=1.0.0.0, Culture=neutral, PublicKeyToken=2148fe5c80f36046" behavior="0" />
       <RootComponent type="92" id="{171f33ab-95c1-f111-aaaf-7ced8daf451f}" behavior="0" />
       <RootComponent type="92" id="{1a1f33ab-95c1-f111-aaaf-7ced8daf451f}" behavior="0" />
@@ -248,6 +260,14 @@
           <package appName="AppModule Web Resources Package" version="2.5">AppModuleWebResources (2.5)</package>
         </Required>
         <Dependent type="80" schemaName="gc_DealOSAdmin" displayName="DealOS Admin" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="connectionreference" displayName="gc_gmail" solution="Active" id.connectionreferencelogicalname="gc_gmail" />
+        <Dependent type="29" displayName="DealOS | Email Desk test kit" id="{0f61a1ff-1ad2-58af-b2bc-82725bec4054}" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="connectionreference" displayName="gc_gmail" solution="Active" id.connectionreferencelogicalname="gc_gmail" />
+        <Dependent type="29" displayName="DealOS | Desk drafts" id="{2b854027-54d9-5891-a485-84531b3163f1}" />
       </MissingDependency>
       <MissingDependency>
         <Required type="SettingDefinition" displayName="AppChannel" solution="msdyn_AppFrameworkInfraExtensions (1.0.0.20)" id.uniquename="AppChannel">

@@ -1,0 +1,352 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_commondataserviceforapps": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "gc_dataverse"
+        },
+        "api": {
+          "name": "shared_commondataserviceforapps"
+        }
+      },
+      "shared_gc-5fdealos-20gmail-5fc12c8485be9726a2": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "gc_gmail"
+        },
+        "api": {
+          "name": "shared_gc-5fdealos-20gmail-5fc12c8485be9726a2",
+          "logicalName": "gc_dealosgmail"
+        }
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$connections": {
+          "defaultValue": {},
+          "type": "Object"
+        },
+        "$authentication": {
+          "defaultValue": {},
+          "type": "SecureObject"
+        }
+      },
+      "triggers": {
+        "When_a_desk_draft_changes": {
+          "type": "OpenApiConnectionWebhook",
+          "inputs": {
+            "host": {
+              "connectionName": "shared_commondataserviceforapps",
+              "operationId": "SubscribeWebhookTrigger",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "subscriptionRequest/message": 4,
+              "subscriptionRequest/entityname": "gc_message",
+              "subscriptionRequest/scope": 4,
+              "subscriptionRequest/filteringattributes": "gc_draftstatus"
+            },
+            "authentication": "@parameters('$authentication')"
+          },
+          "conditions": [
+            {
+              "expression": "@or(and(equals(triggerOutputs()?['body/gc_draftstatus'], 303300000), empty(triggerOutputs()?['body/gc_gmaildraftid'])), and(equals(triggerOutputs()?['body/gc_draftstatus'], 303300002), not(empty(triggerOutputs()?['body/gc_gmaildraftid']))))"
+            }
+          ],
+          "runtimeConfiguration": {
+            "concurrency": {
+              "runs": 1
+            }
+          }
+        }
+      },
+      "actions": {
+        "Try": {
+          "actions": {
+            "Pending_or_discarded": {
+              "actions": {
+                "Profile": {
+                  "runAfter": {},
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_gc-5fdealos-20gmail-5fc12c8485be9726a2",
+                      "operationId": "GetProfile",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_gc-5fdealos-20gmail-5fc12c8485be9726a2"
+                    },
+                    "parameters": {},
+                    "authentication": "@parameters('$authentication')"
+                  }
+                },
+                "Build": {
+                  "runAfter": {
+                    "Profile": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_commondataserviceforapps",
+                      "operationId": "PerformUnboundAction",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                    },
+                    "parameters": {
+                      "actionName": "gc_BuildEmailRaw",
+                      "item/MessageId": "@{triggerOutputs()?['body/gc_messageid']}",
+                      "item/MailboxAddress": "@{body('Profile')?['emailAddress']}"
+                    },
+                    "authentication": "@parameters('$authentication')",
+                    "retryPolicy": {
+                      "type": "none"
+                    }
+                  }
+                },
+                "Has_thread": {
+                  "actions": {
+                    "Draft_in_thread": {
+                      "runAfter": {},
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "host": {
+                          "connectionName": "shared_gc-5fdealos-20gmail-5fc12c8485be9726a2",
+                          "operationId": "CreateDraft",
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_gc-5fdealos-20gmail-5fc12c8485be9726a2"
+                        },
+                        "parameters": {
+                          "body/message/raw": "@{outputs('Build')?['body/Raw']}",
+                          "body/message/threadId": "@{outputs('Build')?['body/ThreadId']}"
+                        },
+                        "authentication": "@parameters('$authentication')"
+                      }
+                    }
+                  },
+                  "runAfter": {
+                    "Build": [
+                      "Succeeded"
+                    ]
+                  },
+                  "else": {
+                    "actions": {
+                      "Draft_new_thread": {
+                        "runAfter": {},
+                        "type": "OpenApiConnection",
+                        "inputs": {
+                          "host": {
+                            "connectionName": "shared_gc-5fdealos-20gmail-5fc12c8485be9726a2",
+                            "operationId": "CreateDraft",
+                            "apiId": "/providers/Microsoft.PowerApps/apis/shared_gc-5fdealos-20gmail-5fc12c8485be9726a2"
+                          },
+                          "parameters": {
+                            "body/message/raw": "@{outputs('Build')?['body/Raw']}"
+                          },
+                          "authentication": "@parameters('$authentication')"
+                        }
+                      }
+                    }
+                  },
+                  "expression": "@not(empty(outputs('Build')?['body/ThreadId']))",
+                  "type": "If"
+                },
+                "Save_draft_id": {
+                  "runAfter": {
+                    "Has_thread": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_commondataserviceforapps",
+                      "operationId": "UpdateRecord",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                    },
+                    "parameters": {
+                      "entityName": "gc_messages",
+                      "recordId": "@{triggerOutputs()?['body/gc_messageid']}",
+                      "item/gc_gmaildraftid": "@{coalesce(body('Draft_in_thread')?['id'], body('Draft_new_thread')?['id'])}"
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  }
+                },
+                "New_thread": {
+                  "actions": {
+                    "Save_thread_id": {
+                      "runAfter": {},
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "host": {
+                          "connectionName": "shared_commondataserviceforapps",
+                          "operationId": "UpdateRecord",
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                        },
+                        "parameters": {
+                          "entityName": "gc_conversations",
+                          "recordId": "@{triggerOutputs()?['body/_gc_conversation_value']}",
+                          "item/gc_gmailthreadid": "@{coalesce(body('Draft_in_thread')?['message']?['threadId'], body('Draft_new_thread')?['message']?['threadId'])}"
+                        },
+                        "authentication": "@parameters('$authentication')"
+                      }
+                    }
+                  },
+                  "runAfter": {
+                    "Save_draft_id": [
+                      "Succeeded"
+                    ]
+                  },
+                  "else": {
+                    "actions": {}
+                  },
+                  "expression": "@empty(outputs('Build')?['body/ThreadId'])",
+                  "type": "If"
+                },
+                "Auto_send": {
+                  "actions": {
+                    "Send_now": {
+                      "runAfter": {},
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "host": {
+                          "connectionName": "shared_gc-5fdealos-20gmail-5fc12c8485be9726a2",
+                          "operationId": "SendDraft",
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_gc-5fdealos-20gmail-5fc12c8485be9726a2"
+                        },
+                        "parameters": {
+                          "body/id": "@{coalesce(body('Draft_in_thread')?['id'], body('Draft_new_thread')?['id'])}"
+                        },
+                        "authentication": "@parameters('$authentication')"
+                      }
+                    }
+                  },
+                  "runAfter": {
+                    "New_thread": [
+                      "Succeeded"
+                    ]
+                  },
+                  "else": {
+                    "actions": {}
+                  },
+                  "expression": "@equals(triggerOutputs()?['body/gc_autosend'], true)",
+                  "type": "If"
+                },
+                "Audit_draft": {
+                  "runAfter": {
+                    "Auto_send": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_commondataserviceforapps",
+                      "operationId": "CreateRecord",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                    },
+                    "parameters": {
+                      "entityName": "gc_auditevents",
+                      "item/gc_hash": "set-by-invariants-plugin",
+                      "item/gc_name": "email.drafted",
+                      "item/gc_actor": "flow:desk-drafts",
+                      "item/gc_action": "email.drafted",
+                      "item/gc_subjecttype": "gc_message",
+                      "item/gc_subjectid": "@{triggerOutputs()?['body/gc_messageid']}",
+                      "item/gc_details": "@{take(string(addProperty(addProperty(addProperty(json('{}'), 'to', outputs('Build')?['body/To']), 'draft', coalesce(body('Draft_in_thread')?['id'], body('Draft_new_thread')?['id'])), 'auto_send', triggerOutputs()?['body/gc_autosend'])), 100000)}"
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  }
+                }
+              },
+              "runAfter": {},
+              "else": {
+                "actions": {
+                  "Delete_gmail_draft": {
+                    "runAfter": {},
+                    "type": "OpenApiConnection",
+                    "inputs": {
+                      "host": {
+                        "connectionName": "shared_gc-5fdealos-20gmail-5fc12c8485be9726a2",
+                        "operationId": "DeleteDraft",
+                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_gc-5fdealos-20gmail-5fc12c8485be9726a2"
+                      },
+                      "parameters": {
+                        "id": "@{triggerOutputs()?['body/gc_gmaildraftid']}"
+                      },
+                      "authentication": "@parameters('$authentication')"
+                    }
+                  },
+                  "Draft_gone": {
+                    "runAfter": {
+                      "Delete_gmail_draft": [
+                        "Succeeded",
+                        "Failed"
+                      ]
+                    },
+                    "type": "Compose",
+                    "inputs": "deleted or already sent"
+                  }
+                }
+              },
+              "expression": "@equals(triggerOutputs()?['body/gc_draftstatus'], 303300000)",
+              "type": "If"
+            }
+          },
+          "runAfter": {},
+          "type": "Scope"
+        },
+        "Catch": {
+          "actions": {
+            "Record_failure": {
+              "runAfter": {},
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "CreateRecord",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_flowfailures",
+                  "item/gc_name": "DealOS | Desk drafts",
+                  "item/gc_flowname": "DealOS | Desk drafts",
+                  "item/gc_runurl": "https://make.powerautomate.com/environments/@{workflow()?['tags']?['environmentName']}/flows/@{workflow()?['name']}/runs/@{workflow()?['run']?['name']}",
+                  "item/gc_step": "Try",
+                  "item/gc_error": "@{take(string(result('Try')), 3900)}",
+                  "item/gc_payload": "@{take(string(triggerOutputs()?['body']), 100000)}",
+                  "item/gc_status": 303300000
+                },
+                "authentication": "@parameters('$authentication')"
+              }
+            },
+            "Fail_run": {
+              "runAfter": {
+                "Record_failure": [
+                  "Succeeded"
+                ]
+              },
+              "type": "Terminate",
+              "inputs": {
+                "runStatus": "Failed",
+                "runError": {
+                  "code": "DealOSFlowFailure",
+                  "message": "Recorded in Flow failures"
+                }
+              }
+            }
+          },
+          "runAfter": {
+            "Try": [
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "type": "Scope"
+        }
+      }
+    },
+    "templateName": null
+  },
+  "schemaVersion": "1.0.0.0"
+}

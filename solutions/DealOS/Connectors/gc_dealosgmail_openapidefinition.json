@@ -1,0 +1,529 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "DealOS Gmail",
+    "description": "Gmail API operations used by the DealOS Email Desk flows: read messages and attachments, manage labels and create reply drafts. Signs in with the DealOS Google OAuth app.",
+    "version": "1.0"
+  },
+  "host": "gmail.googleapis.com",
+  "basePath": "/gmail/v1/users/me",
+  "schemes": [
+    "https"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "securityDefinitions": {
+    "oauth2_auth": {
+      "type": "oauth2",
+      "flow": "accessCode",
+      "authorizationUrl": "https://accounts.google.com/o/oauth2/auth",
+      "tokenUrl": "https://oauth2.googleapis.com/token",
+      "scopes": {
+        "https://www.googleapis.com/auth/gmail.modify": "Read, label and draft Gmail messages"
+      }
+    }
+  },
+  "security": [
+    {
+      "oauth2_auth": [
+        "https://www.googleapis.com/auth/gmail.modify"
+      ]
+    }
+  ],
+  "paths": {
+    "/profile": {
+      "get": {
+        "operationId": "GetProfile",
+        "summary": "Get profile",
+        "description": "Returns the signed-in mailbox address and message counts.",
+        "responses": {
+          "200": {
+            "description": "Profile",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "emailAddress": {
+                  "type": "string"
+                },
+                "messagesTotal": {
+                  "type": "integer"
+                },
+                "threadsTotal": {
+                  "type": "integer"
+                },
+                "historyId": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/labels": {
+      "get": {
+        "operationId": "ListLabels",
+        "summary": "List labels",
+        "description": "Lists all labels of the mailbox.",
+        "responses": {
+          "200": {
+            "description": "Labels",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "labels": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/Label"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "CreateLabel",
+        "summary": "Create label",
+        "description": "Creates a label. Use a slash in the name for nesting, for example DealOS/Buyer.",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "required": [
+                "name"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Label name."
+                },
+                "labelListVisibility": {
+                  "type": "string",
+                  "default": "labelShow",
+                  "description": "labelShow, labelShowIfUnread or labelHide."
+                },
+                "messageListVisibility": {
+                  "type": "string",
+                  "default": "show",
+                  "description": "show or hide."
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The new label",
+            "schema": {
+              "$ref": "#/definitions/Label"
+            }
+          }
+        }
+      }
+    },
+    "/messages": {
+      "get": {
+        "operationId": "ListMessages",
+        "summary": "List messages",
+        "description": "Lists message ids matching a Gmail search query, newest first.",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "type": "string",
+            "required": false,
+            "description": "Gmail search query, for example in:inbox newer_than:2d."
+          },
+          {
+            "name": "maxResults",
+            "in": "query",
+            "type": "integer",
+            "required": false,
+            "default": 10,
+            "description": "Maximum number of messages to return."
+          },
+          {
+            "name": "pageToken",
+            "in": "query",
+            "type": "string",
+            "required": false,
+            "description": "Page token from a previous call."
+          },
+          {
+            "name": "includeSpamTrash",
+            "in": "query",
+            "type": "boolean",
+            "required": false,
+            "default": false,
+            "description": "Include spam and trash."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Message ids",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "messages": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "threadId": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                "nextPageToken": {
+                  "type": "string"
+                },
+                "resultSizeEstimate": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "InsertMessage",
+        "summary": "Insert message",
+        "description": "Inserts a message directly into the mailbox (like an import; nothing is sent). Used by the Email Desk test kit.",
+        "parameters": [
+          {
+            "name": "internalDateSource",
+            "in": "query",
+            "type": "string",
+            "required": false,
+            "default": "dateHeader",
+            "description": "receivedTime or dateHeader."
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "raw": {
+                  "type": "string",
+                  "description": "RFC 2822 message, base64url."
+                },
+                "threadId": {
+                  "type": "string",
+                  "description": "Thread to add the message to."
+                },
+                "labelIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Labels, for example INBOX and UNREAD."
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The message",
+            "schema": {
+              "$ref": "#/definitions/Message"
+            }
+          }
+        }
+      }
+    },
+    "/messages/{id}": {
+      "get": {
+        "operationId": "GetMessage",
+        "summary": "Get message",
+        "description": "Gets one message with headers, body parts and attachment ids.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "type": "string",
+            "required": true,
+            "description": "Message id."
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "type": "string",
+            "required": false,
+            "default": "full",
+            "enum": [
+              "full",
+              "metadata",
+              "minimal",
+              "raw"
+            ],
+            "description": "Response format."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The message",
+            "schema": {
+              "$ref": "#/definitions/Message"
+            }
+          }
+        }
+      }
+    },
+    "/messages/{messageId}/attachments/{id}": {
+      "get": {
+        "operationId": "GetAttachment",
+        "summary": "Get attachment",
+        "description": "Gets the content of one attachment as base64url.",
+        "parameters": [
+          {
+            "name": "messageId",
+            "in": "path",
+            "type": "string",
+            "required": true,
+            "description": "Message id."
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "type": "string",
+            "required": true,
+            "description": "Attachment id."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Attachment",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "size": {
+                  "type": "integer"
+                },
+                "data": {
+                  "type": "string",
+                  "description": "Content, base64url."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/messages/{id}/modify": {
+      "post": {
+        "operationId": "ModifyMessage",
+        "summary": "Modify message labels",
+        "description": "Adds and removes labels on a message.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "type": "string",
+            "required": true,
+            "description": "Message id."
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "addLabelIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Label ids to add."
+                },
+                "removeLabelIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Label ids to remove."
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The message",
+            "schema": {
+              "$ref": "#/definitions/Message"
+            }
+          }
+        }
+      }
+    },
+    "/drafts": {
+      "post": {
+        "operationId": "CreateDraft",
+        "summary": "Create draft",
+        "description": "Creates a draft, optionally as a reply in an existing thread. The raw message is RFC 2822, base64url encoded.",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "object",
+                  "properties": {
+                    "raw": {
+                      "type": "string",
+                      "description": "RFC 2822 message, base64url."
+                    },
+                    "threadId": {
+                      "type": "string",
+                      "description": "Thread to reply in."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The draft",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "threadId": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/drafts/send": {
+      "post": {
+        "operationId": "SendDraft",
+        "summary": "Send draft",
+        "description": "Sends an existing draft.",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "Draft id."
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The sent message",
+            "schema": {
+              "$ref": "#/definitions/Message"
+            }
+          }
+        }
+      }
+    },
+    "/drafts/{id}": {
+      "delete": {
+        "operationId": "DeleteDraft",
+        "summary": "Delete draft",
+        "description": "Deletes a draft that is no longer wanted.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "type": "string",
+            "required": true,
+            "description": "Draft id."
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "Label": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        }
+      }
+    },
+    "Message": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "threadId": {
+          "type": "string"
+        },
+        "labelIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "snippet": {
+          "type": "string"
+        },
+        "internalDate": {
+          "type": "string"
+        },
+        "sizeEstimate": {
+          "type": "integer"
+        },
+        "payload": {
+          "type": "object"
+        }
+      }
+    }
+  }
+}

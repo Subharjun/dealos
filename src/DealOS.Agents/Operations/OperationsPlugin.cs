@@ -26,9 +26,7 @@ namespace DealOS.Agents.Operations
     /// <summary>
     /// Deterministic deal operations exposed as Custom APIs. No AI is involved.
     ///   gc_AcceptOffer(OfferId)  → Status, DealId, Stage, ClosedDeals, Summary
-    ///   gc_OpenEscrow(DealId)    → Status, PaymentId, Releases, Summary
     ///   gc_ReleaseDeal(DealId)   → Status, Lots, Offers, Summary          (frees what a cancelled deal held)
-    ///   gc_InstructRelease(ReleaseId) → Status, Summary                  (records the instruction after Finance approval)
     /// Each call is one Dataverse transaction: any refusal throws, and nothing is saved.
     /// The caller must be able to read the offer or deal; writes run as SYSTEM so competing deals of other parties can be closed.
     /// </summary>
@@ -45,14 +43,8 @@ namespace DealOS.Agents.Operations
                 case "gc_AcceptOffer":
                     new AcceptOffer(dv, actor).Run(RequireId(context, "OfferId"), context.OutputParameters);
                     break;
-                case "gc_OpenEscrow":
-                    new OpenEscrow(dv, actor).Run(RequireId(context, "DealId"), context.OutputParameters);
-                    break;
                 case "gc_ReleaseDeal":
                     ReleaseDeal(dv, actor, RequireId(context, "DealId"), context.OutputParameters);
-                    break;
-                case "gc_InstructRelease":
-                    InstructRelease(dv, actor, RequireId(context, "ReleaseId"), context.OutputParameters);
                     break;
                 default:
                     throw new InvalidPluginExecutionException("OperationsPlugin does not handle " + context.MessageName + ".");
@@ -88,55 +80,6 @@ namespace DealOS.Agents.Operations
             o["Lots"] = lots;
             o["Offers"] = offers;
             o["Summary"] = lots + " lot(s) made available again; " + offers + " open offer(s) rejected.";
-        }
-
-        /// <summary>
-        /// Records that a release may be paid out. Re-checks the gates in code: an Approved Fund Release task for this release,
-        /// a funded payment and no hold on the deal. Instructing the escrow partner itself stays with Finance until the partner API exists.
-        /// </summary>
-        private static void InstructRelease(Dv dv, string actor, Guid releaseId, ParameterCollection o)
-        {
-            var rel = dv.Retrieve("gc_paymentrelease", releaseId, "gc_name", "gc_status", "gc_payment", "gc_amount", "gc_netamount");
-            if (rel == null) Refuse("Release " + releaseId + " was not found or you cannot read it.");
-            var status = Opt(rel, "gc_status");
-            if (status == Ops.Release.Instructed)
-            {
-                o["Status"] = "AlreadyInstructed";
-                o["Summary"] = "The release was already instructed.";
-                return;
-            }
-            if (status != Ops.Release.Pending && status != Ops.Release.ConditionsMet && status != Ops.Release.AwaitingApproval)
-                Refuse("The release is " + Dv.Label(rel, "gc_status") + "; it cannot be instructed.");
-            var payment = dv.Retrieve("gc_payment", Ref(rel, "gc_payment") ?? Guid.Empty, "gc_state", "gc_deal");
-            if (payment == null) Refuse("The release has no payment.");
-            var state = Opt(payment, "gc_state");
-            if (state != Ops.Payment.Funded && state != Ops.Payment.ReleasePending && state != Ops.Payment.ReleaseInstructed)
-                Refuse("Escrow is " + Dv.Label(payment, "gc_state") + "; funds can only be released from a funded escrow.");
-            var deal = dv.Retrieve("gc_deal", Ref(payment, "gc_deal") ?? Guid.Empty, "gc_statusoverlay");
-            var overlay = deal == null ? null : Opt(deal, "gc_statusoverlay");
-            if (overlay != null && overlay != Ops.OverlayNone) Refuse("The deal is " + Dv.Label(deal, "gc_statusoverlay") + "; every money movement is blocked.");
-            var approval = dv.Query("gc_reviewtask", new[] { "gc_payload", "gc_decidedby" }, 50, "gc_purpose", ConditionOperator.Equal, Ops.Review.FundRelease,
-                    "gc_status", ConditionOperator.Equal, Ops.Review.Approved)
-                .FirstOrDefault(t => (t.GetAttributeValue<string>("gc_payload") ?? "").IndexOf(releaseId.ToString(), StringComparison.OrdinalIgnoreCase) >= 0);
-            if (approval == null) Refuse("No approved Fund Release task exists for this release; Finance must approve it first.");
-
-            var upd = new Entity("gc_paymentrelease", releaseId);
-            upd["gc_status"] = new OptionSetValue(Ops.Release.Instructed);
-            upd["gc_instructedon"] = DateTime.UtcNow;
-            var approver = approval.GetAttributeValue<EntityReference>("gc_decidedby");
-            if (approver != null) upd["gc_approvedby"] = approver;
-            dv.System.Update(upd);
-            if (state != Ops.Payment.ReleaseInstructed)
-            {
-                var p = new Entity("gc_payment", payment.Id);
-                p["gc_state"] = new OptionSetValue(Ops.Payment.ReleaseInstructed);
-                dv.System.Update(p);
-            }
-            Audit(dv, actor, "release.instructed", "gc_paymentrelease", releaseId,
-                J.Obj("approval", approval.Id.ToString(), "amount", rel.GetAttributeValue<decimal?>("gc_amount"), "net", rel.GetAttributeValue<decimal?>("gc_netamount")));
-            o["Status"] = "Instructed";
-            o["Summary"] = string.Format(CultureInfo.InvariantCulture, "{0} instructed: gross {1:N2}, net to seller {2:N2}. Finance must now instruct the escrow partner.",
-                rel.GetAttributeValue<string>("gc_name"), rel.GetAttributeValue<decimal?>("gc_amount") ?? 0, rel.GetAttributeValue<decimal?>("gc_netamount") ?? 0);
         }
 
         private static Guid RequireId(IPluginExecutionContext context, string name)
@@ -382,7 +325,12 @@ namespace DealOS.Agents.Operations
             }
             var closed = 0;
             foreach (var other in OpenDeals("gc_requirement", reqId.Value, deal.Id))
-                if (Cancel(other, "Buyer accepted another offer for this RFQ")) closed++;
+                if (Cancel(other, "Buyer accepted another offer for this RFQ"))
+                {
+                    closed++;
+                    if (Mail.Desk.RegretNote(new Mail.DeskWriter(_dv), other.Id) != null)
+                        _notes.Add("'Not this time' note drafted to the seller of '" + other.GetAttributeValue<string>("gc_name") + "'.");
+                }
             var done = new Entity("gc_buyerrequirement", reqId.Value);
             done["gc_status"] = new OptionSetValue(Ops.Requirement.Fulfilled);
             _dv.System.Update(done);
@@ -420,106 +368,4 @@ namespace DealOS.Agents.Operations
         }
     }
 
-    /// <summary>
-    /// Opens escrow for a signed deal: one gc_payment (Awaiting Funding) and its release tranches with commission,
-    /// computed by the same maths as the Payment agent. Idempotent: returns the existing payment when there is one.
-    /// </summary>
-    internal sealed class OpenEscrow
-    {
-        private readonly Dv _dv;
-        private readonly string _actor;
-
-        public OpenEscrow(Dv dv, string actor) { _dv = dv; _actor = actor; }
-
-        public void Run(Guid dealId, ParameterCollection output)
-        {
-            var deal = _dv.Retrieve("gc_deal", dealId, "gc_name", "gc_stage", "gc_price", "gc_quantity", "gc_currency", "gc_commissionplan");
-            if (deal == null) OperationsPlugin.Refuse("Deal " + dealId + " was not found or you cannot read it.");
-            var existing = _dv.Query("gc_payment", new[] { "gc_state" }, 5, "gc_deal", ConditionOperator.Equal, dealId,
-                "gc_state", ConditionOperator.NotEqual, Ops.Payment.Cancelled).FirstOrDefault();
-            if (existing != null)
-            {
-                var count = _dv.Query("gc_paymentrelease", new[] { "gc_paymentreleaseid" }, 50, "gc_payment", ConditionOperator.Equal, existing.Id).Count;
-                Output(output, "Exists", existing.Id, count, "Escrow is already open (" + Dv.Label(existing, "gc_state") + ").");
-                return;
-            }
-            var stage = OperationsPlugin.Opt(deal, "gc_stage");
-            if (stage != Ops.Stage.Signed && stage != Ops.Stage.AwaitingFunding)
-                OperationsPlugin.Refuse("Escrow opens after signing; the deal is at " + Dv.Label(deal, "gc_stage") + ".");
-            var price = deal.GetAttributeValue<decimal?>("gc_price");
-            var qty = deal.GetAttributeValue<decimal?>("gc_quantity");
-            if (price == null || qty == null || price <= 0 || qty <= 0) OperationsPlugin.Refuse("The deal needs a price and quantity before escrow can open.");
-            var currency = deal.GetAttributeValue<string>("gc_currency") ?? "USD";
-            var value = Math.Round(price.Value * qty.Value, 2);
-
-            List<Dictionary<string, object>> tranches;
-            try
-            {
-                tranches = ((List<object>)Json.Parse(_dv.Setting("escrow.default_schedule",
-                    "[{\"pct\":30,\"condition\":\"Inspection passed and BL issued\"},{\"pct\":70,\"condition\":\"Delivered and discharge inspection accepted\"}]")))
-                    .OfType<Dictionary<string, object>>().ToList();
-            }
-            catch (Exception ex) when (ex is FormatException || ex is InvalidCastException)
-            {
-                OperationsPlugin.Refuse("Setting escrow.default_schedule is not a JSON array of {pct, condition}.");
-                return;
-            }
-            if (tranches.Count == 0 || Math.Abs(tranches.Sum(t => J.Num(t, "pct") ?? 0) - 100) > 0.01)
-                OperationsPlugin.Refuse("Setting escrow.default_schedule must have tranches whose pct sum to 100.");
-            var math = ToolCatalog.ReleaseMath((double)value, tranches, Plan(OperationsPlugin.Ref(deal, "gc_commissionplan")));
-            var buyerCommission = Convert.ToDecimal(J.Get(math, "buyer_commission"), CultureInfo.InvariantCulture);
-
-            var p = new Entity("gc_payment");
-            p["gc_name"] = GeminiClient.Truncate("Escrow – " + deal.GetAttributeValue<string>("gc_name"), 100);
-            p["gc_deal"] = new EntityReference("gc_deal", dealId);
-            p["gc_currency"] = currency;
-            p["gc_amountdue"] = value + buyerCommission;
-            p["gc_state"] = new OptionSetValue(Ops.Payment.AwaitingFunding);
-            p["gc_partner"] = _dv.Setting("escrow.partner", "Not configured");
-            p["gc_fundingdeadline"] = DateTime.UtcNow.Date.AddDays(_dv.SettingInt("escrow.funding_days", 7));
-            var paymentId = _dv.System.Create(p);
-
-            var rows = J.Arr(math, "tranches").OfType<Dictionary<string, object>>().ToList();
-            foreach (var t in rows)
-            {
-                var seq = Convert.ToInt32(J.Get(t, "sequence"), CultureInfo.InvariantCulture);
-                var r = new Entity("gc_paymentrelease");
-                r["gc_name"] = GeminiClient.Truncate("Tranche " + seq + " – " + J.Str(t, "condition"), 100);
-                r["gc_payment"] = new EntityReference("gc_payment", paymentId);
-                r["gc_sequence"] = seq;
-                r["gc_pct"] = Convert.ToDecimal(J.Get(t, "pct"), CultureInfo.InvariantCulture);
-                r["gc_amount"] = Convert.ToDecimal(J.Get(t, "gross"), CultureInfo.InvariantCulture);
-                r["gc_commissionamount"] = Convert.ToDecimal(J.Get(t, "commission_deducted"), CultureInfo.InvariantCulture);
-                r["gc_netamount"] = Convert.ToDecimal(J.Get(t, "net_to_seller"), CultureInfo.InvariantCulture);
-                r["gc_condition"] = J.Str(t, "condition");
-                r["gc_status"] = new OptionSetValue(Ops.Release.Pending);
-                r["gc_idempotencykey"] = paymentId + ":" + seq;
-                _dv.System.Create(r);
-            }
-
-            OperationsPlugin.Audit(_dv, _actor, "escrow.opened", "gc_deal", dealId, J.Obj("payment", paymentId.ToString(), "schedule", math));
-            Output(output, "Opened", paymentId, rows.Count, string.Format(CultureInfo.InvariantCulture,
-                "Escrow opened: {0} {1:N2} due ({2} tranches, commission {3:N2} {4}).", currency, value + buyerCommission, rows.Count,
-                Convert.ToDecimal(J.Get(math, "commission_total"), CultureInfo.InvariantCulture), J.Str(math, "plan")));
-        }
-
-        private Dictionary<string, object> Plan(Guid? planId)
-        {
-            var cols = new[] { "gc_name", "gc_ratepct", "gc_payer", "gc_minamount", "gc_maxamount", "gc_sellersharepct" };
-            var p = planId == null ? null : _dv.Retrieve("gc_commissionplan", planId.Value, cols);
-            if (p == null) p = _dv.Query("gc_commissionplan", cols, 1, "gc_isdefault", ConditionOperator.Equal, true).FirstOrDefault();
-            if (p == null) return null;
-            return J.Obj("name", p.GetAttributeValue<string>("gc_name"), "rate_pct", (double?)p.GetAttributeValue<decimal?>("gc_ratepct"),
-                "payer", Dv.Label(p, "gc_payer"), "min_amount", (double?)p.GetAttributeValue<decimal?>("gc_minamount"),
-                "max_amount", (double?)p.GetAttributeValue<decimal?>("gc_maxamount"), "seller_share_pct", (double?)p.GetAttributeValue<decimal?>("gc_sellersharepct"));
-        }
-
-        private static void Output(ParameterCollection o, string status, Guid payment, int releases, string summary)
-        {
-            o["Status"] = status;
-            o["PaymentId"] = payment.ToString();
-            o["Releases"] = releases;
-            o["Summary"] = summary;
-        }
-    }
 }

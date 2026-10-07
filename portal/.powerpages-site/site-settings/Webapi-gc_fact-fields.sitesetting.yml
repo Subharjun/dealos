@@ -1,4 +1,0 @@
-description: "DealOS: columns of gc_fact the site may read or write"
-id: aa3d13fd-dc2a-50f6-8806-acb808516599
-name: Webapi/gc_fact/fields
-value: "_gc_listing_value,gc_attributekey,gc_displayvalue,gc_factid,gc_status"

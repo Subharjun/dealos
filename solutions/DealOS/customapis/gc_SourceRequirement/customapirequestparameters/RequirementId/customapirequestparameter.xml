@@ -1,0 +1,12 @@
+<customapirequestparameter uniquename="RequirementId">
+  <description default="The gc_buyerrequirement.">
+    <label description="The gc_buyerrequirement." languagecode="1033" />
+  </description>
+  <displayname default="RequirementId">
+    <label description="RequirementId" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isoptional>0</isoptional>
+  <name>gc_SourceRequirement.RequirementId</name>
+  <type>12</type>
+</customapirequestparameter>

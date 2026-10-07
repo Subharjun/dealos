@@ -15,7 +15,6 @@ Send the project owner (Subharjun) your **GitHub username** and the **email you 
 | Dev environment | Giga core's Environment, `https://org61da3071.crm8.dynamics.com` | Tables, data, custom APIs, through `tools/dv.py` |
 | Flows | [make.powerautomate.com](https://make.powerautomate.com), environment "Giga core's Environment", **Solutions → DealOS** | See the 22 flows and their run history |
 | Admin app | [make.powerapps.com](https://make.powerapps.com), **Apps → DealOS Admin** | Browse listings, deals, review tasks, agent runs |
-| Marketplace site | https://dealos-gigacore.powerappsportals.com | The buyer / seller site (private to the tenant for now) |
 
 You need a Power Apps licence or trial to open the environment. If you are told you don't have one, start the free [Power Apps Developer Plan](https://powerapps.microsoft.com/developerplan/) with the same account.
 
@@ -28,8 +27,7 @@ You need:
 - **git**
 - **Python 3.9 or later.** The tools use only the standard library, so there is nothing to `pip install`.
 - **.NET SDK 10** ([download](https://dotnet.microsoft.com/download)). It builds the plug-in (net462) and the test harness. The harness also builds with SDK 8.
-- **PAC CLI**, to export the solution and deploy the site: `dotnet tool install --global Microsoft.PowerApps.CLI.Tool`, then `pac auth create --environment https://org61da3071.crm8.dynamics.com`
-- **Node.js 18 or later**, only for the marketplace site in `portal/`
+- **PAC CLI**, to export the solution: `dotnet tool install --global Microsoft.PowerApps.CLI.Tool`, then `pac auth create --environment https://org61da3071.crm8.dynamics.com`
 
 Then:
 
@@ -46,9 +44,9 @@ If you have more than one .NET install (common with Homebrew on a Mac), point `D
 
 Use `python3 tools/dv.py login`, **not** `login --device`. The tenant's security defaults block the device-code sign-in. When a command later says the token expired or was revoked, sign in again.
 
-### The Gemini key
+### The AI keys (OpenAI, Gemini)
 
-You **don't need it** for most work. The key is already stored in Dataverse, and the agents read it from there. Without a key in `.env`, `tools/deploy_agents.py` deploys everything else and leaves the stored key unchanged.
+The agents run on **OpenAI** (`agents.provider` = openai); Gemini is the standby provider. You **don't need either key** for most work. The keys are already stored in Dataverse, and the agents read them from there. Without a key in `.env`, `tools/deploy_agents.py` deploys everything else and leaves the stored keys unchanged.
 
 If you do need it, ask the owner directly. Never commit it, paste it in a chat or put it in a ticket. Copy [.env.example](../.env.example) to `.env` and fill it in.
 
@@ -64,7 +62,6 @@ If you do need it, ask the owner directly. Never commit it, paste it in a chat o
 
 **Tables are code too.** Add a table or column in [tools/deploy_schema.py](../tools/deploy_schema.py) and run it; it only creates what is missing.
 
-**The site is code.** Edit `portal/src`, then `npm run build` and `pac pages upload-code-site --rootPath .` in `portal/`. Table permissions and Web API columns live in [tools/portal_config.py](../tools/portal_config.py); see [docs/PORTAL.md](PORTAL.md).
 
 **Flows are code.** Change them in [tools/flows/definitions.py](../tools/flows/definitions.py) and deploy with `python3 tools/deploy_flows.py --only "<flow name>"`. An edit made in the Power Automate designer is overwritten by the next deploy.
 
@@ -84,7 +81,7 @@ If you do need it, ask the owner directly. Never commit it, paste it in a chat o
 | Document | For |
 |---|---|
 | [HANDOFF.md](../HANDOFF.md) | Current state, decisions already made, lessons learned (section 7 saves hours) |
-| [docs/AGENTS.md](AGENTS.md) | The 14 agents (including the two chat agents), how to call them, their guardrails |
-| [docs/WORKFLOWS.md](WORKFLOWS.md) | The 33 flows and 5 operations APIs |
-| [docs/PORTAL.md](PORTAL.md) | The marketplace site and its security model |
-| [docs/ARCHITECTURE_AND_BUILD_PLAN.md](ARCHITECTURE_AND_BUILD_PLAN.md) | The full plan |
+| [docs/EMAIL_DESK.md](EMAIL_DESK.md) | The email desk: how it works and what a person does |
+| [docs/AGENTS.md](AGENTS.md) | The 8 agents, how to call them, their guardrails |
+| [docs/WORKFLOWS.md](WORKFLOWS.md) | The 22 flows and the operations APIs |
+| [docs/ARCHITECTURE_AND_BUILD_PLAN.md](ARCHITECTURE_AND_BUILD_PLAN.md) | The original plan (background) |

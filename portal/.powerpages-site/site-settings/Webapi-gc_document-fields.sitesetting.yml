@@ -1,4 +1,0 @@
-description: "DealOS: columns of gc_document the site may read or write"
-id: a36f8170-df35-51b6-a116-d474e4f0a39a
-name: Webapi/gc_document/fields
-value: "_gc_deal_value,_gc_listing_value,createdon,gc_account,gc_doctype,gc_documentid,gc_file,gc_filename,gc_listing,gc_mimetype,gc_name,gc_parsestatus"

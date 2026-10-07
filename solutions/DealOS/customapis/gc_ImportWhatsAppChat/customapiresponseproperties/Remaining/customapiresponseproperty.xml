@@ -1,0 +1,11 @@
+<customapiresponseproperty uniquename="Remaining">
+  <description default="Messages left for the next call.">
+    <label description="Messages left for the next call." languagecode="1033" />
+  </description>
+  <displayname default="Remaining">
+    <label description="Remaining" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <name>gc_ImportWhatsAppChat.Remaining</name>
+  <type>7</type>
+</customapiresponseproperty>

@@ -1,0 +1,12 @@
+<customapirequestparameter uniquename="MessageId">
+  <description default="The gc_message the file belongs to.">
+    <label description="The gc_message the file belongs to." languagecode="1033" />
+  </description>
+  <displayname default="MessageId">
+    <label description="MessageId" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isoptional>0</isoptional>
+  <name>gc_AttachEmailFile.MessageId</name>
+  <type>12</type>
+</customapirequestparameter>

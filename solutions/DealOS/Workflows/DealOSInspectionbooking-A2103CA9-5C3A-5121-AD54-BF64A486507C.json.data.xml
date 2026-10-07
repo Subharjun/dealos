@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Workflow WorkflowId="{a2103ca9-5c3a-5121-ad54-bf64a486507c}" Name="DealOS | Inspection booking" Description="Deal Funded → one inspection (Requested) for the deal's lot → Logistics Coordinator task to book an independent agency → both parties told." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+<Workflow WorkflowId="{a2103ca9-5c3a-5121-ad54-bf64a486507c}" Name="DealOS | Inspection booking" Description="Deal Funded (marketplace) or Signed (email desk, no escrow) → one inspection (Requested) for the deal's lot → Logistics Coordinator task to book an independent agency → both parties told." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <JsonFileName>/Workflows/DealOSInspectionbooking-A2103CA9-5C3A-5121-AD54-BF64A486507C.json</JsonFileName>
   <Type>1</Type>
   <Subprocess>0</Subprocess>
@@ -25,6 +25,6 @@
     <LocalizedName languagecode="1033" description="DealOS | Inspection booking" />
   </LocalizedNames>
   <Descriptions>
-    <Description languagecode="1033" description="Deal Funded → one inspection (Requested) for the deal's lot → Logistics Coordinator task to book an independent agency → both parties told." />
+    <Description languagecode="1033" description="Deal Funded (marketplace) or Signed (email desk, no escrow) → one inspection (Requested) for the deal's lot → Logistics Coordinator task to book an independent agency → both parties told." />
   </Descriptions>
 </Workflow>

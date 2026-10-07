@@ -1,0 +1,11 @@
+<customapiresponseproperty uniquename="Raw">
+  <description default="base64url RFC 2822 message.">
+    <label description="base64url RFC 2822 message." languagecode="1033" />
+  </description>
+  <displayname default="Raw">
+    <label description="Raw" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <name>gc_BuildEmailRaw.Raw</name>
+  <type>10</type>
+</customapiresponseproperty>

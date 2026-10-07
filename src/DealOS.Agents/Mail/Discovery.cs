@@ -9,9 +9,11 @@ using Microsoft.Xrm.Sdk.Query;
 namespace DealOS.Agents.Mail
 {
     /// <summary>
-    /// Finds sellers on the web for a buyer requirement: Gemini with Google Search grounding lists real producers and exporters
-    /// (public business contacts only), a second call structures the answer, and the result is saved as leads (source Web Search).
-    /// Sourcing then writes to the leads that have an email. LinkedIn and other sites are not scraped; only what search returns.
+    /// Finds trade counterparties on the web: the model with web search (OpenAI web_search or Gemini Google Search grounding) lists real companies (public business contacts
+    /// only), a second call structures the answer, and the result is saved as leads (source Web Search).
+    ///   Run:       sellers (producers, exporters) for a buyer requirement; sourcing then writes to the leads that have an email.
+    ///   RunBuyers: buyers (consumers, importers, distributors) for a seller lot; the lot is then offered to the new leads.
+    /// LinkedIn and other sites are not scraped; only what search returns.
     /// </summary>
     public static class Discovery
     {
@@ -23,40 +25,98 @@ namespace DealOS.Agents.Mail
             var req = dv.Retrieve("gc_buyerrequirement", requirementId);
             if (req == null) throw new InvalidPluginExecutionException("Requirement " + requirementId + " was not found.");
             if (!force && req.GetAttributeValue<DateTime?>("gc_discoveredon") != null) return J.Obj("status", "AlreadyDone");
+            if (!force && !Enabled(dv)) return J.Obj("status", "Disabled", "found", 0, "reason", "email.discovery.enabled is false.");
             var commodity = req.GetAttributeValue<string>("gc_commoditytext") ?? req.GetAttributeValue<string>("gc_name");
-            var max = Math.Max(1, Math.Min(15, dv.SettingInt("email.discovery.max", 8)));
+            var max = Max(dv);
             var spec = req.GetAttributeValue<string>("gc_specification");
             var qty = req.GetAttributeValue<decimal?>("gc_quantity");
             var unit = Desk.UnitLabel(req.GetAttributeValue<OptionSetValue>("gc_quantityunit"));
             var delivery = req.GetAttributeValue<string>("gc_deliverytext");
-
-            var apiKey = dv.Secret("gemini.api_key");
-            if (string.IsNullOrWhiteSpace(apiKey)) throw new InvalidPluginExecutionException("Gemini API key is not configured.");
-            var gemini = new GeminiClient(apiKey, dv.Setting("agents.gemini_base_url")) { CallTimeout = TimeSpan.FromSeconds(50) };
-            var deadline = DateTime.UtcNow.AddSeconds(105);
-            var models = new[] { dv.Setting("agents.model.default") ?? "gemini-3.5-flash" }
-                .Concat((dv.Setting("agents.model.fallbacks") ?? "").Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(m => m.Trim())).Distinct().ToList();
-
             var question =
                 "Find up to " + max + " real companies that produce or export " + commodity +
                 (string.IsNullOrWhiteSpace(spec) ? "" : " (specification: " + spec.Replace("\n", "; ") + ")") +
                 (qty == null ? "" : ", able to supply about " + Desk.Num(qty.Value) + " " + unit) +
                 (string.IsNullOrWhiteSpace(delivery) ? "" : ", for delivery: " + delivery) + ".\n" +
-                "Prefer manufacturers and established exporters with an official website. For each company give: name, country, official website, " +
+                "Search widely: Google, IndiaMART supplier listings (indiamart.com), Globalwitz and other import/export trade-data pages (globalwitz.com, volza.com, " +
+                "tradeindia.com, exportersindia.com), company websites and official trade directories. " +
+                "Prefer manufacturers and established exporters with an official website and recent shipments. For each company give: name, country, official website, " +
                 "a business contact email exactly as published on their own website or an official trade directory (never guess or construct an email; " +
                 "leave it empty if none is published), phone if published, the contact person if published, what they sell, and the source URL. " +
                 "Exclude individuals, anonymous marketplace listings and companies in sanctioned countries.";
-            GeminiResponse search;
+            var result = Find(dv, question, commodity, DeskChoice.LeadRole.Seller, "What they sell.", max, trace);
+            if (J.Str(result, "status") == "Done")
+            {
+                var stamp = new Entity("gc_buyerrequirement", requirementId);
+                stamp["gc_discoveredon"] = DateTime.UtcNow;
+                dv.Svc.Update(stamp);
+            }
+            return result;
+        }
+
+        /// <summary>Buyers on the web for a seller lot: companies that use, import or distribute the material. Once per lot unless force.</summary>
+        public static Dictionary<string, object> RunBuyers(Dv dv, Guid lotId, bool force, Action<string> trace)
+        {
+            var lot = Lots.Get(dv, lotId);
+            if (lot == null) throw new InvalidPluginExecutionException("Seller lot " + lotId + " was not found.");
+            if (!force && lot.GetAttributeValue<DateTime?>("gc_discoveredon") != null) return J.Obj("status", "AlreadyDone", "found", 0);
+            if (Lots.StatusOf(lot) != Lots.Status.Open) return J.Obj("status", "LotClosed", "found", 0);
+            if (!force && !Enabled(dv)) return J.Obj("status", "Disabled", "found", 0, "reason", "email.discovery.enabled is false.");
+            var commodity = lot.GetAttributeValue<string>("gc_commoditytext");
+            var max = Max(dv);
+            var sellerId = Desk.H(lot, "gc_seller");
+            var seller = sellerId == null ? null : dv.Retrieve("account", sellerId.Value, "name");
+            var spec = Desk.SafeSpec(lot.GetAttributeValue<string>("gc_specification"), seller == null ? null : seller.GetAttributeValue<string>("name"));
+            var qty = lot.GetAttributeValue<decimal?>("gc_quantity");
+            var unit = lot.GetAttributeValue<string>("gc_unit") ?? "MT";
+            var origin = lot.GetAttributeValue<string>("gc_origin");
+            var question =
+                "Find up to " + max + " real companies that buy " + commodity +
+                (string.IsNullOrWhiteSpace(spec) ? "" : " (specification: " + spec + ")") +
+                (qty == null ? "" : " in volumes of about " + Desk.Num(qty.Value) + " " + unit + " or more") +
+                (string.IsNullOrWhiteSpace(origin) ? "" : " (material of " + origin + " origin)") + ".\n" +
+                "Search widely: Google, IndiaMART buy leads and buyer listings (indiamart.com), Globalwitz and other import/export trade-data pages that name importers " +
+                "(globalwitz.com, volza.com, tradeindia.com), company websites and official trade directories. " +
+                "Look for manufacturers that use it as a raw material, established importers and distributors (importers with recent shipments are best), with an official website. " +
+                "Not producers or exporters of this material. For each company give: name, country, official website, " +
+                "a business contact email exactly as published on their own website or an official trade directory (never guess or construct an email; " +
+                "leave it empty if none is published), phone if published, the contact person if published, what they make or buy, and the source URL. " +
+                "Exclude individuals, anonymous marketplace listings and companies in sanctioned countries.";
+            var result = Find(dv, question, commodity, DeskChoice.LeadRole.Buyer, "What they make or buy.", max, trace);
+            if (J.Str(result, "status") == "Done")
+            {
+                var stamp = new Entity("gc_sellerlot", lotId);
+                stamp["gc_discoveredon"] = DateTime.UtcNow;
+                dv.Svc.Update(stamp);
+            }
+            return result;
+        }
+
+        /// <summary>Setting email.discovery.enabled (default true); the end-to-end tests switch it off so no real companies get drafts.</summary>
+        private static bool Enabled(Dv dv) { return (dv.Setting("email.discovery.enabled") ?? "true").Trim().ToLowerInvariant() != "false"; }
+
+        private static int Max(Dv dv) { return Math.Max(1, Math.Min(15, dv.SettingInt("email.discovery.max", 8))); }
+
+        /// <summary>Search, structure, check and save as leads of the given role (a known lead of the other role becomes Both).</summary>
+        private static Dictionary<string, object> Find(Dv dv, string question, string commodity, int role, string productsLabel, int max, Action<string> trace)
+        {
+            var client = Models.Client(dv);
+            // A web search runs several searches before it answers: give it most of the plug-in's 2 minutes.
+            client.CallTimeout = TimeSpan.FromSeconds(80);
+            var deadline = DateTime.UtcNow.AddSeconds(110);
+            var models = Models.Chain(dv, Models.Model(dv, "agents.model.discovery"));
+            var who = role == DeskChoice.LeadRole.Buyer ? "buyer" : "seller";
+
+            ModelResponse search;
             try
             {
-                search = Call(gemini, models, J.Obj(
+                search = Call(client, models, J.Obj(
                     "contents", new List<object> { J.Obj("role", "user", "parts", new List<object> { J.Obj("text", question) }) },
                     "tools", new List<object> { J.Obj("google_search", new Dictionary<string, object>()) }), deadline, trace);
             }
             catch (InvalidPluginExecutionException ex)
             {
-                // Google Search grounding is not in the Gemini free tier: sourcing continues with the imported leads.
-                return J.Obj("status", "Unavailable", "found", 0, "reason", ex.Message.Contains("429")
+                // e.g. Google Search grounding is not in the Gemini free tier: the desk continues with the imported leads.
+                return J.Obj("status", "Unavailable", "found", 0, "reason", ex.Message.Contains("429") && !Models.OpenAI(dv)
                     ? "Web search is not available on the current Gemini key (free tier has no Google Search quota). Enable billing on the key to use it."
                     : ex.Message);
             }
@@ -70,9 +130,9 @@ namespace DealOS.Agents.Mail
                     "email?", S.Str("Published business email, exactly as in the text; empty if none."),
                     "phone?", S.Str("Published phone."),
                     "contact_name?", S.Str("Published contact person."),
-                    "products?", S.Str("What they sell."),
-                    "source_url?", S.Str("Source URL."))));
-            var structured = Call(gemini, models, J.Obj(
+                    "products?", S.Str(productsLabel),
+                    "source_url?", S.Str("Source URL (e.g. the IndiaMART, Globalwitz or company page)."))));
+            var structured = Call(client, models, J.Obj(
                 "contents", new List<object> { J.Obj("role", "user", "parts", new List<object> { J.Obj("text",
                     "Extract the companies from this research note. Copy values exactly; do not add companies, emails or websites that are not in the note.\n\nNOTE:\n" +
                     GeminiClient.Truncate(search.Text, 30000)) }) },
@@ -89,7 +149,7 @@ namespace DealOS.Agents.Mail
                 if (Excluded.Any(x => country.ToLowerInvariant().Contains(x))) { skipped.Add(J.Obj("name", name, "why", "sanctioned country")); continue; }
                 if (!search.Text.ToLowerInvariant().Contains(name.ToLowerInvariant().Split(' ')[0])) { skipped.Add(J.Obj("name", name, "why", "not in the search answer")); continue; }
                 var email = (J.Str(c, "email") ?? "").Trim().ToLowerInvariant();
-                var note = new List<string> { "Found by AI web search on " + DateTime.UtcNow.ToString("yyyy-MM-dd") + " for: " + commodity + ". Check before relying on it." };
+                var note = new List<string> { "Found by AI web search on " + DateTime.UtcNow.ToString("yyyy-MM-dd") + " as a " + who + " of: " + commodity + ". Check before relying on it." };
                 if (email.Length > 0 && (!EmailRx.IsMatch(email) || !search.Text.ToLowerInvariant().Contains(email)))
                 {
                     note.Add("Email '" + email + "' dropped: not literally in the search answer.");
@@ -103,7 +163,7 @@ namespace DealOS.Agents.Mail
                 }
                 var existing = dv.Svc.RetrieveMultiple(new QueryExpression("gc_lead")
                 {
-                    ColumnSet = new ColumnSet("gc_leadid", "gc_commodities", "gc_email"), TopCount = 1,
+                    ColumnSet = new ColumnSet("gc_leadid", "gc_commodities", "gc_email", "gc_role"), TopCount = 1,
                     Criteria = { Conditions = { new ConditionExpression("gc_name", ConditionOperator.Equal, name) } }
                 }).Entities.FirstOrDefault();
                 var products = (J.Str(c, "products") ?? "").Trim();
@@ -114,6 +174,8 @@ namespace DealOS.Agents.Mail
                     var had = existing.GetAttributeValue<string>("gc_commodities") ?? "";
                     if (had.IndexOf(commodity, StringComparison.OrdinalIgnoreCase) < 0) u["gc_commodities"] = Desk.Cut(had + "\n" + line, 100000);
                     if (string.IsNullOrEmpty(existing.GetAttributeValue<string>("gc_email")) && email.Length > 0) u["gc_email"] = email;
+                    var hadRole = existing.GetAttributeValue<OptionSetValue>("gc_role");
+                    if (hadRole != null && hadRole.Value != role && hadRole.Value != DeskChoice.LeadRole.Both) u["gc_role"] = new OptionSetValue(DeskChoice.LeadRole.Both);
                     u["gc_lastseen"] = DateTime.UtcNow;
                     dv.Svc.Update(u);
                     created.Add(J.Obj("name", name, "email", email, "existing", true));
@@ -121,7 +183,7 @@ namespace DealOS.Agents.Mail
                 }
                 var l = new Entity("gc_lead");
                 l["gc_name"] = Desk.Cut(name, 200);
-                l["gc_role"] = new OptionSetValue(DeskChoice.LeadRole.Seller);
+                l["gc_role"] = new OptionSetValue(role);
                 l["gc_commodities"] = line;
                 if (email.Length > 0) l["gc_email"] = email;
                 l["gc_country"] = Desk.Cut(country, 100);
@@ -136,27 +198,24 @@ namespace DealOS.Agents.Mail
                 dv.Svc.Create(l);
                 created.Add(J.Obj("name", name, "country", country, "email", email, "website", website));
             }
-            var stamp = new Entity("gc_buyerrequirement", requirementId);
-            stamp["gc_discoveredon"] = DateTime.UtcNow;
-            dv.Svc.Update(stamp);
             return J.Obj("status", "Done", "found", created.Count, "with_email", created.Count(x => !string.IsNullOrEmpty(J.Str((Dictionary<string, object>)x, "email"))),
                          "leads", created, "skipped", skipped, "model", search.Model);
         }
 
-        private static GeminiResponse Call(GeminiClient gemini, List<string> models, Dictionary<string, object> request, DateTime deadline, Action<string> trace)
+        private static ModelResponse Call(IModelClient client, List<string> models, Dictionary<string, object> request, DateTime deadline, Action<string> trace)
         {
-            GeminiException last = null;
+            ModelException last = null;
             foreach (var model in models)
             {
-                try { return gemini.Generate(model, request, deadline); }
-                catch (GeminiException ex)
+                try { return client.Generate(model, request, deadline); }
+                catch (ModelException ex)
                 {
                     last = ex;
                     trace("discovery: " + model + " failed: " + ex.Message);
                     if (ex.StatusCode != 429 && ex.StatusCode != 503 && ex.StatusCode != 404 && ex.StatusCode != 0 && ex.StatusCode != 500) break;
                 }
             }
-            throw new InvalidPluginExecutionException("Seller discovery could not reach Gemini: " + (last == null ? "no model" : last.Message));
+            throw new InvalidPluginExecutionException("Web discovery could not reach the model: " + (last == null ? "no model" : last.Message));
         }
     }
 }

@@ -1,0 +1,12 @@
+<customapirequestparameter uniquename="ContractId">
+  <description default="The gc_contract (Sent For Signature).">
+    <label description="The gc_contract (Sent For Signature)." languagecode="1033" />
+  </description>
+  <displayname default="ContractId">
+    <label description="ContractId" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isoptional>0</isoptional>
+  <name>gc_DeskContract.ContractId</name>
+  <type>12</type>
+</customapirequestparameter>

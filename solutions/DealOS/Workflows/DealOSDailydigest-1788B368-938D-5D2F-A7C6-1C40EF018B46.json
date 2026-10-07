@@ -9,15 +9,6 @@
         "api": {
           "name": "shared_commondataserviceforapps"
         }
-      },
-      "shared_office365": {
-        "runtimeSource": "embedded",
-        "connection": {
-          "connectionReferenceLogicalName": "gc_outlook"
-        },
-        "api": {
-          "name": "shared_office365"
-        }
       }
     },
     "definition": {
@@ -267,7 +258,7 @@
               "type": "Select",
               "inputs": {
                 "from": "@coalesce(body('Parse_AdminSupervisor')?['result']?['sections'], json('[]'))",
-                "select": "@concat('<h3>', item()?['title'], '</h3><ul><li>', join(coalesce(item()?['items'], json('[]')), '</li><li>'), '</li></ul>')"
+                "select": "@concat(item()?['title'], ':', decodeUriComponent('%0A'), '- ', join(coalesce(item()?['items'], json('[]')), concat(decodeUriComponent('%0A'), '- ')))"
               },
               "runAfter": {
                 "Parse_AdminSupervisor": [
@@ -279,7 +270,7 @@
               "type": "Select",
               "inputs": {
                 "from": "@coalesce(body('Parse_AdminSupervisor')?['result']?['actions'], json('[]'))",
-                "select": "@concat('<li><b>', item()?['priority'], '</b> – ', item()?['action'], ' (', item()?['owner_role'], ')</li>')"
+                "select": "@concat('- [', item()?['priority'], '] ', item()?['action'], ' (', item()?['owner_role'], ')')"
               },
               "runAfter": {
                 "Section_lines": [
@@ -287,87 +278,26 @@
                 ]
               }
             },
-            "Recipients_setting": {
+            "Send_digest": {
               "type": "OpenApiConnection",
               "inputs": {
                 "host": {
                   "connectionName": "shared_commondataserviceforapps",
-                  "operationId": "ListRecords",
+                  "operationId": "PerformUnboundAction",
                   "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
                 },
                 "parameters": {
-                  "entityName": "gc_platformsettings",
-                  "$select": "gc_value",
-                  "$filter": "gc_key eq 'admin.digest.recipients'",
-                  "$top": 1
+                  "actionName": "gc_DeskBrief",
+                  "item/Subject": "@{concat('Daily digest: ', coalesce(body('Parse_AdminSupervisor')?['result']?['headline'], 'operations'))}",
+                  "item/Text": "@{concat(coalesce(outputs('Run_AdminSupervisor')?['body/Summary'], ''), decodeUriComponent('%0A'), decodeUriComponent('%0A'), 'Actions:', decodeUriComponent('%0A'), join(body('Action_lines'), decodeUriComponent('%0A')), decodeUriComponent('%0A'), decodeUriComponent('%0A'), join(body('Section_lines'), concat(decodeUriComponent('%0A'), decodeUriComponent('%0A'))))}"
                 },
-                "authentication": "@parameters('$authentication')"
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "none"
+                }
               },
               "runAfter": {
                 "Action_lines": [
-                  "Succeeded"
-                ]
-              }
-            },
-            "Assignee_setting": {
-              "type": "OpenApiConnection",
-              "inputs": {
-                "host": {
-                  "connectionName": "shared_commondataserviceforapps",
-                  "operationId": "ListRecords",
-                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
-                },
-                "parameters": {
-                  "entityName": "gc_platformsettings",
-                  "$select": "gc_value",
-                  "$filter": "gc_key eq 'approvals.assignees'",
-                  "$top": 1
-                },
-                "authentication": "@parameters('$authentication')"
-              },
-              "runAfter": {
-                "Recipients_setting": [
-                  "Succeeded"
-                ]
-              }
-            },
-            "Recipients": {
-              "type": "Compose",
-              "inputs": "@{if(empty(first(outputs('Recipients_setting')?['body/value'])?['gc_value']), coalesce(json(coalesce(first(outputs('Assignee_setting')?['body/value'])?['gc_value'], '{}'))?['default'], ''), first(outputs('Recipients_setting')?['body/value'])?['gc_value'])}",
-              "runAfter": {
-                "Assignee_setting": [
-                  "Succeeded"
-                ]
-              }
-            },
-            "Has_recipients": {
-              "type": "If",
-              "expression": "@not(empty(outputs('Recipients')))",
-              "actions": {
-                "Send_digest": {
-                  "type": "OpenApiConnection",
-                  "inputs": {
-                    "host": {
-                      "connectionName": "shared_office365",
-                      "operationId": "SendEmailV2",
-                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365"
-                    },
-                    "parameters": {
-                      "emailMessage/To": "@{outputs('Recipients')}",
-                      "emailMessage/Subject": "DealOS daily digest: @{coalesce(body('Parse_AdminSupervisor')?['result']?['headline'], 'operations')}",
-                      "emailMessage/Body": "<p>@{outputs('Run_AdminSupervisor')?['body/Summary']}</p><h3>Actions</h3><ul>@{join(body('Action_lines'), '')}</ul>@{join(body('Section_lines'), '')}",
-                      "emailMessage/Importance": "Normal"
-                    },
-                    "authentication": "@parameters('$authentication')"
-                  },
-                  "runAfter": {}
-                }
-              },
-              "else": {
-                "actions": {}
-              },
-              "runAfter": {
-                "Recipients": [
                   "Succeeded"
                 ]
               }

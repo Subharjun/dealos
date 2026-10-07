@@ -1,0 +1,11 @@
+<customapiresponseproperty uniquename="NeedsTriage">
+  <description default="True for a received email not yet triaged.">
+    <label description="True for a received email not yet triaged." languagecode="1033" />
+  </description>
+  <displayname default="NeedsTriage">
+    <label description="NeedsTriage" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <name>gc_IngestEmail.NeedsTriage</name>
+  <type>0</type>
+</customapiresponseproperty>

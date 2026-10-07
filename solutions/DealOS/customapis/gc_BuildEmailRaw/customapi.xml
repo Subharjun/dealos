@@ -1,0 +1,18 @@
+<customapi uniquename="gc_BuildEmailRaw">
+  <allowedcustomprocessingsteptype>0</allowedcustomprocessingsteptype>
+  <bindingtype>0</bindingtype>
+  <description default="A pending Email Desk draft (gc_message) as the base64url RFC 2822 message for Gmail drafts.create, threaded as a reply, with its attachments.">
+    <label description="A pending Email Desk draft (gc_message) as the base64url RFC 2822 message for Gmail drafts.create, threaded as a reply, with its attachments." languagecode="1033" />
+  </description>
+  <displayname default="Build email">
+    <label description="Build email" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isfunction>0</isfunction>
+  <isprivate>0</isprivate>
+  <name>gc_BuildEmailRaw</name>
+  <plugintypeid>
+    <plugintypeexportkey>1b12ae00-a5c1-f111-aaaf-7ced8daf451f</plugintypeexportkey>
+  </plugintypeid>
+  <workflowsdkstepenabled>0</workflowsdkstepenabled>
+</customapi>

@@ -149,6 +149,105 @@
                 ]
               }
             },
+            "Desk_deal": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "GetItem",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_deals",
+                  "recordId": "@{triggerOutputs()?['body/_gc_deal_value']}",
+                  "$select": "gc_emaildesk,_gc_requirement_value"
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {
+                "Signed_refused": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "No_escrow_for_desk": {
+              "type": "If",
+              "expression": "@equals(body('Desk_deal')?['gc_emaildesk'], true)",
+              "actions": {
+                "Desk_requirement_signed": {
+                  "type": "If",
+                  "expression": "@not(empty(body('Desk_deal')?['_gc_requirement_value']))",
+                  "actions": {
+                    "Set_desk_signed": {
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "host": {
+                          "connectionName": "shared_commondataserviceforapps",
+                          "operationId": "UpdateRecord",
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                        },
+                        "parameters": {
+                          "entityName": "gc_buyerrequirements",
+                          "recordId": "@{body('Desk_deal')?['_gc_requirement_value']}",
+                          "item/gc_deskstage": 303300006
+                        },
+                        "authentication": "@parameters('$authentication')"
+                      },
+                      "runAfter": {}
+                    }
+                  },
+                  "else": {
+                    "actions": {}
+                  },
+                  "runAfter": {}
+                },
+                "Audit_desk_signed": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_commondataserviceforapps",
+                      "operationId": "CreateRecord",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                    },
+                    "parameters": {
+                      "entityName": "gc_auditevents",
+                      "item/gc_hash": "set-by-invariants-plugin",
+                      "item/gc_name": "deal.signed",
+                      "item/gc_actor": "flow:contract-signed",
+                      "item/gc_action": "deal.signed",
+                      "item/gc_subjecttype": "gc_deal",
+                      "item/gc_subjectid": "@{triggerOutputs()?['body/_gc_deal_value']}",
+                      "item/gc_details": "@{take(string(addProperty(json('{}'), 'escrow', 'none: email desk deal (payment between the parties per contract)')), 100000)}"
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  },
+                  "runAfter": {
+                    "Desk_requirement_signed": [
+                      "Succeeded"
+                    ]
+                  }
+                },
+                "Stop_desk_signed": {
+                  "type": "Terminate",
+                  "inputs": {
+                    "runStatus": "Succeeded"
+                  },
+                  "runAfter": {
+                    "Audit_desk_signed": [
+                      "Succeeded"
+                    ]
+                  }
+                }
+              },
+              "else": {
+                "actions": {}
+              },
+              "runAfter": {
+                "Desk_deal": [
+                  "Succeeded"
+                ]
+              }
+            },
             "Open_escrow": {
               "type": "OpenApiConnection",
               "inputs": {
@@ -167,7 +266,7 @@
                 }
               },
               "runAfter": {
-                "Signed_refused": [
+                "No_escrow_for_desk": [
                   "Succeeded"
                 ]
               }

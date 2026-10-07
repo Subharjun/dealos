@@ -57,6 +57,34 @@ namespace DealOS.Agents.Infrastructure
             return o;
         }
 
+        /// <summary>
+        /// Removes optional properties the model left empty (null, "", or an object whose values are all empty). Some models fill
+        /// every property of the schema; an empty optional block must not fail validation of its required fields.
+        /// </summary>
+        public static void Prune(Dictionary<string, object> schema, Dictionary<string, object> value)
+        {
+            if (value == null) return;
+            var props = J.ObjOf(schema, "properties") ?? new Dictionary<string, object>();
+            var required = new HashSet<string>(J.Arr(schema, "required").OfType<string>());
+            foreach (var kv in props)
+            {
+                if (!value.ContainsKey(kv.Key)) continue;
+                var child = value[kv.Key] as Dictionary<string, object>;
+                if (child != null) Prune(kv.Value as Dictionary<string, object>, child);
+                if (!required.Contains(kv.Key) && Empty(value[kv.Key])) value.Remove(kv.Key);
+            }
+        }
+
+        private static bool Empty(object v)
+        {
+            if (v == null) return true;
+            var s = v as string;
+            if (s != null) return s.Trim().Length == 0;
+            var d = v as Dictionary<string, object>;
+            if (d != null) return d.Values.All(Empty);
+            return false;
+        }
+
         /// <summary>Checks that required properties exist (one level deep, plus arrays of objects).</summary>
         public static List<string> Validate(Dictionary<string, object> schema, Dictionary<string, object> value, string path = "")
         {

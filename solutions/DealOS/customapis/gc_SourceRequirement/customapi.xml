@@ -1,0 +1,18 @@
+<customapi uniquename="gc_SourceRequirement">
+  <allowedcustomprocessingsteptype>0</allowedcustomprocessingsteptype>
+  <bindingtype>0</bindingtype>
+  <description default="Shortlist seller leads for a buyer requirement and open masked source requests (deal, invite, seller thread, enquiry draft) per seller with an email.">
+    <label description="Shortlist seller leads for a buyer requirement and open masked source requests (deal, invite, seller thread, enquiry draft) per seller with an email." languagecode="1033" />
+  </description>
+  <displayname default="Source requirement">
+    <label description="Source requirement" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isfunction>0</isfunction>
+  <isprivate>0</isprivate>
+  <name>gc_SourceRequirement</name>
+  <plugintypeid>
+    <plugintypeexportkey>1b12ae00-a5c1-f111-aaaf-7ced8daf451f</plugintypeexportkey>
+  </plugintypeid>
+  <workflowsdkstepenabled>0</workflowsdkstepenabled>
+</customapi>

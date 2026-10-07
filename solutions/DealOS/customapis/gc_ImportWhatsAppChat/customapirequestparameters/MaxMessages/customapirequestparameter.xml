@@ -1,0 +1,12 @@
+<customapirequestparameter uniquename="MaxMessages">
+  <description default="Batch size; default gc_platformsetting whatsapp.import.batch_size (300).">
+    <label description="Batch size; default gc_platformsetting whatsapp.import.batch_size (300)." languagecode="1033" />
+  </description>
+  <displayname default="MaxMessages">
+    <label description="MaxMessages" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isoptional>1</isoptional>
+  <name>gc_ImportWhatsAppChat.MaxMessages</name>
+  <type>7</type>
+</customapirequestparameter>

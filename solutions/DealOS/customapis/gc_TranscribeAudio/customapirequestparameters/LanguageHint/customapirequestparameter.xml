@@ -1,0 +1,12 @@
+<customapirequestparameter uniquename="LanguageHint">
+  <description default="Expected language, e.g. hi or ar (optional).">
+    <label description="Expected language, e.g. hi or ar (optional)." languagecode="1033" />
+  </description>
+  <displayname default="LanguageHint">
+    <label description="LanguageHint" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isoptional>1</isoptional>
+  <name>gc_TranscribeAudio.LanguageHint</name>
+  <type>10</type>
+</customapirequestparameter>

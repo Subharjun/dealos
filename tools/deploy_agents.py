@@ -1,15 +1,14 @@
 """Deploy the DealOS agents to Dataverse (idempotent).
 
 Steps:
-  1. gc_secret table (org-owned, no privileges for normal roles) + 'gemini.api_key' row from .env
+  1. gc_secret table (org-owned, no privileges for normal roles) + 'gemini.api_key' / 'openai.api_key' rows from .env
   2. 'Document Intelligence' option on the global choice gc_agent
   3. Plug-in assembly DealOS.Agents + plug-in type DealOS.Agents.AgentPlugin
   4. One Custom API per agent (gc_Agent_<Name>) with request parameters and response properties
   5. Agent settings in gc_platformsetting (created only when missing)
   6. Deterministic operations (plug-in type DealOS.Agents.Operations.OperationsPlugin):
-     gc_AcceptOffer, gc_OpenEscrow, gc_ReleaseDeal, gc_InstructRelease, plus the gc_deal.gc_requirement lookup
-  7. Chat trigger (plug-in type DealOS.Agents.ChatPlugin): async step on gc_message Create that answers with the
-     conversation's agent (Buyer Concierge / Seller Assistant); needs tools/deploy_schema.py first
+     gc_AcceptOffer, gc_ReleaseDeal, plus the gc_deal.gc_requirement lookup
+  7. Retires removed pieces from Dev if still there (website chat agents and plug-ins, marketplace agents, escrow operations; 7 Oct 2026)
   8. Email Desk operations (plug-in type DealOS.Agents.Mail.MailPlugin): gc_IngestEmail, gc_AttachEmailFile
 Everything is created inside the DealOS solution.
 
@@ -30,23 +29,21 @@ MANIFEST = os.path.join(ROOT, "build", "agents", "agents.manifest.json")
 SOL = {"MSCRM.SolutionUniqueName": SOLUTION}
 
 SETTINGS = [  # key, value, value type label, description
-    ("agents.provider", "Gemini", "Text", "AI provider used by the gc_Agent_* custom APIs."),
+    ("agents.provider", "openai", "Text", "AI provider of the agents: openai (gc_secret openai.api_key, models agents.openai.model.*) or gemini (gemini.api_key, agents.model.*). "
+                                          "Switch with: python3 tools/deploy_agents.py --provider openai|gemini"),
+    ("agents.openai.model.default", "gpt-5.4-mini", "Text", "Default OpenAI model for agents (Responses API)."),
+    ("agents.openai.model.document", "gpt-5.4-mini", "Text", "OpenAI model for Document Intelligence (PDF/image extraction)."),
+    ("agents.openai.model.discovery", "gpt-5.4-mini", "Text", "OpenAI model for web discovery of sellers and buyers (web_search tool)."),
+    ("agents.openai.model.fallbacks", "gpt-4.1-mini", "Text", "OpenAI models tried in order on rate limit (429), overload (503), unknown model (404) or timeout."),
+    ("agents.openai.reasoning_effort", "low", "Text", "Reasoning effort for gpt-5 / o-series models: none, low, medium or high."),
     ("agents.model.default", "gemini-3.5-flash", "Text", "Default Gemini model for agents."),
     ("agents.model.document", "gemini-3.5-flash", "Text", "Gemini model for Document Intelligence (PDF/image extraction)."),
     ("agents.model.fallbacks", "gemini-3.1-flash-lite,gemini-3.8-flash", "Text", "Models tried in order on quota (429), overload (503), retired model (404) or timeout."),
     ("agents.time_budget_seconds", "100", "Number", "Max seconds per agent run (plug-in limit is 120)."),
-    ("agents.call_timeout_seconds", "45", "Number", "Max seconds for one Gemini call before trying the next model."),
+    ("agents.call_timeout_seconds", "45", "Number", "Max seconds for one model call before trying the next model."),
     ("agents.pricing", "{}", "Json", "USD per 1M tokens per model prefix, e.g. {\"gemini-3.5-flash\":[in,out]}; empty = cost not recorded."),
     ("agents.generation_config", "", "Json", "Optional extra Gemini generationConfig merged into every call (e.g. thinkingConfig)."),
-    ("escrow.default_schedule", '[{"pct":30,"condition":"Inspection passed and BL issued"},{"pct":70,"condition":"Delivered and discharge inspection accepted"}]',
-     "Json", "Release tranches gc_OpenEscrow creates: pct must sum to 100; conditions name the milestones."),
-    ("escrow.partner", "Not configured", "Text", "Name of the licensed escrow partner written on new payments."),
-    ("escrow.funding_days", "7", "Number", "Days the buyer has to fund escrow after signing."),
-    ("notifications.email.enabled", "false", "Bool", "true = the Notify party flow emails parties; false = it only records what it would have sent."),
-    ("notifications.email.redirect", "", "Text", "If set, every party email goes to this address instead (testing)."),
     ("admin.digest.recipients", "", "Text", "Semicolon-separated emails for the daily AdminSupervisor digest; empty = the flow owner's mailbox."),
-    ("chat.max_messages_per_hour", "30", "Number", "User messages per conversation per hour that the chat agents answer; above it a limit notice is sent."),
-    ("chat.history_messages", "12", "Number", "Earlier messages of the conversation given to the chat agent as context."),
     ("email.enabled", "false", "Bool", "true = the Mailbox sync flow reads Gmail and triages new email; false = it does nothing."),
     ("email.sync.query", "to:{user}+dealos@{domain} newer_than:7d", "Text",
      "Gmail search for mail the desk reads; {user} and {domain} are filled from the connected mailbox (labels DealOS/Processed and "
@@ -64,11 +61,15 @@ SETTINGS = [  # key, value, value type label, description
     ("email.autosend", "off", "Text", "off = every desk email waits in Gmail Drafts for a person; routine = enquiries to sellers and replies without "
      "prices go out by themselves; all = everything except contracts goes out by itself. Briefings to us are always sent."),
     ("desk.owner_email", "{mailbox}", "Text", "Who gets the desk briefings ({mailbox} = the connected mailbox; 'off' = none)."),
+    ("email.discovery.enabled", "true", "Bool", "Web discovery of sellers (per requirement) and buyers (per lot); the end-to-end tests switch it off so real companies get no test drafts."),
     ("email.discovery.max", "8", "Number", "Companies the web seller discovery looks for per requirement."),
     ("trade.margin_percent", "3", "Number", "Our margin (back to back): price to buyer = seller price × (1 + margin/100). Decision pending; 3 is a placeholder."),
     ("trade.company_name", "Gigacore Energy Pvt Ltd", "Text", "Our legal name on contracts."),
     ("trade.governing_law", "laws of India; disputes by arbitration in Mumbai under the Arbitration and Conciliation Act, 1996", "Text",
      "Governing law and disputes clause of the contract template (confirm with counsel)."),
+    ("trade.bid_window_hours", "24", "Number", "Seller lots: default hours buyers can bid when the seller's email does not say (0 = open-ended: bids go to the seller, who decides). Never past the seller's own validity."),
+    ("email.marketing.max_buyers", "5", "Number", "Seller lots: buyers a new lot is offered to (open requirements first, then buyer leads)."),
+    ("desk.chase_after_hours", "48", "Number", "Hours without an answer before one chaser draft to a seller (our enquiry) or a buyer (our offer)."),
 ]
 VALUE_TYPES = {"Bool": 303300000, "Number": 303300001, "Text": 303300002, "Json": 303300003}
 
@@ -84,15 +85,23 @@ def label(text):
             "LocalizedLabels": [{"@odata.type": "Microsoft.Dynamics.CRM.LocalizedLabel", "Label": text, "LanguageCode": 1033}]}
 
 
-def env_key():
-    """The key from .env, or None. Team members without the key deploy everything else and leave the stored secret as it is."""
+def env_key(name="GEMINI_API_KEY"):
+    """A key from .env, or None. Team members without the key deploy everything else and leave the stored secret as it is."""
     path = os.path.join(ROOT, ".env")
     if os.path.exists(path):
         with open(path) as f:
             for line in f:
-                if line.startswith("GEMINI_API_KEY="):
+                if line.startswith(name + "="):
                     return line.split("=", 1)[1].strip() or None
     return None
+
+
+def set_provider(provider):
+    """agents.provider = openai | gemini (the stored value; ensure_settings never overwrites it)."""
+    rows = ok(*dv.get("gc_platformsettings?$select=gc_platformsettingid&$filter=gc_key eq 'agents.provider'"), "read setting").get("value", [])
+    if rows:
+        ok(*dv.patch(f"gc_platformsettings({rows[0]['gc_platformsettingid']})", {"gc_value": provider}), "update agents.provider")
+    print(f"* agents.provider = {provider}")
 
 
 def ensure_secret_table():
@@ -157,15 +166,12 @@ def upsert_assembly():
     else:
         b = ok(*dv.request("POST", "pluginassemblies", {
             "name": "DealOS.Agents", "content": content, "isolationmode": 2, "sourcetype": 0, "version": "1.0.0.0",
-            "culture": "neutral", "description": "DealOS AI agents (Gemini) exposed as gc_Agent_* Custom APIs"}, SOL), "create assembly")
+            "culture": "neutral", "description": "DealOS AI agents exposed as gc_Agent_* Custom APIs"}, SOL), "create assembly")
         aid = b["pluginassemblyid"]
         print("+ plug-in assembly registered")
     types = {}
     for typename, friendly, desc in [("DealOS.Agents.AgentPlugin", "AgentPlugin", "Runs a DealOS agent"),
                                      ("DealOS.Agents.Operations.OperationsPlugin", "OperationsPlugin", "Deterministic deal operations (accept offer, open escrow)"),
-                                     ("DealOS.Agents.ChatPlugin", "ChatPlugin", "Answers chat messages with the conversation's agent"),
-                                     ("DealOS.Agents.Portal.CatalogPlugin", "CatalogPlugin", "Keeps the public masked catalog (gc_catalogentry) in step with listings"),
-                                     ("DealOS.Agents.Portal.PortalGuardPlugin", "PortalGuardPlugin", "Validates every write from the Power Pages site"),
                                      ("DealOS.Agents.Mail.MailPlugin", "MailPlugin", "Email Desk: stores Gmail messages and attachments")]:
         s = ok(*dv.get(f"plugintypes?$select=plugintypeid&$filter=typename eq '{typename}' and _pluginassemblyid_value eq {aid}"), "read type")
         rows = s.get("value", [])
@@ -239,28 +245,12 @@ OPERATIONS = [
      "request": [("OfferId", 12, "The gc_offer to accept.", False)],
      "response": [("Status", 10, "Accepted or AlreadyAccepted."), ("DealId", 10, "The deal."), ("Stage", 7, "Deal stage after the call."),
                   ("ClosedDeals", 7, "Competing deals cancelled."), ("Summary", 10, "What happened, for a human.")]},
-    {"api": "gc_OpenEscrow", "display": "Open escrow",
-     "description": "Open escrow for a signed deal: one payment (Awaiting Funding) and release tranches with commission from the "
-                    "deal's commission plan and the escrow.default_schedule setting. Idempotent.",
-     "request": [("DealId", 12, "The gc_deal (Signed or Awaiting Funding).", False)],
-     "response": [("Status", 10, "Opened or Exists."), ("PaymentId", 10, "The gc_payment."), ("Releases", 7, "Number of release tranches."),
-                  ("Summary", 10, "What happened, for a human.")]},
     {"api": "gc_ReleaseDeal", "display": "Release cancelled deal",
      "description": "For a Cancelled deal: make the lots reserved for it Available again and reject its open offers.",
      "request": [("DealId", 12, "The cancelled gc_deal.", False)],
      "response": [("Status", 10, "Released."), ("Lots", 7, "Lots freed."), ("Offers", 7, "Offers rejected."), ("Summary", 10, "What happened, for a human.")]},
-    {"api": "gc_InstructRelease", "display": "Instruct fund release",
-     "description": "Mark an escrow release as Instructed after Finance approved its Fund Release task. Re-checks in code: approved task, "
-                    "funded escrow, no hold on the deal. Idempotent.",
-     "request": [("ReleaseId", 12, "The gc_paymentrelease.", False)],
-     "response": [("Status", 10, "Instructed or AlreadyInstructed."), ("Summary", 10, "What happened, for a human.")]},
 ]
 
-
-REFRESH_CATALOG = {"api": "gc_RefreshCatalog", "display": "Refresh catalog",
-                   "description": "Rebuild the public catalog entry of one listing, or (no ListingId) of every published listing and remove stale entries.",
-                   "request": [("ListingId", 10, "Optional gc_listing GUID; empty = all published listings.", True)],
-                   "response": [("Refreshed", 7, "Entries created or updated."), ("Removed", 7, "Entries removed.")]}
 
 
 MAIL_OPERATIONS = [
@@ -291,6 +281,15 @@ MAIL_OPERATIONS = [
                     "and saves them as leads (source Web Search). Once per requirement unless Force.",
      "request": [("RequirementId", 12, "The gc_buyerrequirement.", False), ("Force", 0, "Run again even if it ran before.", True)],
      "response": [("Found", 7, "Leads found or updated."), ("Result", 10, "JSON: leads, skipped, model.")]},
+    {"api": "gc_DiscoverBuyers", "display": "Discover buyers",
+     "description": "Web buyer discovery for a seller lot: Gemini with Google Search finds companies that use, import or distribute the material "
+                    "(public business contacts only) and saves them as buyer leads (source Web Search). Once per lot unless Force.",
+     "request": [("LotId", 12, "The gc_sellerlot.", False), ("Force", 0, "Run again even if it ran before.", True)],
+     "response": [("Found", 7, "Leads found or updated."), ("Result", 10, "JSON: leads, skipped, model.")]},
+    {"api": "gc_MarketLot", "display": "Market seller lot",
+     "description": "Offer an open seller lot (masked, our price) to matching buyers that have not been offered it yet: open email requirements, then buyer leads.",
+     "request": [("LotId", 12, "The gc_sellerlot.", False)],
+     "response": [("Offered", 7, "Buyers offered the lot in this run."), ("Result", 10, "JSON: who was offered.")]},
     {"api": "gc_DeskBrief", "display": "Desk briefing",
      "description": "A briefing email to the desk owner (desk.owner_email) in the 'DealOS desk briefing' thread; sent automatically by the Desk drafts flow.",
      "request": [("Subject", 10, "Short subject.", False), ("Text", 10, "Body.", False)],
@@ -299,6 +298,15 @@ MAIL_OPERATIONS = [
      "description": "For an approved contract of an Email Desk deal: back-to-back contract PDFs and drafts with them to the buyer and seller threads.",
      "request": [("ContractId", 12, "The gc_contract (Sent For Signature).", False)],
      "response": [("Result", 10, "JSON: status, documents, drafts.")]},
+    {"api": "gc_CloseLots", "display": "Close seller lots",
+     "description": "Timed seller lots whose bid deadline passed: rank bids (highest buyer price, then earliest), Confirm deal tasks for the winners while quantity lasts, "
+                    "confirmation and 'not this time' drafts, briefing. No bid at the seller's price: the best bid goes to the seller and the lot goes open-ended.",
+     "request": [],
+     "response": [("Result", 10, "JSON: closed lots with winners and bids.")]},
+    {"api": "gc_DeskFollowUps", "display": "Desk follow-ups",
+     "description": "One chaser to sellers and buyers who have not answered after desk.chase_after_hours; reminders to lot buyers before offers close.",
+     "request": [],
+     "response": [("Result", 10, "JSON: chasers and reminders drafted.")]},
 ]
 
 
@@ -369,34 +377,31 @@ def ensure_step(type_id, typename, message, entity, stage, mode, description, fi
     print(f"+ step {name} ({'async' if mode else 'sync'})")
 
 
-def ensure_chat_step(type_id):
-    """Asynchronous post-operation step on gc_message Create: the conversation's chat agent answers each user message."""
-    ensure_step(type_id, "DealOS.Agents.ChatPlugin", "Create", "gc_message", 40, 1,
-                "Runs gc_Agent_BuyerConcierge or gc_Agent_SellerAssistant on a user's chat message and stores the reply.")
+# Removed from the build on 7 Oct 2026, so that only the email desk and what it uses remain: the website (Power Pages site, its chat
+# agents and plug-ins) and the marketplace-only agents and escrow operations. The email desk is the front door.
+RETIRED_TYPES = ["DealOS.Agents.ChatPlugin", "DealOS.Agents.Portal.CatalogPlugin", "DealOS.Agents.Portal.PortalGuardPlugin"]
+RETIRED_APIS = ["gc_Agent_BuyerConcierge", "gc_Agent_SellerAssistant", "gc_RefreshCatalog",
+                "gc_Agent_ListingVerification", "gc_Agent_Matching", "gc_Agent_Pricing", "gc_Agent_Negotiation", "gc_Agent_Payment", "gc_Agent_Logistics",
+                "gc_OpenEscrow", "gc_InstructRelease"]
 
 
-CATALOG_FIELDS = "gc_status,gc_badge,gc_askprice,gc_quantity,gc_quantityunit,gc_grade,gc_incoterm,gc_namedplace,gc_currency,gc_pricebasis,gc_commodity,gc_origincountry,gc_publishedon,statecode"
-GUARDED = {  # table → messages the site may send (anything else has no table permission)
-    "contact": ["Update"], "account": ["Create", "Update"],
-    "gc_listing": ["Create", "Update", "Delete"], "gc_buyerrequirement": ["Create", "Update", "Delete"],
-    "gc_document": ["Create", "Update", "Delete"], "gc_rfqinvite": ["Create", "Update"], "gc_match": ["Create", "Update"],
-    "gc_conversation": ["Create", "Update"], "gc_message": ["Create", "Update"], "gc_rating": ["Create", "Update"],
-    "gc_dispute": ["Create", "Update"], "gc_deal": ["Create", "Update"], "gc_offer": ["Create", "Update"],
-}
-
-
-def ensure_portal_steps(types):
-    catalog, guard = types["DealOS.Agents.Portal.CatalogPlugin"], types["DealOS.Agents.Portal.PortalGuardPlugin"]
-    desc = "Rebuilds the listing's public catalog entry (gc_catalogentry)."
-    ensure_step(catalog, "DealOS.Agents.Portal.CatalogPlugin", "Create", "gc_listing", 40, 1, desc)
-    ensure_step(catalog, "DealOS.Agents.Portal.CatalogPlugin", "Update", "gc_listing", 40, 1, desc, CATALOG_FIELDS)
-    for entity, fields in (("gc_fact", "gc_status,gc_displayvalue,statecode"), ("gc_lot", "gc_status,gc_quantity,gc_listing")):
-        ensure_step(catalog, "DealOS.Agents.Portal.CatalogPlugin", "Create", entity, 40, 1, desc)
-        ensure_step(catalog, "DealOS.Agents.Portal.CatalogPlugin", "Update", entity, 40, 1, desc, fields)
-    for entity, messages in GUARDED.items():
-        for message in messages:
-            ensure_step(guard, "DealOS.Agents.Portal.PortalGuardPlugin", message, entity, 20, 0,
-                        "Power Pages writes only: forces ownership to the signed-in contact's company and allows only legal status changes.")
+def retire():
+    """Removes the retired custom APIs and plug-in types (with their steps) from Dev, so the assembly without them can be uploaded.
+    Tables and data (listings, catalog, payments, chat conversations) are left as they are."""
+    for api in RETIRED_APIS:
+        for r in ok(*dv.get(f"customapis?$select=customapiid&$filter=uniquename eq '{api}'"), "read api").get("value", []):
+            for kind, key in (("customapirequestparameters", "customapirequestparameterid"), ("customapiresponseproperties", "customapiresponsepropertyid")):
+                for x in ok(*dv.get(f"{kind}?$select={key}&$filter=_customapiid_value eq {r['customapiid']}"), "read " + kind).get("value", []):
+                    ok(*dv.request("DELETE", f"{kind}({x[key]})"), "delete " + kind)
+            ok(*dv.request("DELETE", f"customapis({r['customapiid']})"), "delete api " + api)
+            print(f"- custom API {api} removed")
+    for typename in RETIRED_TYPES:
+        for t in ok(*dv.get(f"plugintypes?$select=plugintypeid&$filter=typename eq '{typename}'"), "read type").get("value", []):
+            steps = ok(*dv.get(f"sdkmessageprocessingsteps?$select=sdkmessageprocessingstepid&$filter=_eventhandler_value eq {t['plugintypeid']}"), "read steps").get("value", [])
+            for st in steps:
+                ok(*dv.request("DELETE", f"sdkmessageprocessingsteps({st['sdkmessageprocessingstepid']})"), "delete step")
+            ok(*dv.request("DELETE", f"plugintypes({t['plugintypeid']})"), "delete type " + typename)
+            print(f"- plug-in type {typename} removed ({len(steps)} step(s))")
 
 
 def ensure_settings():
@@ -417,21 +422,20 @@ def main():
         sys.exit("Run the harness first: dotnet run --project tests/DealOS.Agents.Harness -- build/agents")
     agents = json.load(open(MANIFEST))
     ensure_secret_table()
-    key = env_key()
-    if key:
-        upsert_secret("gemini.api_key", key)
-    else:
-        print("= no GEMINI_API_KEY in .env; the stored gemini.api_key is left unchanged")
+    for env, secret in (("GEMINI_API_KEY", "gemini.api_key"), ("OPENAI_API_KEY", "openai.api_key")):
+        key = env_key(env)
+        if key:
+            upsert_secret(secret, key)
+        else:
+            print(f"= no {env} in .env; the stored {secret} is left unchanged")
     ensure_agent_option()
+    retire()
     types = upsert_assembly()
     for a in agents:
         upsert_api(a, types["DealOS.Agents.AgentPlugin"])
     ensure_requirement_lookup()
     for op in OPERATIONS:
         upsert_operation(op, types["DealOS.Agents.Operations.OperationsPlugin"])
-    ensure_chat_step(types["DealOS.Agents.ChatPlugin"])
-    ensure_portal_steps(types)
-    upsert_operation(REFRESH_CATALOG, types["DealOS.Agents.Portal.CatalogPlugin"])
     for op in MAIL_OPERATIONS:
         upsert_operation(op, types["DealOS.Agents.Mail.MailPlugin"])
     ensure_settings()
@@ -439,4 +443,7 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    if len(sys.argv) == 3 and sys.argv[1] == "--provider" and sys.argv[2] in ("openai", "gemini"):
+        set_provider(sys.argv[2])
+    else:
+        main()

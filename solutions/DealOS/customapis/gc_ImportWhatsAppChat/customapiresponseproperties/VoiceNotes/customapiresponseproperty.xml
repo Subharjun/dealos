@@ -1,0 +1,11 @@
+<customapiresponseproperty uniquename="VoiceNotes">
+  <description default="Voice notes stored (transcribed by DealOS | Voice note transcription).">
+    <label description="Voice notes stored (transcribed by DealOS | Voice note transcription)." languagecode="1033" />
+  </description>
+  <displayname default="VoiceNotes">
+    <label description="VoiceNotes" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <name>gc_ImportWhatsAppChat.VoiceNotes</name>
+  <type>7</type>
+</customapiresponseproperty>

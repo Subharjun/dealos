@@ -1,0 +1,12 @@
+<customapirequestparameter uniquename="MessageJson">
+  <description default="The Gmail message JSON (format=full).">
+    <label description="The Gmail message JSON (format=full)." languagecode="1033" />
+  </description>
+  <displayname default="MessageJson">
+    <label description="MessageJson" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isoptional>0</isoptional>
+  <name>gc_IngestEmail.MessageJson</name>
+  <type>10</type>
+</customapirequestparameter>

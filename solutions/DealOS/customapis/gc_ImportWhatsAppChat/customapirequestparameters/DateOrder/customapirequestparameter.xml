@@ -1,0 +1,12 @@
+<customapirequestparameter uniquename="DateOrder">
+  <description default="DMY or MDY for chats whose dates are all ambiguous; default whatsapp.date_order (DMY).">
+    <label description="DMY or MDY for chats whose dates are all ambiguous; default whatsapp.date_order (DMY)." languagecode="1033" />
+  </description>
+  <displayname default="DateOrder">
+    <label description="DateOrder" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isoptional>1</isoptional>
+  <name>gc_ImportWhatsAppChat.DateOrder</name>
+  <type>10</type>
+</customapirequestparameter>

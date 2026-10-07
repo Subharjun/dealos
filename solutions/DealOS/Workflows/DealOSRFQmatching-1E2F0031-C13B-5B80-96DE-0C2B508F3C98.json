@@ -42,6 +42,11 @@
             },
             "authentication": "@parameters('$authentication')"
           },
+          "conditions": [
+            {
+              "expression": "@not(equals(triggerOutputs()?['body/gc_source'], 303300001))"
+            }
+          ],
           "runtimeConfiguration": {
             "concurrency": {
               "runs": 1

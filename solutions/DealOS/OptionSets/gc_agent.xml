@@ -38,6 +38,11 @@
         <label description="Buyer Verification" languagecode="1033" />
       </labels>
     </option>
+    <option value="303300014" IsHidden="0">
+      <labels>
+        <label description="Mail Triage" languagecode="1033" />
+      </labels>
+    </option>
     <option value="303300003" ExternalValue="" IsHidden="0">
       <labels>
         <label description="Compliance" languagecode="1033" />
@@ -46,6 +51,11 @@
     <option value="303300004" ExternalValue="" IsHidden="0">
       <labels>
         <label description="Matching" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="303300015" IsHidden="0">
+      <labels>
+        <label description="Trade Desk" languagecode="1033" />
       </labels>
     </option>
     <option value="303300005" ExternalValue="" IsHidden="0">

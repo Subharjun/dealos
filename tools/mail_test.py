@@ -210,10 +210,14 @@ def run(dry, only):
             print("     -", reason)
         if r.get("red_flags"):
             print("     red flags:", "; ".join(r["red_flags"]))
-        time.sleep(13)  # Gemini free tier: 5 requests per minute per model
+        time.sleep(2)  # gentle on the model rate limit
     print("\n%-10s %-18s %-9s %-18s %5s %5s" % ("sample", "expected", "verdict", "category", "model", "final"))
     for key, expect, verdict, cat, ms, fs, status in rows:
         print("%-10s %-18s %-9s %-18s %5s %5s%s" % (key, expect, verdict, cat, ms, fs, "" if status == "Succeeded" else "  (" + str(status) + ")"))
+    wrong = [key for key, expect, verdict, *_ in rows if not verdict or verdict not in expect.split(" or ")]
+    print("\nTRIAGE PASSED" if not wrong else "\n✗ TRIAGE MISMATCH: " + ", ".join(wrong))
+    if wrong:
+        sys.exit(1)
 
 
 def cleanup():

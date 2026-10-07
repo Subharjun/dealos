@@ -1,0 +1,18 @@
+<customapi uniquename="gc_CloseLots">
+  <allowedcustomprocessingsteptype>0</allowedcustomprocessingsteptype>
+  <bindingtype>0</bindingtype>
+  <description default="Seller lots whose bid deadline passed: rank bids (highest buyer price, then earliest), Confirm deal tasks for the winners while quantity lasts, confirmation and 'not this time' drafts, briefing.">
+    <label description="Seller lots whose bid deadline passed: rank bids (highest buyer price, then earliest), Confirm deal tasks for the winners while quantity lasts, confirmation and 'not this time' drafts, briefing." languagecode="1033" />
+  </description>
+  <displayname default="Close seller lots">
+    <label description="Close seller lots" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isfunction>0</isfunction>
+  <isprivate>0</isprivate>
+  <name>gc_CloseLots</name>
+  <plugintypeid>
+    <plugintypeexportkey>1b12ae00-a5c1-f111-aaaf-7ced8daf451f</plugintypeexportkey>
+  </plugintypeid>
+  <workflowsdkstepenabled>0</workflowsdkstepenabled>
+</customapi>

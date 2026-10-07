@@ -1,6 +1,0 @@
-id: b205d80c-f4d0-4827-816b-9689e8cd9aa2
-name: Grant Change to Administrators
-right: 1
-adx_webpageaccesscontrolrule_webrole:
-- 0d481304-96ba-4feb-ac94-c205bdabb4af
-webpageid: 339360b8-8256-41a5-aaea-849f26fddcc8

@@ -1,0 +1,11 @@
+<customapiresponseproperty uniquename="Language">
+  <description default="Spoken language (BCP-47).">
+    <label description="Spoken language (BCP-47)." languagecode="1033" />
+  </description>
+  <displayname default="Language">
+    <label description="Language" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <name>gc_TranscribeAudio.Language</name>
+  <type>10</type>
+</customapiresponseproperty>

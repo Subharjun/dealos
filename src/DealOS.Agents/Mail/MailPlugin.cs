@@ -17,6 +17,8 @@ namespace DealOS.Agents.Mail
     ///   gc_BuildEmailRaw(MessageId, MailboxAddress) → Raw, ThreadId, To   (a pending desk draft as a Gmail draft message)
     ///   gc_SourceRequirement(RequirementId) → Invited, Result           (source requests to matching seller leads)
     ///   gc_DeskContract(ContractId) → Result                             (back-to-back contract PDFs + drafts to both sides)
+    ///   gc_DiscoverBuyers(LotId, Force?) → Found, Result                 (web search for buyers of a seller lot → leads)
+    ///   gc_MarketLot(LotId) → Offered, Result                            (offer an open lot to buyers not offered it yet)
     ///   gc_AttachEmailFile(MessageId, FileName, MimeType, Data) → Status, DocumentId
     ///       Stores one attachment (base64url) as a Quarantined gc_document of the email, so Document intake does not
     ///       spend model calls on unscreened mail. The Trade Desk releases it (Pending) once the thread is genuine.
@@ -51,11 +53,27 @@ namespace DealOS.Agents.Mail
                     context.OutputParameters["Found"] = Convert.ToInt32(J.Get(found, "found") ?? 0);
                     context.OutputParameters["Result"] = Json.Serialize(found);
                     break;
+                case "gc_DiscoverBuyers":
+                    var buyers = Discovery.RunBuyers(dv, Get<Guid>(context, "LotId"), Get<bool?>(context, "Force") ?? false, x => trace.Trace(x));
+                    context.OutputParameters["Found"] = Convert.ToInt32(J.Get(buyers, "found") ?? 0);
+                    context.OutputParameters["Result"] = Json.Serialize(buyers);
+                    break;
+                case "gc_MarketLot":
+                    var marketed = Lots.Market(new DeskWriter(dv), Get<Guid>(context, "LotId"));
+                    context.OutputParameters["Offered"] = marketed.Count;
+                    context.OutputParameters["Result"] = Json.Serialize(J.Obj("offered", marketed));
+                    break;
                 case "gc_DeskBrief":
                     context.OutputParameters["MessageId"] = Desk.Brief(new DeskWriter(dv), Get<string>(context, "Subject") ?? "Update", Get<string>(context, "Text") ?? "").ToString();
                     break;
                 case "gc_DeskContract":
                     context.OutputParameters["Result"] = Json.Serialize(Desk.ContractOut(new DeskWriter(dv), Get<Guid>(context, "ContractId")));
+                    break;
+                case "gc_CloseLots":
+                    context.OutputParameters["Result"] = Json.Serialize(Lots.CloseDue(new DeskWriter(dv)));
+                    break;
+                case "gc_DeskFollowUps":
+                    context.OutputParameters["Result"] = Json.Serialize(FollowUps.Run(new DeskWriter(dv)));
                     break;
                 case "gc_AttachEmailFile":
                     Attach(dv, Get<Guid>(context, "MessageId"), Get<string>(context, "FileName"), Get<string>(context, "MimeType"),
@@ -113,7 +131,14 @@ namespace DealOS.Agents.Mail
                 return;
             }
             Guid convId;
-            if (conv == null)
+            var joined = conv == null && !outbound && m.From != null ? Desk.OpenThreadFor(dv, m.From.Address, m.Subject) : null;
+            if (joined != null)
+            {
+                // A new email from a party with an open deal joins that deal's thread (our replies stay in the original Gmail thread).
+                conv = dv.Retrieve("gc_conversation", joined.Value, "gc_counterparty");
+                convId = joined.Value;
+            }
+            else if (conv == null)
             {
                 var c = new Entity("gc_conversation");
                 c["gc_name"] = Cut(string.IsNullOrWhiteSpace(m.Subject) ? "(no subject)" : m.Subject, 200);
@@ -193,7 +218,7 @@ namespace DealOS.Agents.Mail
             o["Direction"] = outbound ? "Outbound" : "Inbound";
             o["NeedsTriage"] = !outbound;
             o["Attachments"] = Json.Serialize(Pending(dv, msgId, m, maxBytes));
-            o["Summary"] = (outbound ? "Sent" : "Received") + " email stored" + (stored > 0 ? " with " + stored + " inline attachment(s)" : "") + ".";
+            o["Summary"] = (outbound ? "Sent" : "Received") + " email stored" + (stored > 0 ? " with " + stored + " inline attachment(s)" : "") + (joined != null ? "; a new email from a party with an open deal, joined to that deal's thread" : "") + ".";
             trace.Trace("Ingested Gmail {0} (thread {1}) as gc_message {2}", m.Id, m.ThreadId, msgId);
         }
 
@@ -315,6 +340,15 @@ namespace DealOS.Agents.Mail
             doc["gc_filename"] = Cut(fileName, 400);
             doc["gc_mimetype"] = Cut(string.IsNullOrEmpty(mime) ? "application/octet-stream" : mime.ToLowerInvariant(), 200);
             doc["gc_sizebytes"] = bytes.Length;
+            // gc_sha256 is a unique key. The same file sent again (a seller reusing one COA for several enquiries) is stored for this
+            // email too, keyed by hash(file hash + email) and pointing at the first copy: gc_duplicateof is the reuse signal for the evidence checks.
+            var first = dv.Query("gc_document", new[] { "gc_documentid" }, 1, "gc_sha256", Microsoft.Xrm.Sdk.Query.ConditionOperator.Equal, sha).FirstOrDefault();
+            if (first != null)
+            {
+                doc["gc_duplicateof"] = new EntityReference("gc_document", first.Id);
+                using (var h = SHA256.Create())
+                    sha = string.Concat(h.ComputeHash(System.Text.Encoding.UTF8.GetBytes(sha + "|" + messageId.ToString("N"))).Select(b => b.ToString("x2")));
+            }
             doc["gc_sha256"] = sha;
             doc["gc_parsestatus"] = new OptionSetValue(MailChoice.DocumentQuarantined);
             doc["gc_message"] = new EntityReference("gc_message", messageId);

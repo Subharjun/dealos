@@ -24,7 +24,7 @@ namespace DealOS.Agents.Mail
         public static class LeadSource { public const int TradeData = B, IndiaMart = B + 1, Warehouse = B + 2, Email = B + 3, Manual = B + 4, WebSearch = B + 5; }
         public static class LeadStatus { public const int New = B, Contacted = B + 1, Responded = B + 2, Converted = B + 3, DoNotContact = B + 4; }
         public static class Invite { public const int Invited = B, Accepted = B + 2, Declined = B + 3; }
-        public static class DealStage { public const int Inquiry = B, Negotiation = B + 1, TermsAgreed = B + 2, Cancelled = B + 12; }
+        public static class DealStage { public const int Inquiry = B, Negotiation = B + 1, TermsAgreed = B + 2, Settled = B + 10, Closed = B + 11, Cancelled = B + 12; }
         public static class Offer { public const int Open = B, Countered = B + 1, Accepted = B + 2, Rejected = B + 3; }
         public static class Contract { public const int SentForSignature = B + 2, Signed = B + 3; }
         public const int DocumentParsed = B + 1;
@@ -53,6 +53,19 @@ namespace DealOS.Agents.Mail
         {
             if (_ctx != null) _ctx.Update(e, action, detail);
             else Dv.Svc.Update(e);
+        }
+
+        /// <summary>
+        /// Threads the desk's own code drafted into during this agent run (e.g. the next supplier's offer). The agent's draft_email
+        /// must not replace those drafts in the same run.
+        /// </summary>
+        public void Drafted(Guid threadId, string action)
+        {
+            if (_ctx == null || action == "draft_email") return;
+            object v;
+            var set = _ctx.Scratch.TryGetValue("desk_drafted_threads", out v) ? (HashSet<Guid>)v : new HashSet<Guid>();
+            set.Add(threadId);
+            _ctx.Scratch["desk_drafted_threads"] = set;
         }
     }
 
@@ -98,14 +111,18 @@ namespace DealOS.Agents.Mail
         /// A reply draft for a person to check and send from Gmail (the "Desk drafts" flow puts it into the Gmail thread).
         /// Any earlier pending draft in the same thread is discarded: only the latest is relevant.
         /// </summary>
-        public static Guid Draft(DeskWriter w, Guid conversationId, string to, string subject, string body, IEnumerable<Guid> documents, string action, bool autoSend = false)
+        public static Guid Draft(DeskWriter w, Guid conversationId, string to, string subject, string body, IEnumerable<Guid> documents, string action, bool autoSend = false,
+                                 bool replacePending = true)
         {
-            foreach (var old in w.Dv.Query("gc_message", new[] { "gc_messageid" }, 10, "gc_conversation", ConditionOperator.Equal, conversationId,
-                                           "gc_draftstatus", ConditionOperator.Equal, DeskChoice.DraftStatus.Pending))
+            if (replacePending)
             {
-                var discard = new Entity("gc_message", old.Id);
-                discard["gc_draftstatus"] = new OptionSetValue(DeskChoice.DraftStatus.Discarded);
-                w.Update(discard, "discard_draft");
+                foreach (var old in w.Dv.Query("gc_message", new[] { "gc_messageid" }, 10, "gc_conversation", ConditionOperator.Equal, conversationId,
+                                               "gc_draftstatus", ConditionOperator.Equal, DeskChoice.DraftStatus.Pending))
+                {
+                    var discard = new Entity("gc_message", old.Id);
+                    discard["gc_draftstatus"] = new OptionSetValue(DeskChoice.DraftStatus.Discarded);
+                    w.Update(discard, "discard_draft");
+                }
             }
             var m = new Entity("gc_message");
             m["gc_name"] = Cut(subject, 200);
@@ -120,7 +137,63 @@ namespace DealOS.Agents.Mail
             m["gc_autosend"] = autoSend;
             var docs = (documents ?? new Guid[0]).ToList();
             if (docs.Count > 0) m["gc_attachments"] = Json.Serialize(J.Obj("documents", docs.Select(d => (object)d.ToString()).ToList()));
-            return w.Create(m, action, J.Obj("to", to, "subject", subject, "attachments", docs.Count, "auto_send", autoSend));
+            var id = w.Create(m, action, J.Obj("to", to, "subject", subject, "attachments", docs.Count, "auto_send", autoSend));
+            w.Drafted(conversationId, action);
+            return id;
+        }
+
+        private static readonly Regex QuantityRx = new Regex(@"\b\d[\d,.]*\s?(mt|tons?|tonnes?|kgs?|dmt|wmt|metric tons?)\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        private static readonly Regex TermsWordsRx = new Regex(@"\b(price|priced|cost|payment|paid|lc|l/c|tt|advance|validity|valid|quantity|qty|shipment|delivery|packing|origin|commission|contact|email|phone|whatsapp|tel)\b",
+                                                               RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        /// <summary>
+        /// A seller's specification as shown to a buyer: only the technical part. Sentences with a price, terms, quantity, contact details
+        /// or the seller's name are dropped (prices and terms are shown from our own fields, never copied from the seller's text).
+        /// </summary>
+        public static string SafeSpec(string spec, string sellerName)
+        {
+            if (string.IsNullOrWhiteSpace(spec)) return null;
+            var nameWords = Tokens(Regex.Replace(sellerName ?? "", @"\[[^\]]*\]", " ")).Where(t => t.Length > 3 && !new[] { "test", "trading", "company", "limited", "private", "group", "international", "industries", "exports", "metals", "minerals" }.Contains(t)).ToList();
+            var kept = Regex.Split(spec, @"(?<=[.;])\s+|\r?\n|;\s*")
+                .Select(x => x.Trim().TrimEnd('.', ';').Trim())
+                .Select(x => Regex.Replace(x, @"^(product|specification|spec|grade)\s*:\s*", "", RegexOptions.IgnoreCase))
+                .Where(x => x.Length > 0 && !PriceRx.IsMatch(x) && !TermsWordsRx.IsMatch(x) && x.IndexOf('@') < 0 && !Regex.IsMatch(x, @"https?://|www\.", RegexOptions.IgnoreCase))
+                .Where(x => !nameWords.Any(w => Regex.IsMatch(x, @"\b" + Regex.Escape(w) + @"\b", RegexOptions.IgnoreCase)))
+                .Distinct().ToList();
+            return kept.Count == 0 ? null : string.Join("; ", kept);
+        }
+
+        /// <summary>
+        /// A seller's terms as shown to a buyer (origin, lead time, payment, packing): lines or sentences with a price or amount,
+        /// the seller's price figure, contact details, links or the seller's name are dropped. Null when nothing is left.
+        /// </summary>
+        public static string SafeTerms(string terms, string sellerName, decimal? sellerPrice)
+        {
+            if (string.IsNullOrWhiteSpace(terms)) return null;
+            var nameWords = Tokens(Regex.Replace(sellerName ?? "", @"\[[^\]]*\]", " ")).Where(t => t.Length > 3 && !new[] { "test", "trading", "company", "limited", "private", "group", "international", "industries", "exports", "metals", "minerals" }.Contains(t)).ToList();
+            var figure = sellerPrice == null ? "" : Regex.Replace(sellerPrice.Value.ToString("0.##", CultureInfo.InvariantCulture), @"[^\d]", "");
+            var kept = Regex.Split(terms, @"(?<=[.;])\s+|\r?\n")
+                .Select(x => x.Trim())
+                .Where(x => x.Length > 0 && !PriceRx.IsMatch(x) && x.IndexOf('@') < 0 && !Regex.IsMatch(x, @"https?://|www\.|\+?\d[\d\s().-]{8,}\d", RegexOptions.IgnoreCase))
+                .Where(x => figure.Length < 3 || !Regex.Replace(x, @"[^\d]", "").Contains(figure))
+                .Where(x => !nameWords.Any(w => Regex.IsMatch(x, @"\b" + Regex.Escape(w) + @"\b", RegexOptions.IgnoreCase)))
+                .Distinct().ToList();
+            return kept.Count == 0 ? null : string.Join("\n", kept);
+        }
+
+        /// <summary>The seller's account name behind a deal, for masking.</summary>
+        public static string SellerName(Dv dv, Guid? dealId)
+        {
+            var deal = dealId == null ? null : dv.Retrieve("gc_deal", dealId.Value, "gc_seller");
+            var seller = deal == null || H(deal, "gc_seller") == null ? null : dv.Retrieve("account", H(deal, "gc_seller").Value, "name");
+            return seller == null ? null : seller.GetAttributeValue<string>("name");
+        }
+
+        /// <summary>An email that states both a price and a quantity (an offer that can become a seller lot).</summary>
+        public static bool HasPriceAndQuantity(string text)
+        {
+            return PriceRx.IsMatch(text ?? "") && QuantityRx.IsMatch(text ?? "");
         }
 
         private static readonly Regex PriceRx = new Regex(@"(usd|us\$|eur|inr|rs\.?|\$|€|₹)\s?\d|\d\s?(usd|eur|inr)\b|per\s+(mt|ton|tonne|kg|lb)\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
@@ -169,6 +242,14 @@ namespace DealOS.Agents.Mail
             return w.Create(m, "brief_owner", J.Obj("subject", subject));
         }
 
+        /// <summary>A stored draft's text without the desk signature that Draft appended (so an agent can rework it).</summary>
+        public static string WithoutSignature(Dv dv, string text)
+        {
+            var t = text ?? "";
+            var sig = Signature(dv);
+            return !string.IsNullOrEmpty(sig) && t.EndsWith(sig) ? t.Substring(0, t.Length - sig.Length).TrimEnd() : t;
+        }
+
         /// <summary>Drops a closing the writer added ("Best regards," and a name), because the desk signature follows.</summary>
         public static string WithoutSignOff(string body)
         {
@@ -203,6 +284,94 @@ namespace DealOS.Agents.Mail
             return last.GetAttributeValue<string>("gc_fromaddress");
         }
 
+        /// <summary>
+        /// A new email (new Gmail thread) from a seller we have an open enquiry with: that enquiry's thread, so a quote sent as a fresh
+        /// email joins the seller's deal. Sellers only: a buyer's new email is often a new requirement, so it stays a thread of its own
+        /// (the Trade Desk sees the buyer's other open requirements). Open = deal before Settled and not cancelled. With several open
+        /// enquiries, the one whose name shares most words with the subject wins; a tie links nothing.
+        /// </summary>
+        public static Guid? OpenThreadFor(Dv dv, string address, string subject)
+        {
+            var open = new List<Entity>();
+            foreach (var acc in AccountsOf(dv, address))
+                foreach (var t in dv.Query("gc_conversation", new[] { "gc_name", "gc_side", "gc_deal" }, 20, "gc_counterparty", ConditionOperator.Equal, acc,
+                                           "gc_side", ConditionOperator.Equal, DeskChoice.Side.Seller))
+                {
+                    var dealId = H(t, "gc_deal");
+                    var deal = dealId == null ? null : dv.Retrieve("gc_deal", dealId.Value, "gc_stage");
+                    var stage = deal == null ? null : deal.GetAttributeValue<OptionSetValue>("gc_stage");
+                    if (deal == null || (stage != null && stage.Value >= DeskChoice.DealStage.Settled)) continue;
+                    open.Add(t);
+                }
+            return PickThread(open.Select(t => new KeyValuePair<Guid, string>(t.Id, t.GetAttributeValue<string>("gc_name"))).ToList(), subject);
+        }
+
+        /// <summary>The companies an email address belongs to (contact's parent account, or an account with that email).</summary>
+        public static List<Guid> AccountsOf(Dv dv, string address)
+        {
+            var accounts = new List<Guid>();
+            if (string.IsNullOrWhiteSpace(address)) return accounts;
+            foreach (var c in dv.Query("contact", new[] { "parentcustomerid" }, 5, "emailaddress1", ConditionOperator.Equal, address))
+            {
+                var p = c.GetAttributeValue<EntityReference>("parentcustomerid");
+                if (p != null && p.LogicalName == "account" && !accounts.Contains(p.Id)) accounts.Add(p.Id);
+            }
+            foreach (var a in dv.Query("account", new[] { "accountid" }, 5, "emailaddress1", ConditionOperator.Equal, address))
+                if (!accounts.Contains(a.Id)) accounts.Add(a.Id);
+            return accounts;
+        }
+
+        /// <summary>One candidate → it; several → the unique best word overlap with the subject; otherwise none.</summary>
+        public static Guid? PickThread(List<KeyValuePair<Guid, string>> candidates, string subject)
+        {
+            if (candidates.Count == 0) return null;
+            if (candidates.Count == 1) return candidates[0].Key;
+            var words = new HashSet<string>(Tokens(subject));
+            var scored = candidates.Select(c => new { c.Key, Score = Tokens(c.Value).Count(words.Contains) }).OrderByDescending(x => x.Score).ToList();
+            return scored[0].Score > 0 && scored[0].Score > scored[1].Score ? scored[0].Key : (Guid?)null;
+        }
+
+        /// <summary>The person we write to in a thread: the display name of the last received email, else the lead's contact for the counterparty.</summary>
+        public static string ContactName(Dv dv, Guid conversationId)
+        {
+            var last = dv.Query("gc_message", new[] { "gc_senderlabel", "gc_direction" }, 20, "gc_conversation", ConditionOperator.Equal, conversationId)
+                         .FirstOrDefault(m => (m.GetAttributeValue<OptionSetValue>("gc_direction") ?? new OptionSetValue(0)).Value == MailChoice.Direction.Inbound);
+            var name = PersonName(last == null ? null : last.GetAttributeValue<string>("gc_senderlabel"));
+            if (name != null) return name;
+            var conv = dv.Retrieve("gc_conversation", conversationId, "gc_counterparty");
+            var acc = conv == null ? null : H(conv, "gc_counterparty");
+            var lead = acc == null ? null : dv.Query("gc_lead", new[] { "gc_contactname" }, 1, "gc_account", ConditionOperator.Equal, acc.Value).FirstOrDefault();
+            return PersonName(lead == null ? null : lead.GetAttributeValue<string>("gc_contactname"));
+        }
+
+        /// <summary>"Rakesh Jain &lt;r@x.com&gt;" → "Rakesh Jain"; null when there is no usable name (bare address, digits, too long).</summary>
+        public static string PersonName(string label)
+        {
+            var name = (label ?? "").Split('<')[0].Trim().Trim('"', '\'').Trim();
+            return name.Length < 2 || name.Length > 60 || name.Contains("@") || Regex.IsMatch(name, @"\d") ? null : name;
+        }
+
+        private static readonly Regex GenericGreetingRx = new Regex(
+            @"^\s*(dear|hello|hi)\s+(?<who>buyer|seller|supplier|customer|client|sir\s*(or|/)\s*madam|sirs?|madam|team|all)\b(?:[ \t]*[,!:.]|[ \t]*(?=\r?\n|$))[ \t]*",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        /// <summary>
+        /// Replaces a generic opening ("Dear Buyer,", "Dear Sir,") with the contact's name when we know it. Without a name,
+        /// "Dear Buyer/Seller/Supplier/Customer" becomes "Dear Sir or Madam" (a role is not a salutation). Other openings are left alone.
+        /// </summary>
+        public static string Greet(string body, string name)
+        {
+            var text = body ?? "";
+            var m = GenericGreetingRx.Match(text);
+            if (!m.Success) return text;
+            var who = m.Groups["who"].Value.ToLowerInvariant();
+            string greeting;
+            if (!string.IsNullOrWhiteSpace(name)) greeting = "Dear " + name.Trim() + ",";
+            else if (new[] { "buyer", "seller", "supplier", "customer", "client" }.Contains(who)) greeting = "Dear Sir or Madam,";
+            else return text;
+            return greeting + text.Substring(m.Length);
+        }
+
         // ---------------------------------------------------------------- sourcing
 
         public static List<string> Tokens(string text)
@@ -212,14 +381,26 @@ namespace DealOS.Agents.Mail
         }
 
         /// <summary>How well a lead's products match the wanted commodity (0 = no match).</summary>
+        private static readonly HashSet<string> GenericPrefixes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "ferro", "silico", "metal", "metals", "metallic", "alloy", "alloys", "ore", "ores", "concentrate", "concentrates", "oxide", "refined",
+            "carbon", "low", "flakes", "granules", "briquettes", "scrap", "crude", "rare", "earth", "earths"
+        };
+
+        /// <summary>The word that names the material: the first token that is not a generic prefix ("Ferro Tungsten" → tungsten).</summary>
+        public static string MainToken(List<string> tokens)
+        {
+            return tokens.FirstOrDefault(t => !GenericPrefixes.Contains(t)) ?? tokens[0];
+        }
+
         public static int LeadScore(List<string> tokens, string leadCommodities, int shipments, DateTime? lastSeen, DateTime now)
         {
             if (tokens.Count == 0 || string.IsNullOrWhiteSpace(leadCommodities)) return 0;
             var text = leadCommodities.ToLowerInvariant();
             var hits = tokens.Count(t => Regex.IsMatch(text, @"\b" + Regex.Escape(t)));
             if (hits == 0) return 0;
-            // The most specific word (first token, e.g. "vanadium", "strontium") must match; generic words alone are not enough.
-            if (!Regex.IsMatch(text, @"\b" + Regex.Escape(tokens[0]))) return 0;
+            // The most specific word ("vanadium", "strontium", "tungsten" in "Ferro Tungsten") must match; generic words alone are not enough.
+            if (!Regex.IsMatch(text, @"\b" + Regex.Escape(MainToken(tokens)))) return 0;
             var score = hits * 10 + (hits == tokens.Count ? 20 : 0) + Math.Min(shipments, 20);
             if (lastSeen != null && (now - lastSeen.Value).TotalDays <= 180) score += 10;
             return score;
@@ -289,7 +470,7 @@ namespace DealOS.Agents.Mail
             return J.Obj("matched_leads", ranked.Count, "source_requests", invited, "invited", invited.Count, "leads_without_email", noEmail.Count);
         }
 
-        private static Guid SellerAccount(DeskWriter w, Entity lead, string email, string name)
+        internal static Guid SellerAccount(DeskWriter w, Entity lead, string email, string name)
         {
             var linked = H(lead, "gc_account");
             if (linked != null) return linked.Value;
@@ -363,8 +544,8 @@ namespace DealOS.Agents.Mail
         /// <summary>The enquiry to a seller: specification and terms only; the buyer is never named.</summary>
         public static string SourceRequestText(Entity req, string commodity, string addressee)
         {
-            var lines = new List<string> { "Dear " + (string.IsNullOrWhiteSpace(addressee) ? "Sir or Madam" : addressee) + ",", "",
-                                           "We have a confirmed enquiry from a buyer for the following material:", "" };
+            var lines = new List<string> { "Dear " + (string.IsNullOrWhiteSpace(addressee) ? "Sir" : addressee) + ",", "",
+                                           "We have a buyer for the following:", "" };
             lines.Add("- Product: " + commodity);
             var spec = req.GetAttributeValue<string>("gc_specification");
             if (!string.IsNullOrWhiteSpace(spec)) lines.Add("- Specification: " + spec.Trim().Replace("\n", "; "));
@@ -375,8 +556,213 @@ namespace DealOS.Agents.Mail
             var delivery = req.GetAttributeValue<string>("gc_deliverytext");
             if (!string.IsNullOrWhiteSpace(delivery)) lines.Add("- Delivery: " + delivery);
             lines.Add("");
-            lines.Add("If you can supply, please send your best price with the delivery basis (Incoterm and place), available quantity, origin, a recent COA or specification sheet, lead time and your payment terms.");
+            lines.Add("If you can supply, please send your best price with the basis (FOB / CIF and port), quantity available, origin and lead time, along with a recent COA or SGS report and your company profile.");
             return string.Join("\n", lines);
+        }
+
+        // ---------------------------------------------------------------- quote window
+
+        // ---------------------------------------------------------------- seller queue (buyer first)
+
+        /// <summary>
+        /// Buyer first, sellers in turn: the first seller to quote is the ACTIVE seller (gc_buyerrequirement.gc_activedeal) and is
+        /// negotiated with the buyer. Sellers who quote later are queued in the order they answered. If the deal with the active
+        /// seller breaks (seller walks away or goes silent, buyer turns the offer down) and the buyer is still looking, the next
+        /// queued seller comes up. Sellers who never answered stay open; sellers who decline are left alone. Lot deals are not queued.
+        /// </summary>
+        public static Guid? ActiveDeal(Dv dv, Guid requirementId)
+        {
+            var req = dv.Retrieve("gc_buyerrequirement", requirementId, "gc_activedeal");
+            var id = req == null ? null : H(req, "gc_activedeal");
+            if (id == null) return null;
+            var deal = dv.Retrieve("gc_deal", id.Value, "gc_stage");
+            return deal == null || Stage(deal) == DeskChoice.DealStage.Cancelled ? (Guid?)null : id;
+        }
+
+        private static int Stage(Entity deal) { return (deal.GetAttributeValue<OptionSetValue>("gc_stage") ?? new OptionSetValue(DeskChoice.DealStage.Inquiry)).Value; }
+
+        /// <summary>Sellers waiting their turn: live enquiry deals (not lots, not the active one) with a quote, in the order they first quoted.</summary>
+        public static List<Entity> Queue(Dv dv, Guid requirementId)
+        {
+            var active = ActiveDeal(dv, requirementId);
+            var queued = new List<KeyValuePair<DateTime, Entity>>();
+            foreach (var d in dv.Query("gc_deal", new[] { "gc_seller", "gc_stage", "gc_sellerlot", "gc_name" }, 50, "gc_requirement", ConditionOperator.Equal, requirementId))
+            {
+                if (d.Id == active || H(d, "gc_sellerlot") != null || Stage(d) > DeskChoice.DealStage.Negotiation) continue;
+                var quotes = dv.Query("gc_offer", new[] { "gc_fromparty", "createdon" }, 20, "gc_deal", ConditionOperator.Equal, d.Id)
+                               .Where(o => H(o, "gc_fromparty") == H(d, "gc_seller")).ToList();
+                if (quotes.Count > 0) queued.Add(new KeyValuePair<DateTime, Entity>(quotes.Min(o => o.GetAttributeValue<DateTime>("createdon")), d));
+            }
+            return queued.OrderBy(x => x.Key).Select(x => x.Value).ToList();
+        }
+
+        /// <summary>A seller quoted: with no active seller this deal becomes active ("active"), otherwise it waits in the queue ("queued").</summary>
+        public static string TakeTurn(DeskWriter w, Guid requirementId, Guid dealId)
+        {
+            var active = ActiveDeal(w.Dv, requirementId);
+            if (active == dealId) return "active";
+            if (active != null) return "queued";
+            var r = new Entity("gc_buyerrequirement", requirementId);
+            r["gc_activedeal"] = new EntityReference("gc_deal", dealId);
+            w.Update(r, "active_seller", J.Obj("deal", dealId));
+            return "active";
+        }
+
+        /// <summary>The seller's latest live quote on a deal (open or countered, not expired), or null.</summary>
+        public static Entity LatestQuote(Dv dv, Guid dealId)
+        {
+            var deal = dv.Retrieve("gc_deal", dealId, "gc_seller");
+            return dv.Query("gc_offer", new[] { "gc_price", "gc_currency", "gc_quantity", "gc_incoterm", "gc_namedplace", "gc_terms", "gc_status", "gc_fromparty", "gc_deal", "gc_validuntil", "createdon" }, 20,
+                            "gc_deal", ConditionOperator.Equal, dealId)
+                     .Where(o => H(o, "gc_fromparty") == H(deal, "gc_seller"))
+                     .Where(o => { var st = o.GetAttributeValue<OptionSetValue>("gc_status"); return st == null || st.Value == DeskChoice.Offer.Open || st.Value == DeskChoice.Offer.Countered; })
+                     .Where(o => o.GetAttributeValue<DateTime?>("gc_validuntil") == null || o.GetAttributeValue<DateTime>("gc_validuntil") >= DateTime.UtcNow.Date)
+                     .OrderByDescending(o => o.GetAttributeValue<DateTime>("createdon")).FirstOrDefault();
+        }
+
+        /// <summary>
+        /// The deal with the active seller is off: the deal closes (the seller gets a short note when the buyer turned it down), then the
+        /// next queued seller comes up if the buyer is still looking; otherwise the requirement closes and queued sellers get "not this time".
+        /// </summary>
+        public static Dictionary<string, object> Break(DeskWriter w, Guid requirementId, string reason, bool buyerStillLooking, bool noteToSeller)
+        {
+            var dv = w.Dv;
+            var active = ActiveDeal(dv, requirementId);
+            if (active != null && !w.DryRun)
+            {
+                var req = new OrganizationRequest("gc_TransitionDeal");
+                req["DealId"] = active.Value;
+                req["TargetStage"] = DeskChoice.DealStage.Cancelled;
+                req["Reason"] = Cut("Desk: " + reason, 400);
+                dv.System.Execute(req);
+                if (noteToSeller) RegretNote(w, active.Value, "Our buyer has decided not to go ahead with this offer, so we cannot proceed this time");
+            }
+            var r = new Entity("gc_buyerrequirement", requirementId);
+            r["gc_activedeal"] = null;
+            r["gc_ourprice"] = null;
+            w.Update(r, "active_seller_off", J.Obj("reason", reason, "buyer_still_looking", buyerStillLooking));
+            if (w.DryRun) return J.Obj("ok", true, "note", "Dry run: the deal would close and the next seller would come up.");
+            if (buyerStillLooking) return NextSeller(w, requirementId, reason);
+
+            var notes = 0;
+            foreach (var d in Queue(dv, requirementId))
+            {
+                var req = new OrganizationRequest("gc_TransitionDeal");
+                req["DealId"] = d.Id;
+                req["TargetStage"] = DeskChoice.DealStage.Cancelled;
+                req["Reason"] = "Desk: buyer closed the requirement";
+                dv.System.Execute(req);
+                if (RegretNote(w, d.Id) != null) notes++;
+            }
+            var close = new Entity("gc_buyerrequirement", requirementId);
+            close["gc_deskstage"] = new OptionSetValue(DeskChoice.Stage.Closed);
+            w.Update(close, "requirement_closed", J.Obj("reason", reason));
+            Brief(w, "Requirement closed: " + Commodity(dv, requirementId), "The deal with the active seller is off (" + reason + ") and the buyer is no longer looking.\n\n" +
+                  notes + " queued seller(s) get a 'not this time' draft.");
+            return J.Obj("ok", true, "requirement_closed", true, "regret_notes", notes, "note", "Draft a short, polite closing note to the buyer only if useful.");
+        }
+
+        /// <summary>The next queued seller becomes active: our price (their quote + margin) is drafted to the buyer. None queued: back to sourcing.</summary>
+        public static Dictionary<string, object> NextSeller(DeskWriter w, Guid requirementId, string why)
+        {
+            var dv = w.Dv;
+            var commodity = Commodity(dv, requirementId);
+            foreach (var d in Queue(dv, requirementId))
+            {
+                var quote = LatestQuote(dv, d.Id);
+                if (quote == null) continue;
+                var r = new Entity("gc_buyerrequirement", requirementId);
+                r["gc_activedeal"] = new EntityReference("gc_deal", d.Id);
+                w.Update(r, "active_seller", J.Obj("deal", d.Id, "after", why));
+                var ours = OfferToBuyer(w, requirementId, quote, "We have another option for your requirement:");
+                Brief(w, "Next seller up: " + commodity, "The deal with the previous seller is off (" + why + "). The next seller in the queue (" + d.GetAttributeValue<string>("gc_name") +
+                      ") is now active: our offer to the buyer is " + (ours == null ? "-" : Num(ours.Value)) + " (their quote " + Num(quote.GetAttributeValue<decimal>("gc_price")) + " + margin)." +
+                      "\n\nThe offer is drafted in the buyer thread.");
+                return J.Obj("ok", true, "next_seller", true, "our_price_to_buyer", ours,
+                             "note", "The next supplier's offer (our price " + (ours == null ? "-" : Num(ours.Value)) + ") is drafted to the buyer automatically. Do not draft another offer to the buyer; " +
+                                     "never mention the previous supplier.");
+            }
+            var pending = dv.Query("gc_rfqinvite", new[] { "gc_status" }, 100, "gc_requirement", ConditionOperator.Equal, requirementId)
+                            .Count(i => (i.GetAttributeValue<OptionSetValue>("gc_status") ?? new OptionSetValue(DeskChoice.Invite.Invited)).Value == DeskChoice.Invite.Invited);
+            var back = new Entity("gc_buyerrequirement", requirementId);
+            back["gc_deskstage"] = new OptionSetValue(DeskChoice.Stage.Sourcing);
+            w.Update(back, "back_to_sourcing", J.Obj("after", why, "sellers_not_answered", pending));
+            Brief(w, "No seller queued: " + commodity, "The deal with the active seller is off (" + why + ") and no other seller has quoted yet." +
+                  (pending > 0 ? " " + pending + " contacted seller(s) have not answered; the first to quote comes up." : " Every contacted seller has answered: consider contacting more sellers (start_sourcing more)."));
+            return J.Obj("ok", true, "next_seller", false, "sellers_not_answered", pending,
+                         "note", "No other supplier has quoted yet. Tell the buyer we are checking with other suppliers and will revert.");
+        }
+
+        /// <summary>Our offer to the buyer for one seller quote (price = quote + margin), drafted in the buyer thread. Returns our price.</summary>
+        public static decimal? OfferToBuyer(DeskWriter w, Guid requirementId, Entity quote, string intro)
+        {
+            var dv = w.Dv;
+            var req = dv.Retrieve("gc_buyerrequirement", requirementId, "gc_commoditytext", "gc_name", "gc_quantityunit");
+            var thread = dv.Query("gc_conversation", new[] { "gc_conversationid" }, 1, "gc_requirement", ConditionOperator.Equal, requirementId,
+                                  "gc_side", ConditionOperator.Equal, DeskChoice.Side.Buyer).FirstOrDefault();
+            var to = thread == null ? null : ReplyAddress(dv, thread.Id);
+            var ours = PriceToBuyer(quote.GetAttributeValue<decimal>("gc_price"), Margin(dv));
+            var r = new Entity("gc_buyerrequirement", requirementId);
+            r["gc_ourprice"] = ours;
+            r["gc_deskstage"] = new OptionSetValue(DeskChoice.Stage.Quoted);
+            w.Update(r, "our_price_to_buyer", J.Obj("price", ours));
+            if (string.IsNullOrWhiteSpace(to)) return ours;
+            var unit = UnitLabel(req.GetAttributeValue<OptionSetValue>("gc_quantityunit"));
+            var basis = Label(DeskChoice.Incoterms, quote.GetAttributeValue<OptionSetValue>("gc_incoterm")) +
+                        (quote.GetAttributeValue<string>("gc_namedplace") == null ? "" : " " + quote.GetAttributeValue<string>("gc_namedplace"));
+            var l = new List<string> { Greet("Dear Sir,", ContactName(dv, thread.Id)), "", intro, "",
+                                       "- Product: " + (req.GetAttributeValue<string>("gc_commoditytext") ?? req.GetAttributeValue<string>("gc_name")) };
+            var qty = quote.GetAttributeValue<decimal?>("gc_quantity");
+            if (qty != null) l.Add("- Quantity: " + Num(qty.Value) + " " + unit);
+            l.Add("- Price: " + (quote.GetAttributeValue<string>("gc_currency") ?? "USD") + " " + Num(ours) + " per " + unit + (string.IsNullOrWhiteSpace(basis) ? "" : ", " + basis.Trim()));
+            var terms = SafeTerms(quote.GetAttributeValue<string>("gc_terms"), SellerName(dv, H(quote, "gc_deal")), quote.GetAttributeValue<decimal?>("gc_price"));
+            foreach (var line in (terms ?? "").Split('\n').Where(x => !string.IsNullOrWhiteSpace(x))) l.Add("- " + line.Trim());
+            l.Add("");
+            l.Add("Please let me know if this works for you, or your best price.");
+            var text = string.Join("\n", l);
+            Draft(w, thread.Id, to, ReplySubject(dv, thread.Id), text, null, "draft_offer_to_buyer", AutoSend(dv, "reply", text));
+            return ours;
+        }
+
+        /// <summary>
+        /// Desk timers: requirements with no active seller but a queued quote (the active deal closed some other way) get the next
+        /// seller; an active seller silent after a chaser and desk.chase_after_hours more is moved on from. Returns how many moved.
+        /// </summary>
+        public static int AdvanceQueues(DeskWriter w)
+        {
+            var dv = w.Dv;
+            var cutoff = DateTime.UtcNow.AddHours(-Math.Max(1, dv.SettingNum("desk.chase_after_hours", 48)));
+            var q = new QueryExpression("gc_buyerrequirement") { ColumnSet = new ColumnSet("gc_activedeal"), TopCount = 200 };
+            q.Criteria.AddCondition("gc_source", ConditionOperator.Equal, DeskChoice.RequirementSource.Email);
+            q.Criteria.AddCondition("gc_deskstage", ConditionOperator.In, DeskChoice.Stage.Sourcing, DeskChoice.Stage.Quoted, DeskChoice.Stage.Negotiating);
+            var moved = 0;
+            foreach (var req in dv.Svc.RetrieveMultiple(q).Entities)
+            {
+                var active = ActiveDeal(dv, req.Id);
+                if (active == null)
+                {
+                    if (Queue(dv, req.Id).Count == 0) continue;
+                    if (J.Bool(NextSeller(w, req.Id, "the previous deal closed"), "next_seller")) moved++;
+                    continue;
+                }
+                var thread = dv.Query("gc_conversation", new[] { "gc_chases", "gc_chasedon" }, 1, "gc_deal", ConditionOperator.Equal, active.Value,
+                                      "gc_side", ConditionOperator.Equal, DeskChoice.Side.Seller).FirstOrDefault();
+                if (thread == null || (thread.GetAttributeValue<int?>("gc_chases") ?? 0) < 1 || (thread.GetAttributeValue<DateTime?>("gc_chasedon") ?? DateTime.UtcNow) > cutoff) continue;
+                var last = dv.Query("gc_message", new[] { "gc_direction", "gc_senton", "createdon" }, 50, "gc_conversation", ConditionOperator.Equal, thread.Id)
+                             .Where(m => (m.GetAttributeValue<OptionSetValue>("gc_direction") ?? new OptionSetValue(-1)).Value != MailChoice.Direction.Draft)
+                             .OrderByDescending(m => m.GetAttributeValue<DateTime?>("gc_senton") ?? m.GetAttributeValue<DateTime>("createdon")).FirstOrDefault();
+                if (last == null || (last.GetAttributeValue<OptionSetValue>("gc_direction") ?? new OptionSetValue(-1)).Value != MailChoice.Direction.Outbound) continue;
+                if (Queue(dv, req.Id).Count == 0) continue; // nobody to move on to: keep waiting for this seller
+                Break(w, req.Id, "the seller did not answer after a reminder", true, false);
+                moved++;
+            }
+            return moved;
+        }
+
+        private static string Commodity(Dv dv, Guid requirementId)
+        {
+            var req = dv.Retrieve("gc_buyerrequirement", requirementId, "gc_commoditytext", "gc_name");
+            return req == null ? "the requirement" : (req.GetAttributeValue<string>("gc_commoditytext") ?? req.GetAttributeValue<string>("gc_name") ?? "the requirement");
         }
 
         // ---------------------------------------------------------------- contract documents
@@ -462,12 +848,15 @@ namespace DealOS.Agents.Mail
             }
             var sellerThread = w.Dv.Query("gc_conversation", new[] { "gc_conversationid" }, 1, "gc_deal", ConditionOperator.Equal, deal.Id,
                                           "gc_side", ConditionOperator.Equal, DeskChoice.Side.Seller).FirstOrDefault();
+            // A lot deal has no enquiry thread of its own: the purchase contract goes to the lot's thread, next to any other winner's contract.
+            var lotThread = sellerThread == null && H(deal, "gc_sellerlot") != null ? H(dv.Retrieve("gc_sellerlot", H(deal, "gc_sellerlot").Value, "gc_sellerthread"), "gc_sellerthread") : null;
+            if (lotThread != null) sellerThread = new Entity("gc_conversation", lotThread.Value);
             if (sellerThread != null)
             {
                 var text = "Further to your confirmation, please find attached our purchase contract for " + Num(qty) + " " + unit + " " + commodity + " at " + currency + " " + Num(sellerPrice) +
                            " per " + unit + ".\n\nKindly sign and return a scanned copy by reply to this email, together with your company registration certificate, export licence (where required) and the name of the authorised signatory.";
                 drafts.Add(Draft(w, sellerThread.Id, ReplyAddress(dv, sellerThread.Id) ?? (seller == null ? null : FirstEmail(dv, seller.Id)), ReplySubject(dv, sellerThread.Id), text,
-                                 new[] { purchaseDoc }, "draft_purchase_contract").ToString());
+                                 new[] { purchaseDoc }, "draft_purchase_contract", false, lotThread == null).ToString());
             }
             if (req != null)
             {
@@ -476,6 +865,34 @@ namespace DealOS.Agents.Mail
                 w.Update(r, "requirement_contract_sent");
             }
             return J.Obj("status", "Created", "documents", 2, "drafts", drafts);
+        }
+
+        /// <summary>
+        /// The deal of a seller who quoted was closed because the buyer's requirement is covered by another seller:
+        /// a short, polite "not this time" draft in that seller's thread (no price, no buyer, no reason beyond "closed").
+        /// Sellers who never quoted or who declined get nothing. Returns the draft id, or null when no note is due.
+        /// </summary>
+        public static Guid? RegretNote(DeskWriter w, Guid dealId, string why = "Our buyer has now closed this requirement, so we will not proceed this time")
+        {
+            var dv = w.Dv;
+            var deal = dv.Retrieve("gc_deal", dealId, "gc_emaildesk", "gc_requirement", "gc_seller");
+            if (deal == null || !(deal.GetAttributeValue<bool?>("gc_emaildesk") ?? false)) return null;
+            var sellerId = H(deal, "gc_seller");
+            var quoted = dv.Query("gc_offer", new[] { "gc_offerid", "gc_fromparty" }, 20, "gc_deal", ConditionOperator.Equal, dealId)
+                           .Any(o => sellerId != null && H(o, "gc_fromparty") == sellerId);
+            if (!quoted) return null;
+            var thread = dv.Query("gc_conversation", new[] { "gc_conversationid" }, 1, "gc_deal", ConditionOperator.Equal, dealId,
+                                  "gc_side", ConditionOperator.Equal, DeskChoice.Side.Seller).FirstOrDefault();
+            if (thread == null) return null;
+            var to = ReplyAddress(dv, thread.Id) ?? (sellerId == null ? null : FirstEmail(dv, sellerId.Value));
+            if (string.IsNullOrWhiteSpace(to)) return null;
+            var reqId = H(deal, "gc_requirement");
+            var req = reqId == null ? null : dv.Retrieve("gc_buyerrequirement", reqId.Value, "gc_commoditytext", "gc_name");
+            var commodity = req == null ? "this material" : (req.GetAttributeValue<string>("gc_commoditytext") ?? req.GetAttributeValue<string>("gc_name") ?? "this material");
+            var text = Greet("Dear Sir,", ContactName(dv, thread.Id)) + "\n\n" +
+                       "Thanks for your offer and the quick response on " + commodity + ". " + why + ".\n\n" +
+                       "We will come back to you with our next enquiry for " + commodity + ".";
+            return Draft(w, thread.Id, to, ReplySubject(dv, thread.Id), text, null, "draft_regret_note", AutoSend(dv, "reply", text));
         }
 
         private static string FirstEmail(Dv dv, Guid accountId)

@@ -8,35 +8,8 @@ using System.Threading;
 
 namespace DealOS.Agents.Infrastructure
 {
-    public sealed class FunctionCall
-    {
-        public string Name;
-        public string Id;
-        public Dictionary<string, object> Args;
-    }
-
-    public sealed class GeminiResponse
-    {
-        /// <summary>The model's content object exactly as returned (keeps thought signatures for the next turn).</summary>
-        public Dictionary<string, object> Content;
-        public List<FunctionCall> Calls = new List<FunctionCall>();
-        public string Text;
-        public string FinishReason;
-        public string BlockReason;
-        public int TokensIn;
-        public int TokensOut;
-        public long LatencyMs;
-        public string Model;
-    }
-
-    public sealed class GeminiException : Exception
-    {
-        public int StatusCode;
-        public GeminiException(string message, int statusCode) : base(message) { StatusCode = statusCode; }
-    }
-
-    /// <summary>Thin client for the Gemini generateContent REST endpoint.</summary>
-    public sealed class GeminiClient
+    /// <summary>Thin client for the Gemini generateContent REST endpoint. Requests and responses are in Gemini's format, which the runtime speaks.</summary>
+    public sealed class GeminiClient : IModelClient
     {
         private static readonly HttpClient Http = CreateHttp();
         private readonly string _apiKey;
@@ -57,9 +30,11 @@ namespace DealOS.Agents.Infrastructure
 
         /// <param name="deadline">Absolute time after which no request (or retry) may start.</param>
         /// <summary>Upper bound for a single HTTP call, so a hung model leaves time for fallbacks.</summary>
-        public TimeSpan CallTimeout = TimeSpan.FromSeconds(45);
+        public TimeSpan CallTimeout { get; set; } = TimeSpan.FromSeconds(45);
 
-        public GeminiResponse Generate(string model, Dictionary<string, object> request, DateTime deadline)
+        public string Provider { get { return "Gemini"; } }
+
+        public ModelResponse Generate(string model, Dictionary<string, object> request, DateTime deadline)
         {
             var body = Json.Serialize(request);
             var attempt = 0;
@@ -67,7 +42,7 @@ namespace DealOS.Agents.Infrastructure
             {
                 attempt++;
                 var remaining = deadline - DateTime.UtcNow;
-                if (remaining.TotalSeconds < 5) throw new GeminiException("Time budget exhausted before model call.", 0);
+                if (remaining.TotalSeconds < 5) throw new ModelException("Time budget exhausted before model call.", 0);
                 var sw = Stopwatch.StartNew();
                 using (var cts = new CancellationTokenSource(remaining < CallTimeout ? remaining : CallTimeout))
                 using (var msg = new HttpRequestMessage(HttpMethod.Post, _baseUrl + "/models/" + Uri.EscapeDataString(model) + ":generateContent"))
@@ -81,7 +56,7 @@ namespace DealOS.Agents.Infrastructure
                     }
                     catch (OperationCanceledException)
                     {
-                        throw new GeminiException("Model call timed out.", 0);
+                        throw new ModelException("Model call timed out.", 0);
                     }
                     var text = resp.Content.ReadAsStringAsync().GetAwaiter().GetResult();
                     var code = (int)resp.StatusCode;
@@ -92,7 +67,7 @@ namespace DealOS.Agents.Infrastructure
                         continue;
                     }
                     if (code < 200 || code >= 300)
-                        throw new GeminiException("Gemini HTTP " + code + ": " + Truncate(text, 600), code);
+                        throw new ModelException("Gemini HTTP " + code + ": " + Truncate(text, 600), code);
                     var parsed = Json.ParseObject(text);
                     var r = ReadResponse(parsed);
                     r.LatencyMs = sw.ElapsedMilliseconds;
@@ -102,9 +77,9 @@ namespace DealOS.Agents.Infrastructure
             }
         }
 
-        private static GeminiResponse ReadResponse(Dictionary<string, object> parsed)
+        private static ModelResponse ReadResponse(Dictionary<string, object> parsed)
         {
-            var r = new GeminiResponse();
+            var r = new ModelResponse();
             var usage = J.ObjOf(parsed, "usageMetadata");
             r.TokensIn = (int)(J.Num(usage, "promptTokenCount") ?? 0);
             r.TokensOut = (int)((J.Num(usage, "candidatesTokenCount") ?? 0) + (J.Num(usage, "thoughtsTokenCount") ?? 0));

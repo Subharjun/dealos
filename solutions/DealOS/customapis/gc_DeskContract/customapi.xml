@@ -1,0 +1,18 @@
+<customapi uniquename="gc_DeskContract">
+  <allowedcustomprocessingsteptype>0</allowedcustomprocessingsteptype>
+  <bindingtype>0</bindingtype>
+  <description default="For an approved contract of an Email Desk deal: back-to-back contract PDFs and drafts with them to the buyer and seller threads.">
+    <label description="For an approved contract of an Email Desk deal: back-to-back contract PDFs and drafts with them to the buyer and seller threads." languagecode="1033" />
+  </description>
+  <displayname default="Desk contract out">
+    <label description="Desk contract out" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isfunction>0</isfunction>
+  <isprivate>0</isprivate>
+  <name>gc_DeskContract</name>
+  <plugintypeid>
+    <plugintypeexportkey>1b12ae00-a5c1-f111-aaaf-7ced8daf451f</plugintypeexportkey>
+  </plugintypeid>
+  <workflowsdkstepenabled>0</workflowsdkstepenabled>
+</customapi>

@@ -1,4 +1,0 @@
-description: "DealOS: columns of gc_rating the site may read or write"
-id: 2b944201-2d70-5294-a57e-fad51608d10c
-name: Webapi/gc_rating/fields
-value: "gc_Deal,gc_comment,gc_name,gc_ratingid,gc_score"

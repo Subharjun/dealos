@@ -40,7 +40,7 @@ Nothing here touches money: **no escrow and no payment handling.** Payment terms
 
 | Topic | Before | Now |
 |---|---|---|
-| Front door | Power Pages site plus chat | **Gmail** `desk@gmail.com`. The site is parked: deployed, but no further work. |
+| Front door | Power Pages site plus chat | **Gmail** `desk@gmail.com`. The site and its chat agents were removed from the build on 7 Oct 2026 (the deployed site stays parked in Dev until its trial ends). |
 | Who talks to whom | Buyer and seller met on the platform | **Back to back:** buyer ↔ us and seller ↔ us, in separate email threads |
 | Sellers | Listed and verified on the site | **Sourced per requirement** from leads, IndiaMART and warehouses |
 | Negotiation | Offers and counters on the site | **By email.** The buyer's proposed price goes to the seller, and a counter goes back. |
@@ -74,7 +74,6 @@ flowchart LR
   - metadata kept in `gc_emailmeta`: selected headers, labels, attachments and the **hard signals**
   - idempotent on the Gmail id; a sender who is already a contact links the thread to their company; mail from `email.self_addresses` is Outbound
 - **`gc_AttachEmailFile`** stores an attachment (PDF, images, Office files, text, up to `email.attachments.max_mb`) as a `gc_document` in state **Quarantined**. Document intake therefore doesn't spend model calls on unscreened mail. Dangerous file types are never stored.
-- The chat trigger (`ChatPlugin`) ignores Email-channel conversations.
 
 ### One-time setup
 
@@ -150,7 +149,7 @@ Threads already stored keep their history. Mail in the new mailbox is read from 
 - Sender is already known: an account or contact in Dataverse, or an earlier thread with us. **A known sender is never ignored.**
 - The origin is sanctioned (screening and country rules).
 
-**The model judges** with Gemini, in a new agent `gc_Agent_MailTriage`. These are the buyer-genuineness checks:
+**The model judges** (OpenAI since 7 Oct 2026; Gemini before), in a new agent `gc_Agent_MailTriage`. These are the buyer-genuineness checks:
 - **Specific specification:** grade or purity, impurity limits, sizing, packing. "Need rare earth, best price" is weak; the vanadium email is strong.
 - **Realistic quantity** for the material and the buyer (50,000 MT of Dy₂O₃ is not).
 - **Coherent terms:** Incoterm and named place, delivery window, payment terms.
@@ -190,14 +189,64 @@ A new agent, **`gc_Agent_TradeDesk`** (subject: `gc_conversation`), handles ever
 - Sellers without an email address (trade data often has none) go on a **call/find list** for you, with the company name and data source.
 - Seller replies are read into **offers** (`gc_offer`, from seller), with the specification checked against the requirement and COAs through Document Intelligence.
 
+### Step 3b: sellers take turns (decided 7 Oct 2026)
+The buyer negotiates with **one seller at a time**:
+- **The first seller to quote is the active seller** (`gc_buyerrequirement.gc_activedeal`). Their quote + our margin goes to the buyer at once.
+- **Sellers who quote later are queued** in the order they answered. They get a short "noted, we will come back to you"; the buyer hears nothing about them. A later quote does not jump the queue, even if it is cheaper.
+- **Sellers who have not answered stay open.** If one answers later, they join the queue (or become active if no seller is active).
+- **Sellers who are not interested are left alone.**
+- **The deal with the active seller breaks** when the seller withdraws, when the buyer turns the offer down (`buyer_rejects_offer`), or when the seller stays silent `desk.chase_after_hours` after a reminder while another seller is queued. Then:
+  - **buyer still looking** → the active seller's deal closes (they get a polite note if the buyer turned it down), the **next queued seller becomes active**, and their offer is drafted to the buyer ("We have another offer for your requirement"). If nobody is queued, the requirement goes back to Sourcing and the first seller to quote comes up.
+  - **buyer no longer looking** → the requirement closes and queued sellers get "not this time".
+- When the buyer and the active seller agree (Confirm deal), the queued sellers get "not this time" too.
+- Desk timers (every 15 minutes) also moves a buyer to the next queued seller if the active deal closed some other way.
+
 ### Step 4: negotiate (buyer ↔ us ↔ seller)
-- **To the buyer:** when there are one or more seller offers, the Trade Desk drafts a summary of our offer (our price to the buyer, origin, lead time, terms). The seller's name is never shown. It **invites the buyer to propose their price**.
+- **To the buyer:** when the active seller quotes, the Trade Desk drafts our offer (our price to the buyer, origin, lead time, terms). The seller's name is never shown. It **invites the buyer to propose their price**.
 - **The buyer proposes a price** → recorded as a buyer offer.
 - **To the seller:** the Negotiation agent works out the seller price as the **buyer's price minus our margin** (section 7) and drafts it to the seller as our firm bid.
 - **The seller counters** → a new buyer price = the seller's counter **plus** our margin → drafted to the buyer. The loop repeats, with a round limit per deal (`negotiation.max_rounds`, default 4).
 - **The seller agrees** → the deal moves to **Terms Agreed**, and a draft to the buyer says the price is confirmed and the contract follows.
 
 **Risk check on seller terms:** when a seller asks for something risky (for example the Kyrgyz reply: 100% advance 2–3 months before dispatch, inspection only at their warehouse), the agent flags it to you. It proposes a safer structure (confirmed LC, staged advance against inspection) and never accepts such terms itself. Requests for the end user's details become a task for you, because answering would reveal the buyer.
+
+### Many buyers, many sellers, over days (decided 7 Oct 2026)
+
+Buyers and sellers are real people. A deal runs over hours or days, people write several emails before we answer, and several buyers can want the same seller's stock. The desk runs 24/7 in the cloud: Mailbox sync every 3 minutes and **Desk timers** every 15 minutes, so nothing depends on a laptop.
+
+**Several emails, any order.** Emails are worked one at a time in arrival order (Trade desk concurrency 1). The agent sees the whole thread and any unsent draft, and its new draft replaces that draft but keeps whatever in it still matters.
+
+**A fresh email instead of a reply.** A seller who writes a new email while we have an open enquiry with them joins that enquiry's thread (the enquiry whose name best matches the subject). A buyer's new email stays a thread of its own, because it is often a new requirement. The agent sees the buyer's other open requirements and opens a task when the email is really a follow-up.
+
+**Two starting points.** A deal can start from either side:
+- **Buyer first:** a buyer sends a requirement → we find sellers (sections 4–5 above).
+- **Seller first:** a seller writes that they have material and need buyers → it becomes a **seller lot**. We find buyers (known requirements, buyer leads and an AI web search), send them our masked offer, and carry their answers to the seller and back.
+
+**Seller lots** (`gc_sellerlot`). A seller offering stock with a price and a quantity (an offer to sell, or stock offered in a thread) becomes a lot:
+1. **Marketing:** the lot is offered, masked, at the seller price + margin to buyers with an open requirement for that material and to matching buyer leads (at most `email.marketing.max_buyers` new buyers per round, default 5).
+2. **Buyer search on the web** (flow **Buyer discovery**, `gc_DiscoverBuyers`): when a lot is created, the AI with web search looks for companies that use, import or distribute the material (public business contacts only). They are saved as buyer leads, and the lot is offered to the new ones (`gc_MarketLot`; buyers already offered are skipped). You get a briefing. It runs on OpenAI's web search (`agents.provider` = openai); under the Gemini free tier it was "Unavailable" and the lot went only to known buyers.
+3. **The window: how long buyers can bid.** Each lot has its own window (`gc_window`, shown on the lot):
+   - **from the seller's email:** "valid 24 hours" → 24 h, "2 days" → 48 h, "open until sold" → **open-ended**
+   - **otherwise the default** `trade.bid_window_hours` (24; set it to 0 for open-ended by default)
+   - never past the seller's own validity date
+   - **you can change any lot** in the app: set the **Bid deadline** for a timed lot, or clear it to make the lot open-ended. A new window in a later seller email also changes it.
+4. **Timed lot (24 h, 48 h, ...): buyers compete, the highest price wins.**
+   - A buyer accepting our price or proposing their own (even above ours) is a **bid**, stored as the deal's buyer price and bid time. The buyer gets "noted; offers close on <deadline>". Nothing goes to the seller yet. A buyer who is not interested is recorded as a decline (`buyer_declines_lot`).
+   - **Any number of buyers, including one.** Once every buyer the lot went to has bid or declined, offers close at once and Desk timers confirms within 15 minutes.
+   - **Close** (Desk timers, `gc_CloseLots`): bids are ranked by **buyer price** (ties go to the earliest bid). From the top, a bid at or above the floor (seller price + margin) wins while the lot has enough quantity left. Each winner gets a **Confirm deal** task (a person still approves), and confirmation drafts go to the winner and the seller. The other bidders get a polite "allocated this time" draft and their lot deals close.
+   - **No bid reaches the seller's price:** the **best bid goes to the seller** (buyer price − margin, as a draft) and the lot **carries on open-ended**: the seller decides.
+5. **Open-ended lot: the seller decides when to close.**
+   - Every buyer bid (an acceptance or a counter) **goes to the seller at once** as our firm bid: buyer price − margin, quantity, basis; never the buyer's name or price. The draft lists all our open bids on the lot, highest first. The buyer gets "we have put your offer to the supplier".
+   - **The seller accepts a bid** ("we accept your bid of USD 31,500") → `seller_closes_lot`: our bids at or above that price win, highest first, while quantity lasts. Each winner gets a **Confirm deal** task at our bid to the seller; confirmation drafts go to the seller and the winners, and "not this time" drafts to the others.
+   - **The seller counters** with a new price → the lot's price changes, and every buyer still in play gets our new price (seller price + margin) as a draft. Their acceptance or counter goes back to the seller in the same way.
+   - **The seller withdraws** → lot Withdrawn, deals closed, bidders get "no longer available".
+   - A seller who has not answered our bids after `desk.chase_after_hours` gets one chaser.
+6. A seller's quote in an enquiry thread stays tied to that buyer's requirement; it does not become a lot.
+
+**Chasers** (Desk timers, `gc_DeskFollowUps`):
+- a seller who has not answered our enquiry (or the bids on their open-ended lot) after `desk.chase_after_hours` (default 48 h) gets one follow-up draft
+- a buyer who has not answered our offer after the same time gets one follow-up draft (no price in it)
+- buyers on an open lot who have not bid get a reminder when the deadline is under 6 hours away
 
 ## 6. Leads: where sellers come from
 
@@ -284,6 +333,8 @@ Signed → **Inspection** (agency booked by you, report attached by email) → *
 **Phase 3: negotiation.** Built.
 - [x] `save_seller_quote`, `quote_to_buyer` (seller price × (1 + `trade.margin_percent`)), `record_buyer_price` (bid = buyer price ÷ (1 + margin)), `buyer_accepts`, `seller_accepts_bid`
 - [x] Acceptance opens **Confirm deal** (Deal Manager). Approval (Review decisions) sets the buyer price and accepts the offer. `gc_AcceptOffer` then moves the deal to Terms Agreed and closes the other sellers' deals.
+- [x] Each closed seller who **quoted** gets a polite "not this time" draft in their thread (`Desk.RegretNote`): no price, no buyer, no reason beyond "the buyer closed the requirement". Sellers who declined or never replied get nothing. Hold it in Gmail if you want to keep that seller as a back-up until the contract is signed.
+- [x] A draft that opens with a generic "Dear Buyer / Seller / Supplier" uses the contact's name (the sender name of their last email, else the lead's contact); with no name it becomes "Dear Sir or Madam".
 
 **Phase 4: contract and tracking.** Built.
 - [x] After Terms Agreed the existing flows run: Compliance (KYB and screening of both sides) → Contracting (Contract agent, Contract Issue approval)
@@ -294,7 +345,6 @@ Signed → **Inspection** (agency booked by you, report attached by email) → *
 **Later**
 - [ ] Label corrections from Gmail (section 4.4)
 - [ ] IndiaMART Lead Manager API
-- [ ] A polite "not this time" draft to sellers whose deal was closed
 - [ ] Tracking updates (inspection, shipment) drafted to the parties: today they go to the review tasks and the audit trail
 - [ ] KYB documents read automatically from the email attachments: today a person checks them and sets KYB and screening
 - [ ] E-signature

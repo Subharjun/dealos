@@ -1,0 +1,12 @@
+<customapirequestparameter uniquename="Subject">
+  <description default="Short subject.">
+    <label description="Short subject." languagecode="1033" />
+  </description>
+  <displayname default="Subject">
+    <label description="Subject" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isoptional>0</isoptional>
+  <name>gc_DeskBrief.Subject</name>
+  <type>10</type>
+</customapirequestparameter>

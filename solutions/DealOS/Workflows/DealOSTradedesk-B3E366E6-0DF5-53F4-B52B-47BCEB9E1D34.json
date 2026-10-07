@@ -1,0 +1,250 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_commondataserviceforapps": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "gc_dataverse"
+        },
+        "api": {
+          "name": "shared_commondataserviceforapps"
+        }
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$connections": {
+          "defaultValue": {},
+          "type": "Object"
+        },
+        "$authentication": {
+          "defaultValue": {},
+          "type": "SecureObject"
+        }
+      },
+      "triggers": {
+        "When_an_email_is_genuine": {
+          "type": "OpenApiConnectionWebhook",
+          "inputs": {
+            "host": {
+              "connectionName": "shared_commondataserviceforapps",
+              "operationId": "SubscribeWebhookTrigger",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "subscriptionRequest/message": 3,
+              "subscriptionRequest/entityname": "gc_message",
+              "subscriptionRequest/scope": 4,
+              "subscriptionRequest/filteringattributes": "gc_triage"
+            },
+            "authentication": "@parameters('$authentication')"
+          },
+          "conditions": [
+            {
+              "expression": "@and(equals(triggerOutputs()?['body/gc_triage'], 303300000), equals(triggerOutputs()?['body/gc_direction'], 303300000))"
+            }
+          ],
+          "runtimeConfiguration": {
+            "concurrency": {
+              "runs": 1
+            }
+          }
+        }
+      },
+      "actions": {
+        "Try": {
+          "type": "Scope",
+          "actions": {
+            "Run_TradeDesk": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "PerformUnboundAction",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "actionName": "gc_Agent_TradeDesk",
+                  "item/SubjectId": "@{triggerOutputs()?['body/_gc_conversation_value']}",
+                  "item/Input": "{\"message_id\":\"@{triggerOutputs()?['body/gc_messageid']}\",\"trigger\":\"flow:trade-desk\"}"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "none"
+                }
+              },
+              "runAfter": {}
+            },
+            "Desk_failed": {
+              "type": "If",
+              "expression": "@not(equals(outputs('Run_TradeDesk')?['body/Status'], 'Succeeded'))",
+              "actions": {
+                "Record_desk_failure": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_commondataserviceforapps",
+                      "operationId": "CreateRecord",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                    },
+                    "parameters": {
+                      "entityName": "gc_flowfailures",
+                      "item/gc_name": "DealOS | Trade desk",
+                      "item/gc_flowname": "DealOS | Trade desk",
+                      "item/gc_runurl": "https://make.powerautomate.com/environments/@{workflow()?['tags']?['environmentName']}/flows/@{workflow()?['name']}/runs/@{workflow()?['run']?['name']}",
+                      "item/gc_step": "Run_TradeDesk",
+                      "item/gc_error": "@{coalesce(outputs('Run_TradeDesk')?['body/Summary'], 'agent call failed')}",
+                      "item/gc_payload": "@{take(string(triggerOutputs()?['body']), 100000)}",
+                      "item/gc_status": 303300000
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  },
+                  "runAfter": {}
+                },
+                "Desk_failure_task": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_commondataserviceforapps",
+                      "operationId": "CreateRecord",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                    },
+                    "parameters": {
+                      "entityName": "gc_reviewtasks",
+                      "item/gc_name": "@{take(concat('Trade desk could not handle: ', coalesce(triggerOutputs()?['body/gc_subject'], triggerOutputs()?['body/gc_name'], 'email')), 100)}",
+                      "item/gc_kind": 303300001,
+                      "item/gc_purpose": 303300009,
+                      "item/gc_assigneerole": 303300002,
+                      "item/gc_status": 303300000,
+                      "item/gc_payload": "@{string(addProperty(addProperty(addProperty(addProperty(json('{}'), 'messageId', triggerOutputs()?['body/gc_messageid']), 'conversationId', triggerOutputs()?['body/_gc_conversation_value']), 'error', outputs('Run_TradeDesk')?['body/Summary']), 'how', 'Reply to the email from Gmail yourself, or set the email back to Genuine (gc_triage) to retry once the cause is fixed.'))}"
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  },
+                  "runAfter": {
+                    "Record_desk_failure": [
+                      "Succeeded"
+                    ]
+                  }
+                }
+              },
+              "else": {
+                "actions": {}
+              },
+              "runAfter": {
+                "Run_TradeDesk": [
+                  "Succeeded",
+                  "Failed",
+                  "TimedOut"
+                ]
+              }
+            },
+            "Brief_owner": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "PerformUnboundAction",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "actionName": "gc_DeskBrief",
+                  "item/Subject": "@{concat(coalesce(json(coalesce(outputs('Run_TradeDesk')?['body/Result'], '{}'))?['result']?['intent'], 'Update'), ': ', coalesce(triggerOutputs()?['body/gc_subject'], triggerOutputs()?['body/gc_name'], 'email'))}",
+                  "item/Text": "@{concat('From: ', coalesce(triggerOutputs()?['body/gc_senderlabel'], ''), decodeUriComponent('%0A%0A'), coalesce(outputs('Run_TradeDesk')?['body/Summary'], 'The desk could not handle this email; a task is open.'), decodeUriComponent('%0A%0ANext: '), coalesce(json(coalesce(outputs('Run_TradeDesk')?['body/Result'], '{}'))?['result']?['next_step'], '-'), decodeUriComponent('%0A%0A'), if(equals(json(coalesce(outputs('Run_TradeDesk')?['body/Result'], '{}'))?['result']?['drafted'], true), 'Drafts are waiting in Gmail > Drafts (unless auto-send sent them).', 'No email was drafted.'))}"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "none"
+                }
+              },
+              "runAfter": {
+                "Desk_failed": [
+                  "Succeeded",
+                  "Skipped"
+                ]
+              }
+            },
+            "Audit": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "CreateRecord",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_auditevents",
+                  "item/gc_hash": "set-by-invariants-plugin",
+                  "item/gc_name": "email.worked",
+                  "item/gc_actor": "flow:trade-desk",
+                  "item/gc_action": "email.worked",
+                  "item/gc_subjecttype": "gc_message",
+                  "item/gc_subjectid": "@{triggerOutputs()?['body/gc_messageid']}",
+                  "item/gc_details": "@{take(string(addProperty(json('{}'), 'summary', outputs('Run_TradeDesk')?['body/Summary'])), 100000)}"
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {
+                "Brief_owner": [
+                  "Succeeded"
+                ]
+              }
+            }
+          },
+          "runAfter": {}
+        },
+        "Catch": {
+          "type": "Scope",
+          "actions": {
+            "Record_failure": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "CreateRecord",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_flowfailures",
+                  "item/gc_name": "DealOS | Trade desk",
+                  "item/gc_flowname": "DealOS | Trade desk",
+                  "item/gc_runurl": "https://make.powerautomate.com/environments/@{workflow()?['tags']?['environmentName']}/flows/@{workflow()?['name']}/runs/@{workflow()?['run']?['name']}",
+                  "item/gc_step": "Try",
+                  "item/gc_error": "@{take(string(result('Try')), 3900)}",
+                  "item/gc_payload": "@{take(string(triggerOutputs()?['body']), 100000)}",
+                  "item/gc_status": 303300000
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {}
+            },
+            "Fail_run": {
+              "type": "Terminate",
+              "inputs": {
+                "runStatus": "Failed",
+                "runError": {
+                  "code": "DealOSFlowFailure",
+                  "message": "Recorded in Flow failures"
+                }
+              },
+              "runAfter": {
+                "Record_failure": [
+                  "Succeeded"
+                ]
+              }
+            }
+          },
+          "runAfter": {
+            "Try": [
+              "Failed",
+              "TimedOut"
+            ]
+          }
+        }
+      }
+    },
+    "templateName": null
+  },
+  "schemaVersion": "1.0.0.0"
+}

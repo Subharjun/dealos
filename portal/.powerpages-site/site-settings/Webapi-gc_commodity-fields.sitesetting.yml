@@ -1,4 +1,0 @@
-description: "DealOS: columns of gc_commodity the site may read or write"
-id: 97eb9afc-69b5-5a86-8d19-84df6bcee3d7
-name: Webapi/gc_commodity/fields
-value: "gc_commodityid,gc_name"

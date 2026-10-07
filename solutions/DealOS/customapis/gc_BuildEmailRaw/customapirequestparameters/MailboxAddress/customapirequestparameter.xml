@@ -1,0 +1,12 @@
+<customapirequestparameter uniquename="MailboxAddress">
+  <description default="Connected mailbox (for the Reply-To alias).">
+    <label description="Connected mailbox (for the Reply-To alias)." languagecode="1033" />
+  </description>
+  <displayname default="MailboxAddress">
+    <label description="MailboxAddress" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isoptional>1</isoptional>
+  <name>gc_BuildEmailRaw.MailboxAddress</name>
+  <type>10</type>
+</customapirequestparameter>

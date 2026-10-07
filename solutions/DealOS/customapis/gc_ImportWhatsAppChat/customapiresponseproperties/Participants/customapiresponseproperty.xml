@@ -1,0 +1,11 @@
+<customapiresponseproperty uniquename="Participants">
+  <description default="Senders in the chat.">
+    <label description="Senders in the chat." languagecode="1033" />
+  </description>
+  <displayname default="Participants">
+    <label description="Participants" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <name>gc_ImportWhatsAppChat.Participants</name>
+  <type>10</type>
+</customapiresponseproperty>

@@ -1,0 +1,11 @@
+<customapiresponseproperty uniquename="Media">
+  <description default="Media files stored as gc_documents.">
+    <label description="Media files stored as gc_documents." languagecode="1033" />
+  </description>
+  <displayname default="Media">
+    <label description="Media" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <name>gc_ImportWhatsAppChat.Media</name>
+  <type>7</type>
+</customapiresponseproperty>

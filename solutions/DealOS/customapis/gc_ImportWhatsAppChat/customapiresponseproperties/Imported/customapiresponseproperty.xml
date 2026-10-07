@@ -1,0 +1,11 @@
+<customapiresponseproperty uniquename="Imported">
+  <description default="Messages created in this call.">
+    <label description="Messages created in this call." languagecode="1033" />
+  </description>
+  <displayname default="Imported">
+    <label description="Imported" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <name>gc_ImportWhatsAppChat.Imported</name>
+  <type>7</type>
+</customapiresponseproperty>

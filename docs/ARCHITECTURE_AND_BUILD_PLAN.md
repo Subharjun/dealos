@@ -1,5 +1,7 @@
 # Mineral Trade OS: Architecture and Build Plan (Power Platform)
 
+> **Background document (7 Oct 2026).** This is the original marketplace plan. The build has since become an **email trade desk**: the website, its chat agents and the marketplace-only parts (listings, matching, escrow, payments, disputes, ratings) were removed. For the current design read [EMAIL_DESK.md](EMAIL_DESK.md) and [HANDOFF.md](../HANDOFF.md). The problem statement below still holds.
+
 **As of:** 6 October 2026
 **Platform:** Microsoft Power Platform: Dataverse, Power Automate, Copilot Studio, Power Pages
 **Environment:** Giga core's Environment (`org61da3071.crm8.dynamics.com`), solution `DealOS` 1.0.0.0

@@ -1,0 +1,11 @@
+<customapiresponseproperty uniquename="MessageId">
+  <description default="The briefing gc_message (empty when briefings are off).">
+    <label description="The briefing gc_message (empty when briefings are off)." languagecode="1033" />
+  </description>
+  <displayname default="MessageId">
+    <label description="MessageId" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <name>gc_DeskBrief.MessageId</name>
+  <type>10</type>
+</customapiresponseproperty>

@@ -1,0 +1,11 @@
+<customapiresponseproperty uniquename="Transcript">
+  <description default="Transcript (first 4000 characters).">
+    <label description="Transcript (first 4000 characters)." languagecode="1033" />
+  </description>
+  <displayname default="Transcript">
+    <label description="Transcript" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <name>gc_TranscribeAudio.Transcript</name>
+  <type>10</type>
+</customapiresponseproperty>

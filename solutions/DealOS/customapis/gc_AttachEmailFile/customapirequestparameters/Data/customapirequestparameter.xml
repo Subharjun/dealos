@@ -1,0 +1,12 @@
+<customapirequestparameter uniquename="Data">
+  <description default="File content, base64url (as Gmail returns it).">
+    <label description="File content, base64url (as Gmail returns it)." languagecode="1033" />
+  </description>
+  <displayname default="Data">
+    <label description="Data" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isoptional>0</isoptional>
+  <name>gc_AttachEmailFile.Data</name>
+  <type>10</type>
+</customapirequestparameter>

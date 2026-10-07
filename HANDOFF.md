@@ -1,6 +1,6 @@
 # HANDOFF: resume here
 
-**Last updated:** 7 October 2026, about 00:30 IST (email desk session)
+**Last updated:** 7 October 2026, about 15:45 IST (email desk only; OpenAI **out of credits**, E2E run stopped; sellers take turns; seller-first lots; house style)
 **Read first in any new chat:**
 1. this file
 2. [docs/EMAIL_DESK.md](docs/EMAIL_DESK.md), the current front door
@@ -12,57 +12,77 @@ New team members: [docs/TEAM_SETUP.md](docs/TEAM_SETUP.md).
 
 ## 0. Where things stand (read this first)
 
-- **The front door is an email desk in Gmail**, not the website (the user's decision, 6 Oct 2026). The bot works like a trader in the middle, **back to back**: the buyer and each seller deal only with us, in separate email threads, and never learn who the other is.
-- **Built and live in Dev on the Gmail mailbox `desk@gmail.com`:**
-  1. **Classification:** every email is triaged Genuine / Review / Ignored and labelled in Gmail (`DealOS/Buyer`, `Seller`, `Genuine`, `Review`, `Ignored`, `Processed`, `Error`, hidden `Seen`).
-  2. **Buyer requirement → sourcing:** the requirement is recorded. Seller leads are matched (trade-data imports; web search too, once Gemini billing is on). Each seller gets a masked enquiry.
-  3. **Negotiation:**
-     - the seller quotes → we quote the buyer the seller price + margin
-     - the buyer proposes a price → we bid the seller the buyer price − margin
-     - an acceptance opens a **Confirm deal** task for a person
-  4. **Contract and tracking:** compliance (KYB and screening) → Contract agent → two PDF contracts (sales to the buyer, purchase from the seller), each drafted to its thread. The signed copy → task → contract Signed → deal Signed (**no escrow**) → inspection booking.
-  5. **Briefings to the owner:** a `[DealOS] …` email in one "DealOS desk briefing" thread after every step.
-- **Every email to a buyer or seller is a Gmail draft that a person sends** (`email.autosend` = `off`). Auto-send for routine mail exists but is switched off; see section 9.
-- **End-to-end test on the real mailbox** ([tools/desk_e2e.py](tools/desk_e2e.py)), run `[AGENT-TEST] E2E 1007-0019`. **Verified live:**
-  - buyer email → Genuine (score 90) → requirement saved → 2 sellers contacted
-  - drafts in Gmail → sent → recorded
-  - seller 1 quotes USD 9,850 CIF, seller 2 declines
-  - our offer to the buyer: **USD 10,145.50** (3% margin, seller not named)
-  - buyer counters at USD 10,000 → our bid to the seller: **USD 9,708.73**, buyer not named
-  - seller accepts
-  - **Confirm deal** task opened → approved → offer accepted → deal **Terms Agreed** → **Compliance** referred it to the officer (screening clearance, approved as the officer would)
-  - Contract agent → Contract Issue approved → **two contract PDFs** generated and drafted to each side: `Contract-Sales-…` to the buyer at USD 10,000; `Contract-Purchase-…` to the seller at USD 9,708.73
-  - buyer's signed copy → "Signed contract received" task → approved → **contract Signed → deal Signed, no escrow (0 payments)** → requirement stage Signed → **inspection Requested**
-  - **"END TO END PASSED"** at 00:40 IST, 7 Oct 2026 (`python3 tools/desk_e2e.py status` shows it)
-- **Fixed during the run:**
-  1. **Sent-mail detection closed every pending draft in the thread**, including drafts created after the send. It now closes only drafts created before the sent time.
-  2. **One attachment upload failed** while the plug-in was being redeployed. This was a one-off: removing the `DealOS/Error` label made the sync retry it, and it worked.
-- **Test script note:** `desk_e2e.py` sends whatever draft is pending. At steps 3 and 4 it twice sent an older draft before the new one existed (the bot was right both times). Make `send_all` wait for the specific draft: the bid offer exists, or the draft has an attachment for contracts. Then run one clean full `run`.
-- **Web seller discovery is built but unavailable:** the Gemini key is free tier, and the free tier has no Google Search quota. The briefing says so, and sourcing continues with the imported leads. **Enable billing on the Gemini key to switch it on.** That's also needed for throughput: `gemini-3.5-flash` used up its free daily quota during testing, and the agents fall back to `gemini-3.1-flash-lite`.
-- **Earlier work (still deployed):**
-  - 12 specialist agents and 2 chat agents
-  - the marketplace flows, with escrow for marketplace deals
-  - the Power Pages site: deployed and **parked**, trial until about 4 Jan 2027
-- **Totals in Dev:**
-  - **16 agents**, **39 product flows** plus 1 test-kit flow
-  - operations APIs: `gc_AcceptOffer`, `gc_OpenEscrow`, `gc_ReleaseDeal`, `gc_InstructRelease`, `gc_RefreshCatalog`, `gc_IngestEmail`, `gc_AttachEmailFile`, `gc_BuildEmailRaw`, `gc_SourceRequirement`, `gc_DiscoverSellers`, `gc_DeskBrief`, `gc_DeskContract`
-- **All work is on GitHub** (`main`, commit `c55f3bb`, 7 Oct 2026). Commit and push only when the user asks.
-- Housekeeping waits until the build is finished (the user's decision): test data removal, paid Gemini key, key rotation.
+### What DealOS is now
+An **email trade desk in Gmail** for minerals and metals. The bot is the trader in the middle, **back to back**: buyer and seller each deal only with us, in separate threads, and never learn who the other is. Our margin is the price difference (`trade.margin_percent` = 3, placeholder). **Every email to a party is a Gmail draft a person sends** (`email.autosend` = off). Live in Dev on `desk@gmail.com` (testing filter: only mail to the `+dealos` alias).
+
+**Only the email desk remains** (the user's decision, 7 Oct): the website (Power Pages code, 2 chat agents, portal plug-ins) and the marketplace-only parts (6 agents, 18 flows incl. Notify party, escrow operations, catalog) were removed from the repo **and** from Dev. Tables and old data stay in Dev; the deployed site stays parked until its trial ends (about 4 Jan 2027). Removed code: git history at `c55f3bb`.
+
+### How a deal runs
+1. **Triage:** every email → Genuine / Review / Ignored, Gmail labels (`DealOS/...`).
+2. **Two starting points:**
+   - **Buyer first:** requirement → enquiries to seller leads (trade-data imports + **AI web search across Google, IndiaMART, Globalwitz/Volza/TradeIndia pages**). **Sellers take turns:** the first seller to quote is negotiated with the buyer; later quotes queue in reply order; non-responders stay open; "not interested" is left alone. If the deal breaks (seller withdraws or goes silent after a reminder, buyer turns the offer down) and the buyer still wants it, the next queued seller comes up.
+   - **Seller first:** a seller's stock with price and quantity → **seller lot** → offered (masked, + margin) to known buyers and buyers found by web search. **Window per lot** from the seller's email (24 h, 48 h, ...) or the default; **open-ended** ("until sold") lets the seller decide: every bid goes to them at once. Timed lots: highest price wins at the deadline; if no bid reaches the seller's price, the best bid goes to the seller and the lot goes open-ended.
+3. **Negotiation:** seller price + margin to the buyer; buyer price − margin to the seller; counters both ways. Acceptance → **Confirm deal** task (a person approves).
+4. **Contract:** KYB + screening → Compliance agent → Contract agent → Contract Issue approval → two PDF contracts (sales to the buyer, purchase from the seller) drafted to each thread → signed copy → task → deal **Signed** (no escrow) → **inspection** requested.
+5. **Briefings:** a `[DealOS] ...` email to the owner after each step; Desk timers every 15 min (lot closing, seller queue, chasers, reminders).
+
+### House style (7 Oct, from the owner's real coal chat)
+Short and plain like a trader: bulleted indicative specs with "~", one clear ask, "Let me confirm and revert". `draft_email` refuses template/AI phrases ("I hope this email finds you well", "We are pleased to", "do not hesitate"...), em dashes, exclamation marks and markdown; all code-written emails were rewritten the same way. Buyers' requests for **company profile / quality report** and **prices for another port** become a task for a person (no invented prices, seller documents masked first).
+
+### BLOCKER (7 Oct 15:41): the OpenAI account has no credits
+Every model call fails with `429 insufficient_quota / credit_balance_exhausted`, so triage and the Trade Desk stop. The full E2E run was stopped after triage passed. **Add credits at platform.openai.com → Billing**, then `python3 tools/e2e_all.py`. Or switch back to Gemini meanwhile: `python3 tools/deploy_agents.py --provider gemini` (free tier: slow, no web search).
+
+**Incident, cleaned up:** web discovery ran during the noon and afternoon tests (the deployed plug-in predated the `email.discovery.enabled` switch) and found real companies; the desk then made enquiry drafts to them (Sinochem Nanjing, DS Alloyd, Forbes Pharma, Yogi Chem, Vanmo Tech, CDH Fine Chemical, Powder Pack, MPIL, Fitechem, CDHR Metal, Caymon Chem, Beijing Daoking). **None was sent**: all 18 were discarded and are gone from Gmail Drafts (checked). The switch is now deployed and `e2e_all.py` turns discovery off during tests. Their leads, seller threads and Inquiry deals remain as test data.
+
+### AI provider
+**OpenAI** since 7 Oct (`agents.provider` = openai, `gpt-5.4-mini` via the Responses API, fallback `gpt-4.1-mini`, `store=false`). `Infrastructure/ModelClient.cs` translates the runtime's requests. Gemini is standby: `python3 tools/deploy_agents.py --provider gemini`. **The OpenAI key was pasted in chat: rotate it.**
+
+### Totals in Dev
+- **8 agents:** Mail Triage, Trade Desk, Document Intelligence, Onboarding KYB, Buyer Verification, Compliance, Contract, Admin Supervisor
+- **22 product flows** + 1 test-kit flow (list in [docs/WORKFLOWS.md](docs/WORKFLOWS.md))
+- operations: `gc_AcceptOffer`, `gc_ReleaseDeal`, `gc_IngestEmail`, `gc_AttachEmailFile`, `gc_BuildEmailRaw`, `gc_SourceRequirement`, `gc_DiscoverSellers`, `gc_DiscoverBuyers`, `gc_MarketLot`, `gc_DeskBrief`, `gc_DeskContract`, `gc_CloseLots`, `gc_DeskFollowUps`
+
+### Testing
+- **All scenarios in one command:** `python3 tools/e2e_all.py` (about 1.5 to 2 h; logs in `build/e2e/`, summary in `build/e2e/summary.json`). It switches web discovery off while the scenarios run (`email.discovery.enabled` = false, so real companies never get test drafts), then checks discovery on its own (leads only, no drafts).
+  | Scenario | Script | Last result |
+  |---|---|---|
+  | triage (7 samples) | `mail_test.py run` | **PASS** 7 Oct 15:08 (OpenAI) |
+  | buyer first, full deal to inspection | `desk_e2e.py run` | passed 7 Oct 00:40 and 09:21 (Gemini); 15:26 run stopped by the OpenAI credit blocker |
+  | sellers take turns | `desk_queue_e2e.py run` | steps 1 to 5 passed (OpenAI, 12:16); full pass pending |
+  | lot, two buyers compete | `desk_lot_e2e.py run` | passed 7 Oct 10:11 (Gemini); OpenAI run pending |
+  | lot, one buyer | `desk_lot_e2e.py single` | passed 7 Oct 10:37 (Gemini); OpenAI run pending |
+  | seller first, open-ended | `desk_lot_e2e.py open` | passed 7 Oct 11:46 (Gemini); OpenAI run pending |
+  | timed lot, best bid below price | `desk_lot_e2e.py below` | pending |
+  | coal: other port, profile, report | `desk_lot_e2e.py coal` | pending |
+  | web discovery (sellers + buyers) | `e2e_all.py discovery` | pending |
+- Offline: `dotnet run --project tests/DealOS.Agents.Harness -- build/agents` (all checks pass).
+
+### GitHub
+`main` is at `41855d2`. **Everything from 7 Oct is uncommitted** (lots, follow-ups, seller first, windows, OpenAI, seller queue, removal of site and marketplace, house style, tests). Commit and push only when the user asks.
+
+### History (most recent first)
+- **7 Oct afternoon:** OpenAI replaces Gemini; sellers take turns; website and marketplace removed (repo and Dev); house style; discovery across Google / IndiaMART / Globalwitz; `e2e_all.py`. Found by the tests and fixed: a seller's own wording (with their price) copied into an offer to the buyer (`Desk.SafeTerms`); the agent overwriting a draft the desk had just written (draft lock per run); OpenAI filling empty optional output (`S.Prune`).
+- **7 Oct midday:** seller first (buyer web search, offers, counters both ways) and per-lot windows; open-ended live test passed (deal at seller USD 31,500 / buyer USD 32,445).
+- **7 Oct morning:** competing-buyer and single-buyer lot tests passed; chasers; duplicate COA fix; lot spec masking.
+- **7 Oct 00:40:** first full buyer-first E2E passed (USD 9,850 quote → USD 10,145.50 offer → buyer USD 10,000 → bid USD 9,708.73 → Confirm deal → compliance → two contract PDFs → signed → inspection).
+- **6 Oct:** front door changed from the website to the email desk.
+
+Housekeeping waits until the build is finished (the user's decision): test data removal, key rotation (OpenAI and Gemini keys were both pasted in chat).
 
 ---
 
 ## 1. What we are building
 
-**DealOS**: an agent-driven, trust-first B2B trade desk for **rare earths, critical minerals and metals**. It started as a marketplace design: listings, RFQs, escrow and a website. On 6 Oct 2026 the user redirected it to the way this trade actually works: **email**.
+**DealOS**: an agent-driven, trust-first B2B trade desk for **rare earths, critical minerals and metals**. It started as a marketplace design: listings, RFQs, escrow and a website (removed from the build on 7 Oct 2026). On 6 Oct 2026 the user redirected it to the way this trade actually works: **email**.
 
 **The email desk flow** (the user's words: "buyer decides the price, pitch to me, I go to the seller, the seller counters, I tell the buyer, the buyer agrees, then contract sign — myself = bot/AI automation"):
 1. **Classify** every incoming email. Only genuine trade mail is worked; scams, pitches and newsletters are ignored.
-2. **Buyer requirement** → find sellers (trade-data leads, warehouses, web search) → masked enquiries.
+2. **Buyer requirement** → find sellers (trade-data leads, warehouses, web search) → masked enquiries; sellers take turns. Or **seller first**: a seller's stock → find buyers → masked offers.
 3. **Negotiate** in the middle: seller price + margin to the buyer; buyer price − margin to the seller; counters both ways.
 4. **Agreement** → KYB and screening of both sides → **contract** (back to back: sales contract to the buyer, purchase contract from the seller) → signed.
 5. **Track**: inspection, shipment, delivery. **No payment handling and no escrow**: payment terms are between the parties per contract. Our margin is the price difference.
 
-The problem it solves: mineral trade runs on WhatsApp and email chains, with forged COAs, fake mandates and scattered execution. DD1, the original "messy deal → two messages" skill, survives as the Listing Verification agent.
+The problem it solves: mineral trade runs on WhatsApp and email chains, with forged COAs, fake mandates and scattered execution. The desk answers it with triage of every email, KYB and screening of both sides, Document Intelligence on COAs, masked back-to-back negotiation and contracts, and independent inspection.
 
 ---
 
@@ -70,20 +90,24 @@ The problem it solves: mineral trade runs on WhatsApp and email chains, with for
 
 | Date | Decision | Notes |
 |---|---|---|
-| 6 Oct 2026 | Platform = **Power Platform** (Dataverse, Power Automate, Power Pages) | User mandate; no Postgres or local stack |
+| 6 Oct 2026 | Platform = **Power Platform** (Dataverse, Power Automate) | User mandate; no Postgres or local stack |
 | 6 Oct 2026 | Existing `DealOS` solution is the baseline | About 45 tables, evidence engine, invariants plug-in |
-| 6 Oct 2026 | AI = **Google Gemini**, agents are Dataverse Custom APIs `gc_Agent_<Name>` (C# plug-in, Gemini tool loop) | Flows call agents with "Perform an unbound action" |
-| 6 Oct 2026 | No Copilot Studio; own Gemini chat agents | No Copilot credits |
+| 6 Oct 2026 | AI = **Google Gemini**, agents are Dataverse Custom APIs `gc_Agent_<Name>` (C# plug-in, model tool loop) | Flows call agents with "Perform an unbound action" |
+| 7 Oct 2026 | **AI provider = OpenAI** instead of Gemini (`gpt-5.4-mini`, Responses API); Gemini kept as a switchable fallback provider | The user supplied an OpenAI key |
+| 7 Oct 2026 | **Buyer first: sellers take turns.** First seller to quote is negotiated with; later ones queued in reply order; next one only if the deal breaks and the buyer still wants | Replaces "wait for all quotes, offer the best" |
+| 7 Oct 2026 | **Seller first is a starting point too** (a seller needing buyers → lot → buyer search → offers → negotiation both ways). Lot window per lot: 24 h / 48 h / open-ended from the seller's email, else the default | Open-ended: the seller decides when to close |
 | 6 Oct 2026 | Docs are **Markdown in this repo** | User preference |
 | 6 Oct 2026 | **Front door = email desk in Gmail**; the site is parked | Email is how this trade works |
+| 7 Oct 2026 | **Only the email desk stays**: website and marketplace-only parts removed from repo and Dev | The user's decision; tables and data kept |
 | 6 Oct 2026 | Classification first; only genuine mail is worked | Hard signals in code; known senders never ignored |
 | 6 Oct 2026 | **Back to back**: buyer and seller never see each other; our margin = price difference (`trade.margin_percent`, 3 = placeholder) | Contract structure confirmed by the user's flow; margin % still open |
-| 6 Oct 2026 | **No escrow and no payment handling**; after verification the contract; then inspection and shipment tracked | Escrow code stays for marketplace deals |
+| 6 Oct 2026 | **No escrow and no payment handling**; after verification the contract; then inspection and shipment tracked | Escrow code removed 7 Oct |
 | 6 Oct 2026 | Gmail via **our own Google OAuth app + custom connector "DealOS Gmail"** (option C, chosen over SMTP/IMAP or forwarding to Outlook) | The Microsoft Gmail connector on a consumer account can't share a flow with Dataverse and can't create drafts |
 | 6 Oct 2026 | **Everything in Power Automate, deployed from code with the CLI tools** | Flows plus custom connector; plug-ins only do the work the flows call |
 | 6 Oct 2026 | **The mailbox can change for production**: never hard-code the address | The flow reads the connected account from Gmail; switching = new connection + `deploy_connector.py bind` |
 | 6 Oct 2026 | Approval: drafts in Gmail; a person presses Send. **Commitments need a person**: Confirm deal, contract issue, signed copy | Agents never accept offers themselves |
-| 7 Oct 2026 | Seller discovery: **Gemini + Google Search** (public business contacts); **no LinkedIn scraping** (terms and blocking) | Needs Gemini billing |
+| 7 Oct 2026 | Seller and buyer discovery: **AI web search** across Google, IndiaMART listings, Globalwitz / Volza / TradeIndia trade-data pages and company sites (public business contacts only); **no logins, no scraping, no LinkedIn** | OpenAI `web_search`; the user asked for Globalwitz, IndiaMART and Google |
+| 7 Oct 2026 | **House style for every email:** short and plain like a trader on WhatsApp/email (bulleted indicative specs with "~", one clear ask); `draft_email` refuses template/AI phrases, em dashes, exclamation marks and markdown | From the user's real coal chat (Tanzanian coal, FOB Mtwara / CIF Ennore) |
 | 7 Oct 2026 | The bot briefs the owner by email after each step; optional auto-send of routine mail (`email.autosend`) | Default off |
 | 6 Oct 2026 | Leads: trade-data exports (`import_leads.py`), warehouses, email offers, web search; IndiaMART only via its official API (later) | No scraping |
 
@@ -99,12 +123,13 @@ The problem it solves: mineral trade runs on WhatsApp and email chains, with for
 | Web API from the CLI | `python3 tools/dv.py login` (browser sign-in; device code is blocked). Token in `.dv_token.json` (git-ignored). **A password change revokes it (AADSTS50173): log in again.** The same refresh token is exchanged for the Power Apps and Flow APIs (`deploy_connector.py bind`, `gmail_kit.py`). |
 | PAC CLI | `DOTNET_ROOT=/opt/homebrew/opt/dotnet/libexec ~/.dotnet/tools/pac` (profile `dealos`) |
 | .NET | SDK 10 at `/opt/homebrew/opt/dotnet/libexec/dotnet` (`dotnet` on PATH is v8) |
-| Gemini key | `.env` `GEMINI_API_KEY` + Dataverse `gc_secret` `gemini.api_key`. **Free tier**: no Google Search, about 5 requests/min, daily caps. Rotate it (it was pasted in chat). |
+| OpenAI key (in use) | `.env` `OPENAI_API_KEY` + Dataverse `gc_secret` `openai.api_key`. `agents.provider` = openai. **Rotate it** (it was pasted in chat), then `deploy_agents.py`. |
+| Gemini key (standby) | `.env` `GEMINI_API_KEY` + `gc_secret` `gemini.api_key`. Free tier: no Google Search, about 5 requests/min, daily caps. Rotate it (it was pasted in chat). |
 | Gmail | Mailbox `desk@gmail.com`. Google Cloud project **"My First Project"**: Gmail API on, OAuth consent screen "DealOS Email Desk" (External), scope `gmail.modify`. OAuth client "DealOS Power Automate", **Client ID** `set-the-google-client-id` (also in `.env` `GMAIL_CLIENT_ID`). The secret is only in the connector's Security tab. Redirect URI `https://global.consent.azure-apim.net/redirect/gc-5fdealos-20gmail-5fc12c8485be9726a2`. |
 | Google app status | **Check whether it was published** ("In production"). If it's still in Testing with the user as test user, the Gmail connection **expires every 7 days**. Fix: Google Auth Platform → Audience → Publish app. |
 | Power Automate | Custom connector **DealOS Gmail** (`shared_gc-5fdealos-20gmail-5fc12c8485be9726a2`, in the solution), connection reference `gc_gmail` → connection `fcbe6c4cbf774649b49bfe659161b8a8` (Connected) |
-| Site (parked) | https://dealos-gigacore.powerappsportals.com (private, trial to about 4 Jan 2027) |
-| Dev settings changed | `js` unblocked for attachments (code site); plug-in trace log = All (set back to Exception before go-live) |
+| Old site (removed from the build) | https://dealos-gigacore.powerappsportals.com still exists in Dev, parked, until its trial ends (about 4 Jan 2027). Delete it in the Power Pages admin centre whenever convenient. |
+| Dev settings changed | plug-in trace log = All (set back to Exception before go-live) |
 | Team | Krishna Shukla (`krishna38@…`) is in the tenant but not yet in the Dev environment |
 
 ---
@@ -115,8 +140,8 @@ The problem it solves: mineral trade runs on WhatsApp and email chains, with for
 |---|---|
 | `docs/EMAIL_DESK.md` | **The email desk**: design, mailbox setup, triage, Trade Desk, leads, contract, data model, build status, **section 12 = what a person does** |
 | `docs/AGENTS.md`, `docs/WORKFLOWS.md` | Agent and flow catalogues, including the email desk agents and flows |
-| `docs/ARCHITECTURE_AND_BUILD_PLAN.md`, `docs/PORTAL.md`, `docs/TEAM_SETUP.md` | Original plan, the (parked) site, team setup |
-| `src/DealOS.Agents/` | Plug-in assembly (net462, signed). Email desk code:<br>• `Mail/GmailMessage.cs` (parser)<br>• `Mail/MailSignals.cs` (hard signals, verdict)<br>• `Mail/MailPlugin.cs` (email operations)<br>• `Mail/Desk.cs` (margin maths, drafts, sourcing, contracts, briefings, auto-send)<br>• `Mail/Discovery.cs` (web search)<br>• `Mail/Mime.cs` (RFC 2822 builder, PDF writer)<br>• `Agents/MailAgents.cs` (Mail Triage, Trade Desk)<br>• `Tools/DeskTools.cs` (Trade Desk tools and draft masking checks) |
+| `docs/ARCHITECTURE_AND_BUILD_PLAN.md`, `docs/TEAM_SETUP.md` | Original plan (background), team setup |
+| `src/DealOS.Agents/` | Plug-in assembly (net462, signed). Model providers: `Infrastructure/ModelClient.cs` (OpenAI Responses API + provider switch), `Infrastructure/GeminiClient.cs`. Email desk code:<br>• `Mail/GmailMessage.cs` (parser)<br>• `Mail/MailSignals.cs` (hard signals, verdict)<br>• `Mail/MailPlugin.cs` (email operations)<br>• `Mail/Desk.cs` (margin maths, drafts, sourcing, contracts, briefings, auto-send)<br>• `Mail/Discovery.cs` (web search for sellers and buyers)<br>• `Mail/Lots.cs` (seller lots: windows, bids, seller decisions, close)<br>• `Mail/FollowUps.cs` (chasers, reminders)<br>• `Mail/Mime.cs` (RFC 2822 builder, PDF writer)<br>• `Agents/MailAgents.cs` (Mail Triage, Trade Desk)<br>• `Tools/DeskTools.cs` (Trade Desk tools and draft masking checks) |
 | `tests/DealOS.Agents.Harness/` | Offline checks (all pass; email desk ones are named `gmail:`, `signals:`, `triage:`, `desk:`) |
 | `tools/flows/definitions.py` | All flows as code. Email desk:<br>• `mailbox_sync`, `trade_desk`, `desk_drafts`, `desk_contract`, `seller_discovery`<br>• `email_test_kit` (in `TESTS`) |
 | `tools/connectors/gmail.swagger.json`, `tools/deploy_connector.py` | The DealOS Gmail connector. `deploy_connector.py` creates or updates it, adds it to the solution and binds the connection. |
@@ -124,8 +149,11 @@ The problem it solves: mineral trade runs on WhatsApp and email chains, with for
 | `tools/mail_test.py` | Triage test without Gmail (7 samples) |
 | `tools/gmail_kit.py` | The test kit flow from the CLI: insert mail, send drafts, labels, profile, `run_flow` |
 | `tools/desk_e2e.py` | **End-to-end test on the real mailbox**: `run`, `resume`, `status` |
+| `tools/desk_lot_e2e.py` | Seller-lot tests on the real mailbox: `run` (two buyers compete), `single`, `open` (seller first, open-ended), `below` (timed, best bid to the seller) |
+| `tools/e2e_all.py` | **Every scenario in one run** (triage, buyer first, seller queue, lots, open-ended, below, coal, web discovery); discovery off during the run; logs in `build/e2e/` |
+| `tools/desk_queue_e2e.py` | Buyer first, sellers take turns: `run` (first quote active, later one queued, decline ignored, buyer rejects → next seller, accept) |
 | `tools/deploy_schema.py`, `deploy_agents.py`, `deploy_flows.py` (`--tests` for the kit), `run_agent.py`, `watch.py`, `seed_test_data.py`, `export_solution.py` | Deploy and run tools |
-| `solutions/DealOS/` | Unpacked solution: **stale**, see section 9 |
+| `solutions/DealOS/` | Unpacked solution, exported from Dev on 7 Oct 2026 |
 
 ---
 
@@ -153,7 +181,7 @@ The problem it solves: mineral trade runs on WhatsApp and email chains, with for
 - `gc_AttachEmailFile`: attachment → Quarantined document. Released to Document Intelligence when a seller quote is genuine.
 - `gc_BuildEmailRaw`: draft → RFC 2822 reply with In-Reply-To, Reply-To alias and attachments.
 - `gc_SourceRequirement`: lead ranking → account, deal, invite, seller thread, enquiry draft. Leads without an email → "Find contacts" task.
-- `gc_DiscoverSellers`: Gemini + Google Search → leads.
+- `gc_DiscoverSellers` / `gc_DiscoverBuyers`: AI web search → leads.
 - `gc_DeskBrief`: briefing to the owner.
 - `gc_DeskContract`: two contract PDFs + drafts.
 
@@ -166,14 +194,10 @@ The problem it solves: mineral trade runs on WhatsApp and email chains, with for
 | **Desk drafts** | a draft is created or replaced | Gmail draft in the thread (saves the thread id); auto-send when flagged; replaced draft → deleted |
 | **Desk contract** | contract Sent For Signature on a desk deal | PDFs and drafts → briefing |
 | **Seller discovery** | requirement desk stage → Sourcing | web search → new enquiries → briefing |
+| **Buyer discovery** | a seller lot is created | web search → lot offered to new buyers → briefing |
+| **Desk timers** | every 15 minutes | close timed lots, seller queue, chasers, reminders |
 
-**Changed flows:**
-- **Contract signed:** desk deal → Signed, no escrow
-- **Inspection booking:** on Signed for desk deals
-- **Offer pricing:** no Pricing agent or party notice for desk deals
-- **RFQ matching:** skips email requirements
-- **RFQ invite sent / answered:** portal invites only
-- **Review decisions:** handles `desk.accept_offer` and `desk.contract_signed`
+**The deal path flows (kept from the original build, desk-only since 7 Oct):** Document intake, Party onboarding, Offer pricing, Offer accepted, Terms agreed, Compliance check, Contracting, Contract signed (→ Signed, no escrow), Inspection booking (on Signed), Inspection result, Deal cancelled, Approvals, Review decisions (`desk.accept_offer`, `desk.contract_signed`), Daily digest, Flow failure triage. Full list: [docs/WORKFLOWS.md](docs/WORKFLOWS.md).
 
 **Settings:**
 - `email.enabled` = true
@@ -189,11 +213,9 @@ The problem it solves: mineral trade runs on WhatsApp and email chains, with for
 
 ### Earlier work (5–6 Oct 2026)
 
-- **12 specialist agents:** DocumentIntelligence, ListingVerification (DD1), OnboardingKYB, BuyerVerification, Compliance, Contract, Payment, Logistics, Pricing, Negotiation, Matching, AdminSupervisor.
-- **2 chat agents:** BuyerConcierge, SellerAssistant (`ChatPlugin`; it ignores Email-channel threads).
-- **Marketplace flows (34):** listing verification, document intake, party onboarding, matching, offers, terms agreed → compliance → contracting → contract signed → escrow → milestones → releases → settled, disputes, ratings, invoices, daily jobs, flow failure triage, review decisions, approvals, notify party.
-- **Data model** from plan section 8, masked catalog, `PortalGuardPlugin`, Power Pages code site (parked).
-- **Guardrails** (details in docs/AGENTS.md): message validator, do-not-ask-twice, money numbers only from engines, system-owned approvals, compliance floor, release gate, poisoned-transaction stop.
+- **Back-office agents kept for the desk deal path:** DocumentIntelligence, OnboardingKYB, BuyerVerification, Compliance, Contract, AdminSupervisor.
+- **Removed 7 Oct 2026:** the website (Power Pages code site, chat agents BuyerConcierge / SellerAssistant, `ChatPlugin`, `CatalogPlugin`, `PortalGuardPlugin`) and the marketplace-only agents and flows (ListingVerification, Matching, Pricing, Negotiation, Payment, Logistics; escrow, milestones, releases, disputes, ratings, invoices, deadlines, sweep, Notify party). In git history at `c55f3bb`.
+- **Guardrails** (details in docs/AGENTS.md): message validator, do-not-ask-twice, money numbers only from engines, system-owned approvals, compliance floor, poisoned-transaction stop.
 
 ---
 
@@ -225,8 +247,9 @@ The problem it solves: mineral trade runs on WhatsApp and email chains, with for
 - `gc_document.gc_sha256` is required.
 - File columns are written with `InitializeFileBlocksUpload` / `UploadBlock` / `CommitFileBlocksUpload`, which work inside plug-ins.
 
-**Gemini**
-- **Free tier:** about 5 requests/min per model, frequent 503s, daily caps (`gemini-3.5-flash` ran out during testing), and **no Google Search grounding** (429 on every model). **Enable billing.**
+**Models (OpenAI since 7 Oct; Gemini before)**
+- **OpenAI:** use the **Responses API**. Chat Completions refuses function tools with reasoning on `gpt-5.4-mini`. With `store=false`, pass the output items back as they are and request `reasoning.encrypted_content`. gpt-5 models take `reasoning.effort`, not `temperature`.
+- **Gemini free tier:** about 5 requests/min per model, frequent 503s, daily caps (`gemini-3.5-flash` ran out during testing), and **no Google Search grounding** (429 on every model). **Enable billing.**
 - Use the 3.x models (2.5-flash is retired).
 - Pass `thoughtSignature` back unchanged.
 - Reject `finish` in a turn that has other tool calls.
@@ -249,6 +272,8 @@ The problem it solves: mineral trade runs on WhatsApp and email chains, with for
 - A password change revokes every refresh token: run `python3 tools/dv.py login` (and `pac auth create`).
 - In Python edit scripts, check generated flow expressions with `deploy_flows.py --dump`.
 - E2E scripts must wait for the **specific** record, not "a pending draft exists". An older draft fooled step 3 once.
+- **Code-drafted emails bypass `draft_email`'s masking checks.** The offer to the buyer once copied the seller's own wording ("USD 29,500 per MT") from the quote's terms; the queue E2E caught it. Anything from the other side that code puts in a draft must go through `Desk.SafeTerms` / `Desk.SafeSpec`, and E2E checks must search buyer drafts for seller names and prices.
+- **OpenAI fills optional output blocks** (e.g. an empty `offer` on a buyer email) where Gemini left them out. `S.Prune` drops empty optional fields before validation.
 
 ---
 
@@ -258,15 +283,16 @@ The problem it solves: mineral trade runs on WhatsApp and email chains, with for
 cd ~/Desktop/Power-Automate-lastry
 export DOTNET_ROOT=/opt/homebrew/opt/dotnet/libexec; D=$DOTNET_ROOT/dotnet
 python3 tools/dv.py get WhoAmI                     # 401? → python3 tools/dv.py login  (browser)
-python3 tools/desk_e2e.py status                   # where the end-to-end test is
-python3 tools/desk_e2e.py resume                   # continue it from the bid to the seller (steps 4-5)
+python3 tools/e2e_all.py                           # every scenario on the real mailbox (or: e2e_all.py queue coal ...)
+python3 tools/desk_e2e.py status                   # where the buyer-first test is
 python3 tools/watch.py 30m                         # what the flows did: audit, failures, review tasks
+python3 tools/deploy_agents.py --provider openai   # or gemini: switch the AI provider
 
 # after code changes
 $D build -c Release src/DealOS.Agents && $D run --project tests/DealOS.Agents.Harness -- build/agents
 python3 tools/deploy_schema.py                     # tables / columns / options (only what is missing)
 python3 tools/deploy_agents.py                     # plug-in, agents, operations, settings (idempotent)
-python3 tools/deploy_flows.py --only "Trade desk"  # one flow (or all without --only); --tests for the test kit
+python3 tools/deploy_flows.py --only "Trade desk"  # one flow (all without --only also deletes retired flows); --tests for the test kit
 python3 tools/deploy_connector.py [status|bind]    # Gmail connector / connection
 python3 tools/import_leads.py <file.csv> --source "<provider>"   # trade-data leads
 python3 tools/run_agent.py TradeDesk <conversation-guid> --dry --input '{"message_id":"<gc_message guid>"}'
@@ -278,39 +304,60 @@ python3 tools/export_solution.py                   # sync solutions/ with Dev
 ## 9. What remains (in priority order)
 
 ### Next
-- [x] **E2E proof done** (7 Oct, 00:40 IST): buyer email → triage → sourcing → quote → counter → bid → acceptance → Confirm deal → compliance → contract PDFs → signed → deal Signed (no escrow) → inspection Requested.
-- [ ] Harden the `desk_e2e.py` waits (section 0), then one clean full `python3 tools/desk_e2e.py run`.
-- [ ] Small polish seen in the run: the buyer confirmation said "Dear Buyer" (use the contact's name); a closed-deal "not this time" note to other sellers.
-- [ ] **Gemini billing** (the user decides; it's needed now): web seller discovery and reliable throughput. Then rotate the key → `.env` → `deploy_agents.py`. Test discovery with a requirement (`gc_DiscoverSellers`, `Force` = true).
+- [ ] **OpenAI credits** (blocker, section 0), then **run the full E2E** (`python3 tools/e2e_all.py`); fix whatever fails and rerun that scenario (`e2e_all.py <name>`).
+- [ ] Optional resilience: fall back from OpenAI to Gemini automatically when OpenAI says `insufficient_quota`, so the desk keeps working when credits run out.
+- [ ] **Re-export the solution** (`python3 tools/export_solution.py`) after the run: `solutions/` still contains the removed site plug-ins, marketplace flows and agents until it is exported again.
+- [ ] **Commit and push** the 7 Oct work when the user asks.
+- [ ] **Rotate the OpenAI key** (pasted in chat): new key → `.env` `OPENAI_API_KEY` → `python3 tools/deploy_agents.py`.
 - [ ] **Check that the Google app is "In production"**, or the Gmail connection breaks after 7 days.
-- [x] Pushed to GitHub (`c55f3bb`).
-- [ ] Run `export_solution.py` so `solutions/` matches Dev. Its export failed earlier on the connector, which has since been added to the solution.
+- [ ] **Company profile PDF**: buyers ask for it early (as in the coal chat). Today the desk opens a task; storing a profile document the desk can attach would remove that manual step.
+- [x] E2E proof (7 Oct 00:40 and 09:21, Gemini); polish ("Dear <name>", "not this time" notes); OpenAI replaces Gemini billing (7 Oct).
 - [ ] **User decisions:**
   - `trade.margin_percent`
-  - `email.signature` (whose name)
+  - `email.signature` (whose name): for the human tone a person's name reads better than "Trade Desk" (the coal chat is signed by the owner)
   - `email.autosend`: off / routine / all. The user's last message ("myself = bot/AI automation") suggests they may want more automation; ask before switching.
   - contract template: governing law with counsel
-- [ ] **Go live on the real inbox:** `email.sync.query` = `in:inbox newer_than:7d` and `email.reply_to` = empty (after billing, so the free tier isn't flooded).
+- [ ] **Go live on the real inbox:** `email.sync.query` = `in:inbox newer_than:7d` and `email.reply_to` = empty (OpenAI has the throughput now; decide when).
+
+### Many buyers and sellers over days (7 Oct 2026; the user's decisions: highest buyer price wins, bids close at a deadline per lot)
+- [x] **Seller lots** (`gc_sellerlot`, `Mail/Lots.cs`): an offer to sell with a price and quantity becomes a lot. It is offered (masked, +margin) to open requirements and buyer leads; buyers bid until `trade.bid_window_hours`. **Desk timers** (every 15 min, `gc_CloseLots`) ranks the bids: highest price first, ties to the earliest bid, while quantity lasts. Winners get Confirm deal; losers get "not this time".
+- [x] ~~Quote window~~ → replaced by **sellers take turns** (7 Oct): first seller to quote is active, later ones queued, the next comes up when the deal breaks. Test: `python3 tools/desk_queue_e2e.py run`.
+- [x] **Chasers** (`gc_DeskFollowUps`): one follow-up after `desk.chase_after_hours` (48 h) to silent sellers and buyers; a reminder to lot buyers before the deadline.
+- [x] Several emails before we answer: the agent sees the unsent draft and keeps what matters. A seller's fresh email joins their open enquiry; a buyer's fresh email stays separate (the agent sees their other open requirements).
+- [x] Same file sent twice (a COA reused across enquiries) no longer breaks attachment storage (`gc_duplicateof` + derived key). The attachment step now retries transient platform errors.
+- [x] Daily digest goes out as a desk briefing (the Outlook send failed with 404: no Exchange mailbox).
+- [x] Any number of buyers per lot (cap `email.marketing.max_buyers`). Offers close early once every buyer offered the lot has bid or declined, so a single buyer never waits for the deadline.
+- [x] Masking for lots: buyers see only the technical specification (`Desk.SafeSpec` drops sentences with prices, terms, contacts or the seller's name; any appearance of the seller price figure drops the line).
+- [x] Tests on the real mailbox: `python3 tools/desk_lot_e2e.py run` (two competing buyers: **passed 7 Oct 10:11**) and `single` (one buyer, early close).
+- [x] Below-floor lot bids: at the deadline the best bid goes to the seller (draft) and the lot carries on open-ended (7 Oct).
+
+### Seller first and per-lot windows (7 Oct 2026; the user's decisions)
+- [x] **Two starting points:** a buyer requirement (find sellers) or a seller who needs buyers (a seller lot: find buyers, offer, negotiate both ways).
+- [x] **Buyer web search** for a new lot: `gc_DiscoverBuyers` + `gc_MarketLot`, flow **Buyer discovery** (OpenAI `web_search`).
+- [x] **Window per lot:** from the seller's email (24 h, 48 h, ... or "until sold" = open-ended), else `trade.bid_window_hours` (0 = open-ended). Shown in `gc_window`; you can change a lot by setting or clearing its Bid deadline.
+- [x] **Open-ended lots: the seller decides.** Each buyer bid goes to the seller at once (buyer price − margin, all open bids listed). The seller accepts a bid price (`seller_closes_lot` → best bids at or above it win → Confirm deal), counters (new price → drafted to every buyer in play) or withdraws. One chaser if the seller is silent.
+- [x] Fixed on the way: `save_seller_lot` and `buyer_declines_lot` were not in the Trade Desk's tool list (the decline tool was unreachable); a seller's new lot price now also updates each buyer's "our price", so `buyer_accepts` finds it.
+- [x] Live test `python3 tools/desk_lot_e2e.py open` **passed** 7 Oct 11:46 (seller first, open-ended: buyer counter → seller, seller counter → buyer, buyer accepts, seller accepts our bid; deal at seller 31,500 / buyer 32,445).
+- [ ] Live test `desk_lot_e2e.py below` (48 h window from the email; best bid below the price → to the seller): in the 7 Oct afternoon run.
 
 ### Email desk: still to build
 - [ ] Approve by reply: the owner answers a briefing ("CONFIRM", "SEND") instead of using the admin app.
 - [ ] Label corrections from Gmail feed triage (EMAIL_DESK.md 4.4).
 - [ ] KYB documents read from email attachments (today a person sets KYB and screening).
-- [ ] A polite "not this time" draft to sellers whose deal was closed.
+- [x] A polite "not this time" draft to sellers whose deal was closed (7 Oct).
 - [ ] Tracking updates (inspection booked, shipped, delivered) drafted to the parties.
-- [ ] IndiaMART Lead Manager API (paid seller account).
+- [ ] IndiaMART Lead Manager API (paid seller account): IndiaMART pages already come in through the web search; the API would bring in the enquiries IndiaMART sends us.
 - [ ] E-signature instead of scan-and-return.
 - [ ] Deal pipeline view for the owner (a model-driven app view or a simple dashboard of requirements by desk stage).
 
 ### Parked
-- [ ] The site: real sign-in test ([docs/PORTAL.md](docs/PORTAL.md#test-checklist-first-sign-in)), External ID, offers from the site. Trial ends about 4 Jan 2027.
 - [ ] Add Krishna to Dev (System Administrator) and as co-owner of the flows.
 - [ ] Integrations (registry/KYB APIs, sanctions screening, inspection agencies, forwarders, WhatsApp into `gc_message`), field security profiles, ALM (Test/Prod, pipeline, solution split), evidence benchmark.
 
 ### Housekeeping: deliberately last (the user's decision)
 - [ ] Remove all test data: `[AGENT-TEST]`, `[SMOKE]`, test leads, test KYB/screenings, test Gmail messages and briefing thread.
-- [ ] Paid Gemini key + rotation (it may come earlier; see Next).
-- [ ] Plug-in trace log back to Exception; review site settings (`js`, inner errors).
+- [ ] Key rotation: OpenAI (in use) and Gemini (standby) were both pasted in chat.
+- [ ] Plug-in trace log back to Exception. Optionally delete the parked Power Pages site and the marketplace tables/data in Dev (listings, catalog, payments, chats).
 - [ ] Optional: `agents.pricing` for cost tracking.
 
 ### Open business decisions

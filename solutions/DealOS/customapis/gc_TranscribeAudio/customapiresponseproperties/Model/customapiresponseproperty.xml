@@ -1,0 +1,11 @@
+<customapiresponseproperty uniquename="Model">
+  <description default="Gemini model used.">
+    <label description="Gemini model used." languagecode="1033" />
+  </description>
+  <displayname default="Model">
+    <label description="Model" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <name>gc_TranscribeAudio.Model</name>
+  <type>10</type>
+</customapiresponseproperty>

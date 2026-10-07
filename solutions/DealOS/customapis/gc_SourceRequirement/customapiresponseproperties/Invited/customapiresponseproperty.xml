@@ -1,0 +1,11 @@
+<customapiresponseproperty uniquename="Invited">
+  <description default="Source requests opened.">
+    <label description="Source requests opened." languagecode="1033" />
+  </description>
+  <displayname default="Invited">
+    <label description="Invited" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <name>gc_SourceRequirement.Invited</name>
+  <type>7</type>
+</customapiresponseproperty>

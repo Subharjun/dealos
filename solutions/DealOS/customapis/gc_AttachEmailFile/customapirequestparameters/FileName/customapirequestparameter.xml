@@ -1,0 +1,12 @@
+<customapirequestparameter uniquename="FileName">
+  <description default="File name.">
+    <label description="File name." languagecode="1033" />
+  </description>
+  <displayname default="FileName">
+    <label description="FileName" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isoptional>0</isoptional>
+  <name>gc_AttachEmailFile.FileName</name>
+  <type>10</type>
+</customapirequestparameter>

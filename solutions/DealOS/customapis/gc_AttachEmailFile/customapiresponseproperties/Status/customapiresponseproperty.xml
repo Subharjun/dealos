@@ -1,0 +1,11 @@
+<customapiresponseproperty uniquename="Status">
+  <description default="Created or Exists.">
+    <label description="Created or Exists." languagecode="1033" />
+  </description>
+  <displayname default="Status">
+    <label description="Status" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <name>gc_AttachEmailFile.Status</name>
+  <type>10</type>
+</customapiresponseproperty>

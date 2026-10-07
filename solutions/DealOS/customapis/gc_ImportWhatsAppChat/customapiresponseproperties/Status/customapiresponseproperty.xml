@@ -1,0 +1,11 @@
+<customapiresponseproperty uniquename="Status">
+  <description default="Imported, Partial or NothingNew.">
+    <label description="Imported, Partial or NothingNew." languagecode="1033" />
+  </description>
+  <displayname default="Status">
+    <label description="Status" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <name>gc_ImportWhatsAppChat.Status</name>
+  <type>10</type>
+</customapiresponseproperty>

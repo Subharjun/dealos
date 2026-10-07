@@ -1,0 +1,12 @@
+<customapirequestparameter uniquename="MailboxAddress">
+  <description default="Address of the connected mailbox (from Gmail's profile); its mail is recorded as Outbound.">
+    <label description="Address of the connected mailbox (from Gmail's profile); its mail is recorded as Outbound." languagecode="1033" />
+  </description>
+  <displayname default="MailboxAddress">
+    <label description="MailboxAddress" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isoptional>1</isoptional>
+  <name>gc_IngestEmail.MailboxAddress</name>
+  <type>10</type>
+</customapirequestparameter>

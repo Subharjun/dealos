@@ -1,0 +1,30 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Workflow WorkflowId="{2b854027-54d9-5891-a485-84531b3163f1}" Name="DealOS | Desk drafts" Description="A desk draft (gc_message, Draft, Pending) → gc_BuildEmailRaw → Gmail draft in the thread (new thread for a first enquiry; the thread id is saved). A draft replaced by a newer one (Discarded) is deleted from Gmail." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <JsonFileName>/Workflows/DealOSDeskdrafts-2B854027-54D9-5891-A485-84531B3163F1.json</JsonFileName>
+  <Type>1</Type>
+  <Subprocess>0</Subprocess>
+  <Category>5</Category>
+  <Mode>0</Mode>
+  <Scope>4</Scope>
+  <OnDemand>0</OnDemand>
+  <TriggerOnCreate>0</TriggerOnCreate>
+  <TriggerOnDelete>0</TriggerOnDelete>
+  <AsyncAutodelete>0</AsyncAutodelete>
+  <SyncWorkflowLogOnFailure>0</SyncWorkflowLogOnFailure>
+  <StateCode>1</StateCode>
+  <StatusCode>2</StatusCode>
+  <RunAs>1</RunAs>
+  <IsTransacted>1</IsTransacted>
+  <IntroducedVersion>1.0.0.0</IntroducedVersion>
+  <IsCustomizable>1</IsCustomizable>
+  <BusinessProcessType>0</BusinessProcessType>
+  <IsCustomProcessingStepAllowedForOtherPublishers>1</IsCustomProcessingStepAllowedForOtherPublishers>
+  <ModernFlowType>0</ModernFlowType>
+  <PrimaryEntity>none</PrimaryEntity>
+  <LocalizedNames>
+    <LocalizedName languagecode="1033" description="DealOS | Desk drafts" />
+  </LocalizedNames>
+  <Descriptions>
+    <Description languagecode="1033" description="A desk draft (gc_message, Draft, Pending) → gc_BuildEmailRaw → Gmail draft in the thread (new thread for a first enquiry; the thread id is saved). A draft replaced by a newer one (Discarded) is deleted from Gmail." />
+  </Descriptions>
+</Workflow>

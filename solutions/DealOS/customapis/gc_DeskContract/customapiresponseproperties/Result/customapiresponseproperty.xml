@@ -1,0 +1,11 @@
+<customapiresponseproperty uniquename="Result">
+  <description default="JSON: status, documents, drafts.">
+    <label description="JSON: status, documents, drafts." languagecode="1033" />
+  </description>
+  <displayname default="Result">
+    <label description="Result" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <name>gc_DeskContract.Result</name>
+  <type>10</type>
+</customapiresponseproperty>

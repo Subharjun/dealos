@@ -14,6 +14,10 @@
       <Description>Answers chat messages with the conversation's agent</Description>
       <FriendlyName>ChatPlugin</FriendlyName>
     </PluginType>
+    <PluginType AssemblyQualifiedName="DealOS.Agents.Mail.MailPlugin, DealOS.Agents, Version=1.0.0.0, Culture=neutral, PublicKeyToken=6a7897f805501b8c" PluginTypeId="1b12ae00-a5c1-f111-aaaf-7ced8daf451f" Name="DealOS.Agents.Mail.MailPlugin">
+      <Description>Email Desk: stores Gmail messages and attachments</Description>
+      <FriendlyName>MailPlugin</FriendlyName>
+    </PluginType>
     <PluginType AssemblyQualifiedName="DealOS.Agents.Operations.OperationsPlugin, DealOS.Agents, Version=1.0.0.0, Culture=neutral, PublicKeyToken=6a7897f805501b8c" PluginTypeId="dbea2422-70c1-f111-aaaf-7ced8daf451f" Name="DealOS.Agents.Operations.OperationsPlugin">
       <Description>Deterministic deal operations (accept offer, open escrow)</Description>
       <FriendlyName>OperationsPlugin</FriendlyName>

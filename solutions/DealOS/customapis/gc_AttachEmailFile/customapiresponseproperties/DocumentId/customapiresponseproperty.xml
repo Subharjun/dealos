@@ -1,0 +1,11 @@
+<customapiresponseproperty uniquename="DocumentId">
+  <description default="The gc_document.">
+    <label description="The gc_document." languagecode="1033" />
+  </description>
+  <displayname default="DocumentId">
+    <label description="DocumentId" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <name>gc_AttachEmailFile.DocumentId</name>
+  <type>10</type>
+</customapiresponseproperty>

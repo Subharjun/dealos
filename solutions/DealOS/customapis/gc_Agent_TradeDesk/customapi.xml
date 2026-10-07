@@ -1,0 +1,18 @@
+<customapi uniquename="gc_Agent_TradeDesk">
+  <allowedcustomprocessingsteptype>0</allowedcustomprocessingsteptype>
+  <bindingtype>0</bindingtype>
+  <description default="Works a genuine email in its thread: records the buyer's requirement, sources sellers, records seller quotes, quotes our price to the buyer, carries price proposals between buyer and seller (identities masked), opens a confirm task on acceptance, and drafts every reply for a person to send.">
+    <label description="Works a genuine email in its thread: records the buyer's requirement, sources sellers, records seller quotes, quotes our price to the buyer, carries price proposals between buyer and seller (identities masked), opens a confirm task on acceptance, and drafts every reply for a person to send." languagecode="1033" />
+  </description>
+  <displayname default="Agent: Trade Desk">
+    <label description="Agent: Trade Desk" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isfunction>0</isfunction>
+  <isprivate>0</isprivate>
+  <name>gc_Agent_TradeDesk</name>
+  <plugintypeid>
+    <plugintypeexportkey>80e9c839-6ac1-f111-aaaf-7ced8daf451f</plugintypeexportkey>
+  </plugintypeid>
+  <workflowsdkstepenabled>0</workflowsdkstepenabled>
+</customapi>

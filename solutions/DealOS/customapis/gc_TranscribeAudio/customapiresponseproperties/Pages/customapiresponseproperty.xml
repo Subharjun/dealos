@@ -1,0 +1,11 @@
+<customapiresponseproperty uniquename="Pages">
+  <description default="gc_documentpage rows written.">
+    <label description="gc_documentpage rows written." languagecode="1033" />
+  </description>
+  <displayname default="Pages">
+    <label description="Pages" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <name>gc_TranscribeAudio.Pages</name>
+  <type>7</type>
+</customapiresponseproperty>

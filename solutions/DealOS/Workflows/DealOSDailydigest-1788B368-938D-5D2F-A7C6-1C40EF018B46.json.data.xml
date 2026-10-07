@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Workflow WorkflowId="{1788b368-938d-5d2f-a7c6-1c40ef018b46}" Name="DealOS | Daily digest" Description="Every day 03:00 UTC → AdminSupervisor digest (approvals waiting, stuck deals, failures, AI spend) emailed to admin.digest.recipients (default: the approvals.assignees default)." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+<Workflow WorkflowId="{1788b368-938d-5d2f-a7c6-1c40ef018b46}" Name="DealOS | Daily digest" Description="Every day 03:00 UTC → AdminSupervisor digest (approvals waiting, stuck deals, failures, AI spend) → briefing email to the desk owner (gc_DeskBrief, desk.owner_email)." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <JsonFileName>/Workflows/DealOSDailydigest-1788B368-938D-5D2F-A7C6-1C40EF018B46.json</JsonFileName>
   <Type>1</Type>
   <Subprocess>0</Subprocess>
@@ -25,6 +25,6 @@
     <LocalizedName languagecode="1033" description="DealOS | Daily digest" />
   </LocalizedNames>
   <Descriptions>
-    <Description languagecode="1033" description="Every day 03:00 UTC → AdminSupervisor digest (approvals waiting, stuck deals, failures, AI spend) emailed to admin.digest.recipients (default: the approvals.assignees default)." />
+    <Description languagecode="1033" description="Every day 03:00 UTC → AdminSupervisor digest (approvals waiting, stuck deals, failures, AI spend) → briefing email to the desk owner (gc_DeskBrief, desk.owner_email)." />
   </Descriptions>
 </Workflow>

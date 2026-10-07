@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Connector xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <connectorid>16068bbc-a9c1-f111-aaaf-7ced8daf451f</connectorid>
+  <description>Gmail API operations used by the DealOS Email Desk flows: read messages and attachments, manage labels and create reply drafts. Signs in with the DealOS Google OAuth app.</description>
+  <displayname>DealOS Gmail</displayname>
+  <iconbrandcolor>#007ee5</iconbrandcolor>
+  <name>gc_dealosgmail</name>
+  <connectortype>1</connectortype>
+  <openapidefinition>/Connector/gc_dealosgmail_openapidefinition.json</openapidefinition>
+  <connectionparameters>/Connector/gc_dealosgmail_connectionparameters.json</connectionparameters>
+  <policytemplateinstances>/Connector/gc_dealosgmail_policytemplateinstances.json</policytemplateinstances>
+  <iconblob>/Connector/gc_dealosgmail_iconblob.Png</iconblob>
+</Connector>

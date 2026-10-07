@@ -1,0 +1,12 @@
+<customapirequestparameter uniquename="DocumentId">
+  <description default="The audio gc_document.">
+    <label description="The audio gc_document." languagecode="1033" />
+  </description>
+  <displayname default="DocumentId">
+    <label description="DocumentId" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isoptional>0</isoptional>
+  <name>gc_TranscribeAudio.DocumentId</name>
+  <type>12</type>
+</customapirequestparameter>

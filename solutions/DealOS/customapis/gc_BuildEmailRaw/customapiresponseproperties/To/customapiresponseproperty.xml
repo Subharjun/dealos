@@ -1,0 +1,11 @@
+<customapiresponseproperty uniquename="To">
+  <description default="Recipient.">
+    <label description="Recipient." languagecode="1033" />
+  </description>
+  <displayname default="To">
+    <label description="To" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <name>gc_BuildEmailRaw.To</name>
+  <type>10</type>
+</customapiresponseproperty>

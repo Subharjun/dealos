@@ -43,7 +43,7 @@
           },
           "conditions": [
             {
-              "expression": "@or(equals(triggerOutputs()?['body/gc_status'], 303300002), equals(triggerOutputs()?['body/gc_status'], 303300003))"
+              "expression": "@and(not(empty(triggerOutputs()?['body/_gc_listing_value'])), or(equals(triggerOutputs()?['body/gc_status'], 303300002), equals(triggerOutputs()?['body/gc_status'], 303300003)))"
             }
           ],
           "runtimeConfiguration": {

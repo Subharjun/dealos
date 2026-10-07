@@ -1,4 +1,0 @@
-description: "DealOS: columns of gc_rfqinvite the site may read or write"
-id: dbcb7698-4044-5f46-9406-3b0dfe9bad4e
-name: Webapi/gc_rfqinvite/fields
-value: "_gc_listing_value,_gc_requirement_value,gc_Listing,gc_Requirement,gc_buyernote,gc_declinereason,gc_invitedon,gc_name,gc_respondedon,gc_rfqinviteid,gc_status"

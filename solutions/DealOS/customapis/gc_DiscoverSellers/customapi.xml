@@ -1,0 +1,18 @@
+<customapi uniquename="gc_DiscoverSellers">
+  <allowedcustomprocessingsteptype>0</allowedcustomprocessingsteptype>
+  <bindingtype>0</bindingtype>
+  <description default="Web seller discovery for a buyer requirement: Gemini with Google Search finds producers/exporters (public business contacts only) and saves them as leads (source Web Search). Once per requirement unless Force.">
+    <label description="Web seller discovery for a buyer requirement: Gemini with Google Search finds producers/exporters (public business contacts only) and saves them as leads (source Web Search). Once per requirement unless Force." languagecode="1033" />
+  </description>
+  <displayname default="Discover sellers">
+    <label description="Discover sellers" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isfunction>0</isfunction>
+  <isprivate>0</isprivate>
+  <name>gc_DiscoverSellers</name>
+  <plugintypeid>
+    <plugintypeexportkey>1b12ae00-a5c1-f111-aaaf-7ced8daf451f</plugintypeexportkey>
+  </plugintypeid>
+  <workflowsdkstepenabled>0</workflowsdkstepenabled>
+</customapi>

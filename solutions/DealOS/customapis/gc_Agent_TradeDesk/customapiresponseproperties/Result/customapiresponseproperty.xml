@@ -1,0 +1,11 @@
+<customapiresponseproperty uniquename="Result">
+  <description default="Full JSON result: agent output, actions taken, model, tokens, timing.">
+    <label description="Full JSON result: agent output, actions taken, model, tokens, timing." languagecode="1033" />
+  </description>
+  <displayname default="Result">
+    <label description="Result" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <name>gc_Agent_TradeDesk.Result</name>
+  <type>10</type>
+</customapiresponseproperty>

@@ -40,7 +40,12 @@
               "subscriptionRequest/filterexpression": "gc_status eq 303300000"
             },
             "authentication": "@parameters('$authentication')"
-          }
+          },
+          "conditions": [
+            {
+              "expression": "@not(empty(triggerOutputs()?['body/_gc_listing_value']))"
+            }
+          ]
         }
       },
       "actions": {

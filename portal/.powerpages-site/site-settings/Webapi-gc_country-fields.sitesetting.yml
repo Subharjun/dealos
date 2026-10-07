@@ -1,4 +1,0 @@
-description: "DealOS: columns of gc_country the site may read or write"
-id: 01937ea8-e9f2-5acf-a874-d8db2a3f7218
-name: Webapi/gc_country/fields
-value: "gc_countryid,gc_name"

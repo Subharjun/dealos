@@ -5,10 +5,14 @@ not +aliases: Gmail treats +aliases of the mailbox as the owner and files them a
 the real system: Mailbox sync → Mail Triage → Trade desk → Desk drafts → offers → Confirm deal → compliance → contract → signed.
 
   1. buyer asks for 10-15 MT vanadium pentoxide          → requirement, sourcing from the test leads, enquiry drafts
-  2. seller 1 quotes USD 9,850 CIF, seller 2 declines      → quote recorded, our price to the buyer drafted
+  2. seller 1 quotes USD 9,850 CIF, seller 2 USD 10,300   → quotes recorded, our price to the buyer (from the best quote) drafted
   3. buyer proposes USD 10,000                            → our bid to seller 1 drafted (buyer never named)
-  4. seller 1 accepts our bid                              → "Confirm deal" task → approved → Terms Agreed → contract
+  4. seller 1 accepts our bid                              → "Confirm deal" task → approved → confirmations sent → Terms Agreed
+                                                             → seller 2 gets a "not this time" draft → compliance → contract
   5. buyer returns the signed contract                     → task → approved → contract Signed → deal Signed (no escrow)
+
+Each step waits for the draft that answers it (created after the email that triggered it; with a PDF for contracts), never just
+"some pending draft", so an older draft is never sent by mistake.
 
 Usage:
   python3 tools/desk_e2e.py run          # about 30-45 minutes (Mailbox sync runs every 3 minutes; Gemini free tier is slow)
@@ -81,32 +85,68 @@ def mime(frm, to, subject, body, attachment=None, in_reply_to=None):
 
 
 def message(gmail_id):
-    rows = get(f"gc_messages?$select=gc_messageid,_gc_conversation_value,gc_triage,gc_category,gc_triagescore&$filter=gc_externalid eq '{gmail_id}'")
+    rows = get(f"gc_messages?$select=gc_messageid,_gc_conversation_value,gc_triage,gc_category,gc_triagescore,createdon&$filter=gc_externalid eq '{gmail_id}'")
     return rows[0] if rows else None
 
 
-def drafts(conv_id, status=PENDING):
-    return get(f"gc_messages?$select=gc_messageid,gc_gmaildraftid,gc_subject,gc_text,gc_toaddress&$filter=_gc_conversation_value eq {conv_id} "
-               f"and gc_draftstatus eq {status}")
+def drafts(conv_id, status=PENDING, since=None):
+    after = f" and createdon gt {since}" if since else ""
+    return get(f"gc_messages?$select=gc_messageid,_gc_conversation_value,gc_gmaildraftid,gc_subject,gc_text,gc_toaddress,gc_attachments,createdon&$filter=_gc_conversation_value eq {conv_id} "
+               f"and gc_draftstatus eq {status}{after}")
 
 
-def ready_drafts(conv_ids):
+def fresh_drafts(required, optional, since, attachment):
+    """The drafts that answer the latest step: pending, created after `since` (server time of the triggering email), in Gmail already.
+    Every required thread needs one (with a PDF when `attachment`); optional threads are included when they have one."""
     out = []
-    for c in conv_ids:
-        ds = drafts(c)
-        if not ds or not all(d.get("gc_gmaildraftid") for d in ds):
+    for c in required + optional:
+        ds = drafts(c, since=since)
+        if attachment and c in required:
+            ds = [d for d in ds if d.get("gc_attachments")]
+        if c in required and not ds:
+            return None
+        if not all(d.get("gc_gmaildraftid") for d in ds):
             return None
         out += ds
     return out
 
 
-def send_all(kit, conv_ids, label):
-    ds = wait(f"Gmail drafts ready ({label})", lambda: ready_drafts(conv_ids), 10, kick=False)
+# Phrases that make an email read like a template or an AI (the house style is short and plain, like the owner's own trade messages).
+TELLS = ("hope this email finds you", "hope this finds you", "hope you are doing well", "thank you for reaching out", "we are pleased to", "we are delighted",
+         "certainly", "rest assured", "do not hesitate", "don't hesitate", "feel free to", "as an ai", "happy to assist", "delve", "furthermore", "moreover",
+         "valued partner", "please be advised")
+
+
+def tone_problems(text):
+    body = (text or "").split("Best regards,")[0]
+    low = body.lower()
+    found = [t for t in TELLS if t in low]
+    if "—" in body or "!" in body:
+        found.append("em dash or exclamation mark")
+    return found
+
+
+def send_all(kit, required, label, since, optional=(), attachment=False, minutes=10):
+    required, optional = list(required), [c for c in optional if c and c not in required]
+    ds = wait(f"Gmail drafts ready ({label})", lambda: fresh_drafts(required, optional, since, attachment), minutes, kick=False)
     for d in ds:
-        log(f"   ✉ draft to {d['gc_toaddress']} — {d['gc_subject']}\n" + "\n".join("        | " + l for l in (d["gc_text"] or "").splitlines()))
+        bad = tone_problems(d["gc_text"])
+        if bad:
+            raise SystemExit(f"✗ draft to {d['gc_toaddress']} does not read like a trader: {bad}")
+    for d in ds:
+        log(f"   ✉ draft to {d['gc_toaddress']} — {d['gc_subject']}" + (" [attachment]" if d.get("gc_attachments") else "") + "\n"
+            + "\n".join("        | " + l for l in (d["gc_text"] or "").splitlines()))
         kit.call("send_draft", id=d["gc_gmaildraftid"])
     log(f"   sent {len(ds)} draft(s) from Gmail (as the desk person)")
-    wait(f"sent mail recorded ({label})", lambda: all(not drafts(c) for c in conv_ids) and all(drafts(c, SENT) for c in conv_ids), 10)
+    ids = [d["gc_messageid"] for d in ds]
+    wait(f"sent mail recorded ({label})",
+         lambda: all(get(f"gc_messages({i})?$select=gc_draftstatus").get("gc_draftstatus") == SENT for i in ids), 10)
+    return ds
+
+
+def ingested(gmail_id, what):
+    """Waits until Mailbox sync stored the email; returns its createdon (server time), the 'since' for the drafts that answer it."""
+    return wait(f"{what} read by Mailbox sync", lambda: message(gmail_id))["createdon"]
 
 
 def insert(kit, raw, thread_id=""):
@@ -114,9 +154,9 @@ def insert(kit, raw, thread_id=""):
     return r["id"], r["threadId"]
 
 
-def approve(task_name_prefix, deal_id=None, minutes=8):
+def approve(task_name_prefix, deal_id=None, minutes=8, kick=False):
     flt = f"startswith(gc_name,'{task_name_prefix}') and gc_status eq {B}" + (f" and _gc_deal_value eq {deal_id}" if deal_id else "")
-    task = wait(f"task '{task_name_prefix}…'", lambda: (get(f"gc_reviewtasks?$select=gc_reviewtaskid,gc_name,gc_payload&$filter={flt}") or [None])[0], minutes, kick=False)
+    task = wait(f"task '{task_name_prefix}…'", lambda: (get(f"gc_reviewtasks?$select=gc_reviewtaskid,gc_name,gc_payload&$filter={flt}") or [None])[0], minutes, kick=kick)
     log(f"   approving task: {task['gc_name']}")
     s, b = dv.patch(f"gc_reviewtasks({task['gc_reviewtaskid']})", {"gc_status": REVIEW_APPROVED})
     if s >= 300:
@@ -186,7 +226,7 @@ def run():
         log(f"   requirement {req}; {len(sellers)} seller thread(s): " + "; ".join(s_["gc_name"] for s_ in sellers))
         state["seller_convs"] = {s_["gc_name"]: s_["gc_conversationid"] for s_ in sellers}
         save(state)
-        send_all(kit, [conv] + [s_["gc_conversationid"] for s_ in sellers], "acknowledgement + enquiries")
+        send_all(kit, [conv] + [s_["gc_conversationid"] for s_ in sellers], "acknowledgement + enquiries", m["createdon"])
 
         # 2. seller 1 quotes, seller 2 declines
         threads = {s_["gc_name"]: get(f"gc_conversations({s_['gc_conversationid']})?$select=gc_gmailthreadid,gc_conversationid") for s_ in sellers}
@@ -194,27 +234,31 @@ def run():
         s2 = next((v for k, v in threads.items() if "Hunan" in k), None)
         state.update(seller1_conv=s1["gc_conversationid"], seller2_conv=s2 and s2["gc_conversationid"])
         coa = pdf(["CERTIFICATE OF ANALYSIS", "Product: Vanadium Pentoxide flakes", "V2O5: 98.2%", "P: 0.03%", "S: 0.01%", "Lot: VP-2609-14"])
-        insert(kit, mime(f"Li Wei <{seller1_addr}>", desk, "Re: Enquiry: Vanadium Pentoxide",
+        q1, _ = insert(kit, mime(f"Li Wei <{seller1_addr}>", desk, "Re: Enquiry: Vanadium Pentoxide",
                          "Dear Sir,\n\nThank you for your enquiry. We can offer 15 MT Vanadium Pentoxide flakes, V2O5 98.2%, P 0.03% max, origin China, "
                          "packed in 1 MT jumbo bags.\n\nPrice: USD 9,850 per MT CIF Nhava Sheva.\nShipment: within 3 weeks of LC.\nPayment: LC at sight.\n"
                          "Validity: 7 days.\n\nCOA of the current lot attached.\n\nBest regards,\nLi Wei\nSales Manager", ("COA-VP-2609-14.pdf", coa)),
                s1["gc_gmailthreadid"])
         if s2:
             insert(kit, mime(f"Zhang Min <{seller2_addr}>", desk, "Re: Enquiry: Vanadium Pentoxide",
-                             "Dear Sir,\n\nThank you, but we have no V2O5 available for prompt shipment at the moment.\n\nRegards,\nZhang Min"), s2["gc_gmailthreadid"])
-        log("2. seller 1 quoted USD 9,850 CIF; seller 2 declined")
-        wait("seller quote recorded and our offer drafted to the buyer",
-             lambda: get(f"gc_offers?$select=gc_price&$filter=_gc_deal_value eq {next(x['_gc_deal_value'] for x in sellers if x['gc_conversationid'] == s1['gc_conversationid'])}")
-             and ready_drafts([conv]), 15)
-        send_all(kit, [conv], "our offer to the buyer")
+                             "Dear Sir,\n\nWe can offer 10 MT Vanadium Pentoxide flakes, V2O5 98%, origin China, in 1 MT jumbo bags.\n\n"
+                             "Price: USD 10,300 per MT CIF Nhava Sheva.\nShipment: 4 weeks from LC.\nPayment: LC at sight.\n\nRegards,\nZhang Min"),
+                   s2["gc_gmailthreadid"])
+        log("2. seller 1 quoted USD 9,850 CIF; seller 2 quoted USD 10,300 CIF")
+        since2 = ingested(q1, "seller 1 quote")
+        deal1 = next(x["_gc_deal_value"] for x in sellers if x["gc_conversationid"] == s1["gc_conversationid"])
+        wait("seller 1 quote recorded", lambda: get(f"gc_offers?$select=gc_price&$filter=_gc_deal_value eq {deal1}"), 15)
+        offer = send_all(kit, [conv], "our offer to the buyer", since2, optional=[s1["gc_conversationid"], s2 and s2["gc_conversationid"]], minutes=15)
+        if not any("10,145.50" in (d["gc_text"] or "") for d in offer):
+            log("   ⚠ the offer to the buyer does not show USD 10,145.50 (best quote 9,850 + 3%); check the draft above")
 
         # 3. buyer proposes a price
-        insert(kit, mime(f"Rakesh Jain <{buyer_addr}>", desk, f"Re: {tag} Requirement: Vanadium Pentoxide 10-15 MT",
+        counter, _ = insert(kit, mime(f"Rakesh Jain <{buyer_addr}>", desk, f"Re: {tag} Requirement: Vanadium Pentoxide 10-15 MT",
                          "Thanks for the offer. The price is on the high side for us. We can do USD 10,000 per MT CIF Nhava Sheva for 15 MT, "
                          "other terms as offered. Please confirm.\n\nRakesh"), buyer_thread)
         log("3. buyer proposed USD 10,000")
         deal_id = next(x["_gc_deal_value"] for x in sellers if x["gc_conversationid"] == s1["gc_conversationid"])
-        state.update(seller1_conv=s1["gc_conversationid"], seller1_thread=s1["gc_gmailthreadid"], deal=deal_id)
+        state.update(seller1_conv=s1["gc_conversationid"], seller1_thread=s1["gc_gmailthreadid"], deal=deal_id, counter_gmail=counter)
         save(state)
         steps_from_bid(kit, state, alias, desk)
     off()
@@ -224,28 +268,33 @@ def run():
     status()
 
 
-def bid_drafted(deal_id, conv_id):
-    bids = get(f"gc_offers?$select=gc_price&$filter=startswith(gc_name,'Our bid') and _gc_deal_value eq {deal_id}&$orderby=createdon desc")
-    return bids and ready_drafts([conv_id]) and bids
-
-
 def steps_from_bid(kit, state, alias, desk):
     """Steps 3b-5: from the buyer's price proposal to the signed contract (also used by 'resume')."""
     tag, conv, deal_id, s1_conv = state["tag"], state["buyer_conv"], state["deal"], state["seller1_conv"]
     buyer_thread, s1_thread = state["buyer_gmail_thread"], state["seller1_thread"]
     buyer_addr, seller1_addr = "rakesh.jain@ferroalloys-buyer.example", "li.wei@panzhihua-vanadium.example"
-    bid = wait("our bid drafted to seller 1", lambda: bid_drafted(deal_id, s1_conv), 15)[0]["gc_price"]
-    send_all(kit, [c for c in (s1_conv, conv) if drafts(c)], "bid to seller + note to buyer")
+    s2_conv = state.get("seller2_conv")
+    since3 = ingested(state["counter_gmail"], "buyer's price proposal") if state.get("counter_gmail") \
+        else datetime.fromisoformat(state["started"]).astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    bid = wait("our bid to seller 1 recorded", lambda: get(f"gc_offers?$select=gc_price&$filter=startswith(gc_name,'Our bid') and _gc_deal_value eq {deal_id} "
+                                                         f"and createdon gt {since3}&$orderby=createdon desc"), 15)[0]["gc_price"]
+    send_all(kit, [s1_conv], "bid to seller + note to buyer", since3, optional=[conv])
 
     # 4. seller accepts our bid → confirm deal → (KYB) → compliance → contract
-    insert(kit, mime(f"Li Wei <{seller1_addr}>", desk, "Re: Enquiry: Vanadium Pentoxide",
+    accept, _ = insert(kit, mime(f"Li Wei <{seller1_addr}>", desk, "Re: Enquiry: Vanadium Pentoxide",
                      f"Dear Sir,\n\nWe accept your bid of USD {bid:,.2f} per MT CIF Nhava Sheva for 15 MT. Please send the contract.\n\nBest regards,\nLi Wei"),
            s1_thread)
     log(f"4. seller 1 accepted our bid of USD {bid:,.2f}")
+    since4 = ingested(accept, "seller's acceptance")
     deal = get(f"gc_deals({deal_id})?$select=_gc_buyer_value,_gc_seller_value")
     verify_party(deal["_gc_buyer_value"], "buyer")
     verify_party(deal["_gc_seller_value"], "seller")
     approve("Confirm deal", deal_id, 15)
+    confirmations = send_all(kit, [conv], "confirmations", since4, optional=[s1_conv])
+    if any((d["gc_text"] or "").lstrip().lower().startswith(("dear buyer", "dear seller")) for d in confirmations):
+        log("   ⚠ a confirmation still opens with 'Dear Buyer/Seller'")
+    if s2_conv:
+        send_all(kit, [s2_conv], "'not this time' note to seller 2", since4, minutes=8)
     stage = lambda: get(f"gc_deals({deal_id})?$select=gc_stage,gc_buyerprice,gc_price").get("gc_stage@OData.Community.Display.V1.FormattedValue")
     wait("deal past Terms Agreed (compliance)", lambda: stage() in ("Compliance Check", "Contracting"), 8, kick=False)
     contract_task = lambda: get(f"gc_reviewtasks?$select=gc_reviewtaskid&$filter=_gc_deal_value eq {deal_id} and gc_purpose eq {B + 3} and gc_status eq {B}")
@@ -256,7 +305,7 @@ def steps_from_bid(kit, state, alias, desk):
         dv.patch(f"gc_reviewtasks({screening_task()[0]['gc_reviewtaskid']})", {"gc_status": REVIEW_APPROVED})
         wait("contract drafted (Contract Issue task)", contract_task, 10, kick=False)
     approve("Review contract terms", deal_id)
-    send_all(kit, [conv, s1_conv], "contracts to both sides")
+    send_all(kit, [conv, s1_conv], "contracts to both sides", since4, attachment=True)
 
     # 5. buyer returns the signed contract
     signed = pdf(["SALES CONTRACT (signed copy)", "Signed for the Buyer: Rakesh Jain, Purchase Manager", "Date: " + datetime.now().strftime("%d %B %Y")])
@@ -264,7 +313,7 @@ def steps_from_bid(kit, state, alias, desk):
                      "Please find the signed sales contract attached. Our company documents follow separately.\n\nRakesh", ("Sales-contract-signed.pdf", signed)),
            buyer_thread)
     log("5. buyer returned the signed contract")
-    approve("Signed contract received", deal_id, 15)
+    approve("Signed contract received", deal_id, 15, kick=True)
     wait("deal Signed (no escrow)", lambda: stage() == "Signed", 8, kick=False)
     wait("inspection requested", lambda: get(f"gc_inspections?$select=gc_name&$filter=_gc_deal_value eq {deal_id}"), 6, kick=False)
 

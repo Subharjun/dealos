@@ -4,7 +4,7 @@ Definitions live in tools/flows/definitions.py. Existing flows keep their ids; n
 so running this again updates them in place (deactivate → update → activate).
 
 Usage:
-  python3 tools/deploy_flows.py                       # deploy and activate all flows
+  python3 tools/deploy_flows.py                       # deploy and activate all flows, then delete the retired ones (definitions.RETIRED)
   python3 tools/deploy_flows.py --only "Offer pricing" # one flow (substring of the name)
   python3 tools/deploy_flows.py --off                 # deploy but leave them off
   python3 tools/deploy_flows.py --dump build/flows    # write the generated JSON only, no deployment
@@ -57,6 +57,18 @@ def deploy(f, activate):
     return f"{verb} {f['name']} (on)"
 
 
+def retire():
+    """Turns off and deletes the flows removed from the build (definitions.RETIRED), child flows last."""
+    names = sorted(definitions.RETIRED, key=lambda n: n == "DealOS | Notify party")
+    for name in names:
+        s, b = dv.get(f"workflows?$select=workflowid,statecode&$filter=name eq '{name}' and category eq 5")
+        for w in (b.get("value", []) if s == 200 else []):
+            if w["statecode"] == 1:
+                set_state(w["workflowid"], False)
+            s2, b2 = dv.request("DELETE", f"workflows({w['workflowid']})")
+            print(f"- {name} deleted" if s2 < 300 else f"! {name}: not deleted: {json.dumps(b2)[:400]}", flush=True)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--only")
@@ -81,6 +93,8 @@ def main():
         failed += line.startswith("!")
         print(line, flush=True)
     print(f"{len(flows) - failed} of {len(flows)} flows deployed" + ("" if args.off else " and on"))
+    if not args.tests and not args.only and not failed:
+        retire()
     sys.exit(1 if failed else 0)
 
 

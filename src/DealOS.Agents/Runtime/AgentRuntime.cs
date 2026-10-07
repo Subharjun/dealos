@@ -22,7 +22,7 @@ namespace DealOS.Agents.Runtime
         public int TokensOut;
     }
 
-    /// <summary>Runs an agent: prefetch → Gemini tool loop (or one structured call) → validation → guards.</summary>
+    /// <summary>Runs an agent: prefetch → model tool loop (or one structured call) → validation → guards. The provider (OpenAI or Gemini) is behind IModelClient.</summary>
     public sealed class AgentRuntime
     {
         public const string Guardrails =
@@ -36,12 +36,12 @@ Non-negotiable rules:
 6. Be concise and commercial. Plain English.
 7. When you are done, call the function `finish` exactly once with your result. If a tool returns an error, fix the call or explain the problem in your result.";
 
-        private readonly GeminiClient _gemini;
+        private readonly IModelClient _model;
         private readonly RunLogger _log;
 
-        public AgentRuntime(GeminiClient gemini, RunLogger log)
+        public AgentRuntime(IModelClient model, RunLogger log)
         {
-            _gemini = gemini;
+            _model = model;
             _log = log;
         }
 
@@ -125,6 +125,7 @@ Non-negotiable rules:
                 }
                 if (finish != null)
                 {
+                    S.Prune(def.OutputSchema, finish.Args);
                     var errors = S.Validate(def.OutputSchema, finish.Args);
                     if (errors.Count == 0)
                     {
@@ -161,6 +162,7 @@ Non-negotiable rules:
                 try
                 {
                     parsed = Json.ParseLenient(resp.Text) as Dictionary<string, object>;
+                    S.Prune(ctx.Agent.OutputSchema, parsed);
                     var errors = parsed == null ? new List<string> { "output is not a JSON object" } : S.Validate(ctx.Agent.OutputSchema, parsed);
                     problem = errors.Count == 0 ? null : string.Join("; ", errors);
                 }
@@ -200,7 +202,7 @@ Non-negotiable rules:
         /// Calls the current model; on quota (429), overload (503), retired model (404) or timeout it moves to the
         /// next model in agents.model.fallbacks for the rest of the run.
         /// </summary>
-        private GeminiResponse Call(AgentContext ctx, Dictionary<string, object> request, string task, AgentOutcome outcome)
+        private ModelResponse Call(AgentContext ctx, Dictionary<string, object> request, string task, AgentOutcome outcome)
         {
             var digest = Digest(Json.Serialize(request["contents"]));
             var chain = ModelChain(ctx);
@@ -224,18 +226,18 @@ Non-negotiable rules:
                 }
                 try
                 {
-                    var resp = _gemini.Generate(model, request, ctx.Deadline);
+                    var resp = _model.Generate(model, request, ctx.Deadline);
                     outcome.TokensIn += resp.TokensIn;
                     outcome.TokensOut += resp.TokensOut;
                     var ok = resp.Content != null && (resp.Calls.Count > 0 || resp.Text != null);
-                    _log.ModelCall(ctx, task, resp.Model ?? model, resp.TokensIn, resp.TokensOut, resp.LatencyMs,
+                    _log.ModelCall(ctx, task, _model.Provider, resp.Model ?? model, resp.TokensIn, resp.TokensOut, resp.LatencyMs,
                         ok ? Choice.ModelOutcome.Ok : Choice.ModelOutcome.Abstain,
                         ok ? null : "finish=" + resp.FinishReason + " block=" + resp.BlockReason, digest);
                     return resp;
                 }
-                catch (GeminiException ex)
+                catch (ModelException ex)
                 {
-                    _log.ModelCall(ctx, task, model, 0, 0, 0, Choice.ModelOutcome.Error, ex.Message, digest);
+                    _log.ModelCall(ctx, task, _model.Provider, model, 0, 0, 0, Choice.ModelOutcome.Error, ex.Message, digest);
                     outcome.Error = ex.Message;
                     var retriable = ex.StatusCode == 429 || ex.StatusCode == 503 || ex.StatusCode == 404 || ex.StatusCode == 500 || ex.Message.Contains("timed out");
                     if (!retriable || (ctx.Deadline - DateTime.UtcNow).TotalSeconds < 15) return null;
@@ -248,10 +250,7 @@ Non-negotiable rules:
         {
             object cached;
             if (ctx.Scratch.TryGetValue("model_chain", out cached)) return (List<string>)cached;
-            var chain = new List<string> { ctx.Model };
-            var fallbacks = ctx.Dv.Setting("agents.model.fallbacks", "gemini-3.5-flash,gemini-3.1-flash-lite");
-            foreach (var m in fallbacks.Split(new[] { ',', ';', ' ' }, StringSplitOptions.RemoveEmptyEntries))
-                if (!chain.Contains(m.Trim())) chain.Add(m.Trim());
+            var chain = Models.Chain(ctx.Dv, ctx.Model);
             ctx.Scratch["model_chain"] = chain;
             return chain;
         }
@@ -364,13 +363,13 @@ Non-negotiable rules:
             _dv.System.Update(run);
         }
 
-        public void ModelCall(AgentContext ctx, string task, string model, int tokensIn, int tokensOut, long latencyMs,
+        public void ModelCall(AgentContext ctx, string task, string provider, string model, int tokensIn, int tokensOut, long latencyMs,
                               int outcome, string error, string digest)
         {
             var mc = new Entity("gc_modelcall");
             mc["gc_name"] = GeminiClient.Truncate(task, 100);
             mc["gc_task"] = GeminiClient.Truncate(task, 100);
-            mc["gc_provider"] = "Gemini";
+            mc["gc_provider"] = provider;
             mc["gc_model"] = model;
             mc["gc_promptversion"] = ctx.Agent.Name + "-" + ctx.Agent.Version;
             mc["gc_tokensin"] = tokensIn;

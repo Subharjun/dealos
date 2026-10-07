@@ -1,0 +1,11 @@
+<customapiresponseproperty uniquename="ModelCallId">
+  <description default="The gc_modelcall of the successful call.">
+    <label description="The gc_modelcall of the successful call." languagecode="1033" />
+  </description>
+  <displayname default="ModelCallId">
+    <label description="ModelCallId" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <name>gc_TranscribeAudio.ModelCallId</name>
+  <type>10</type>
+</customapiresponseproperty>

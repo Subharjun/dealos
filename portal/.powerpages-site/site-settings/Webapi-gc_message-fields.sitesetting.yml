@@ -1,4 +1,0 @@
-description: "DealOS: columns of gc_message the site may read or write"
-id: f781f41a-8303-5078-8ea6-f6c90a49d553
-name: Webapi/gc_message/fields
-value: "_gc_conversation_value,createdon,gc_attachments,gc_conversation,gc_isplatform,gc_messageid,gc_name,gc_senderlabel,gc_text"

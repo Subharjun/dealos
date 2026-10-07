@@ -1,0 +1,18 @@
+<customapi uniquename="gc_AttachEmailFile">
+  <allowedcustomprocessingsteptype>0</allowedcustomprocessingsteptype>
+  <bindingtype>0</bindingtype>
+  <description default="Store one email attachment (base64url from Gmail) as a Quarantined gc_document of the email. Idempotent per file name.">
+    <label description="Store one email attachment (base64url from Gmail) as a Quarantined gc_document of the email. Idempotent per file name." languagecode="1033" />
+  </description>
+  <displayname default="Attach email file">
+    <label description="Attach email file" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isfunction>0</isfunction>
+  <isprivate>0</isprivate>
+  <name>gc_AttachEmailFile</name>
+  <plugintypeid>
+    <plugintypeexportkey>1b12ae00-a5c1-f111-aaaf-7ced8daf451f</plugintypeexportkey>
+  </plugintypeid>
+  <workflowsdkstepenabled>0</workflowsdkstepenabled>
+</customapi>

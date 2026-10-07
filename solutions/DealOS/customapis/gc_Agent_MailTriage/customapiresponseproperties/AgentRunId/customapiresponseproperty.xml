@@ -1,0 +1,11 @@
+<customapiresponseproperty uniquename="AgentRunId">
+  <description default="gc_agentrun id for this run.">
+    <label description="gc_agentrun id for this run." languagecode="1033" />
+  </description>
+  <displayname default="AgentRunId">
+    <label description="AgentRunId" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <name>gc_Agent_MailTriage.AgentRunId</name>
+  <type>10</type>
+</customapiresponseproperty>

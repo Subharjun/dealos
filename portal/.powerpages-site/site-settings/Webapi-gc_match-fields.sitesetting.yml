@@ -1,4 +1,0 @@
-description: "DealOS: columns of gc_match the site may read or write"
-id: 1a0cb4d4-6bf0-5ec8-b199-2042806eb73c
-name: Webapi/gc_match/fields
-value: "_gc_listing_value,_gc_requirement_value,gc_buyeroptin,gc_explanation,gc_matchid,gc_name,gc_score,gc_selleroptin,gc_status"

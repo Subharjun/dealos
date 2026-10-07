@@ -1,0 +1,11 @@
+<customapiresponseproperty uniquename="MessageId">
+  <description default="The gc_message.">
+    <label description="The gc_message." languagecode="1033" />
+  </description>
+  <displayname default="MessageId">
+    <label description="MessageId" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <name>gc_IngestEmail.MessageId</name>
+  <type>10</type>
+</customapiresponseproperty>

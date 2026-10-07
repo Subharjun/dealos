@@ -25,7 +25,7 @@
         }
       },
       "triggers": {
-        "When_a_deal_is_funded": {
+        "When_a_deal_is_ready_for_inspection": {
           "type": "OpenApiConnectionWebhook",
           "inputs": {
             "host": {
@@ -37,7 +37,7 @@
               "subscriptionRequest/message": 3,
               "subscriptionRequest/entityname": "gc_deal",
               "subscriptionRequest/scope": 4,
-              "subscriptionRequest/filterexpression": "gc_stage eq 303300007",
+              "subscriptionRequest/filterexpression": "gc_stage eq 303300007 or gc_stage eq 303300005",
               "subscriptionRequest/filteringattributes": "gc_stage"
             },
             "authentication": "@parameters('$authentication')"
@@ -53,6 +53,23 @@
         "Try": {
           "type": "Scope",
           "actions": {
+            "Wrong_stage_for_deal": {
+              "type": "If",
+              "expression": "@not(equals(triggerOutputs()?['body/gc_stage'], if(equals(triggerOutputs()?['body/gc_emaildesk'], true), 303300005, 303300007)))",
+              "actions": {
+                "Not_this_deal": {
+                  "type": "Terminate",
+                  "inputs": {
+                    "runStatus": "Succeeded"
+                  },
+                  "runAfter": {}
+                }
+              },
+              "else": {
+                "actions": {}
+              },
+              "runAfter": {}
+            },
             "Existing_inspection": {
               "type": "OpenApiConnection",
               "inputs": {
@@ -69,7 +86,11 @@
                 },
                 "authentication": "@parameters('$authentication')"
               },
-              "runAfter": {}
+              "runAfter": {
+                "Wrong_stage_for_deal": [
+                  "Succeeded"
+                ]
+              }
             },
             "Already_booked": {
               "type": "If",
@@ -181,7 +202,7 @@
                 "body": {
                   "text": "@{triggerOutputs()?['body/_gc_buyer_value']}",
                   "text_1": "Independent inspection is being arranged",
-                  "text_2": "Escrow for '@{triggerOutputs()?['body/gc_name']}' is funded. DealOS is booking an independent inspection (sampling, assay, weighing and sealing) before shipment. You will be told the date.",
+                  "text_2": "'@{triggerOutputs()?['body/gc_name']}' is ready for inspection. DealOS is booking an independent inspection (sampling, assay, weighing and sealing) before shipment. You will be told the date.",
                   "text_3": "inspection.requested"
                 }
               },
@@ -200,7 +221,7 @@
                 "body": {
                   "text": "@{triggerOutputs()?['body/_gc_seller_value']}",
                   "text_1": "Independent inspection is being arranged",
-                  "text_2": "Escrow for '@{triggerOutputs()?['body/gc_name']}' is funded. DealOS is booking an independent inspection (sampling, assay, weighing and sealing) before shipment. You will be told the date.",
+                  "text_2": "'@{triggerOutputs()?['body/gc_name']}' is ready for inspection. DealOS is booking an independent inspection (sampling, assay, weighing and sealing) before shipment. You will be told the date.",
                   "text_3": "inspection.requested"
                 }
               },

@@ -1,0 +1,373 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_gc-5fdealos-20gmail-5fc12c8485be9726a2": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "gc_gmail"
+        },
+        "api": {
+          "name": "shared_gc-5fdealos-20gmail-5fc12c8485be9726a2",
+          "logicalName": "gc_dealosgmail"
+        }
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$connections": {
+          "defaultValue": {},
+          "type": "Object"
+        },
+        "$authentication": {
+          "defaultValue": {},
+          "type": "SecureObject"
+        }
+      },
+      "triggers": {
+        "manual": {
+          "type": "Request",
+          "kind": "Http",
+          "inputs": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "action": {
+                  "type": "string"
+                },
+                "raw": {
+                  "type": "string"
+                },
+                "thread_id": {
+                  "type": "string"
+                },
+                "id": {
+                  "type": "string"
+                },
+                "q": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "actions": {
+        "Do": {
+          "runAfter": {},
+          "cases": {
+            "Insert": {
+              "case": "insert",
+              "actions": {
+                "Insert_message": {
+                  "runAfter": {},
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_gc-5fdealos-20gmail-5fc12c8485be9726a2",
+                      "operationId": "InsertMessage",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_gc-5fdealos-20gmail-5fc12c8485be9726a2"
+                    },
+                    "parameters": {
+                      "internalDateSource": "receivedTime",
+                      "body/raw": "@triggerBody()?['raw']",
+                      "body/threadId": "@triggerBody()?['thread_id']",
+                      "body/labelIds": "@createArray('INBOX', 'UNREAD')"
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  }
+                },
+                "Inserted": {
+                  "runAfter": {
+                    "Insert_message": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "Response",
+                  "kind": "Http",
+                  "inputs": {
+                    "statusCode": 200,
+                    "body": "@body('Insert_message')"
+                  }
+                }
+              }
+            },
+            "Send": {
+              "case": "send_draft",
+              "actions": {
+                "Send_draft": {
+                  "runAfter": {},
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_gc-5fdealos-20gmail-5fc12c8485be9726a2",
+                      "operationId": "SendDraft",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_gc-5fdealos-20gmail-5fc12c8485be9726a2"
+                    },
+                    "parameters": {
+                      "body/id": "@triggerBody()?['id']"
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  }
+                },
+                "Sent": {
+                  "runAfter": {
+                    "Send_draft": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "Response",
+                  "kind": "Http",
+                  "inputs": {
+                    "statusCode": 200,
+                    "body": "@body('Send_draft')"
+                  }
+                }
+              }
+            },
+            "Get": {
+              "case": "get",
+              "actions": {
+                "Get_message": {
+                  "runAfter": {},
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_gc-5fdealos-20gmail-5fc12c8485be9726a2",
+                      "operationId": "GetMessage",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_gc-5fdealos-20gmail-5fc12c8485be9726a2"
+                    },
+                    "parameters": {
+                      "id": "@triggerBody()?['id']",
+                      "format": "metadata"
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  }
+                },
+                "Got": {
+                  "runAfter": {
+                    "Get_message": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "Response",
+                  "kind": "Http",
+                  "inputs": {
+                    "statusCode": 200,
+                    "body": "@body('Get_message')"
+                  }
+                }
+              }
+            },
+            "List": {
+              "case": "list",
+              "actions": {
+                "List_messages": {
+                  "runAfter": {},
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_gc-5fdealos-20gmail-5fc12c8485be9726a2",
+                      "operationId": "ListMessages",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_gc-5fdealos-20gmail-5fc12c8485be9726a2"
+                    },
+                    "parameters": {
+                      "q": "@triggerBody()?['q']",
+                      "maxResults": 20
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  }
+                },
+                "Listed": {
+                  "runAfter": {
+                    "List_messages": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "Response",
+                  "kind": "Http",
+                  "inputs": {
+                    "statusCode": 200,
+                    "body": "@body('List_messages')"
+                  }
+                }
+              }
+            },
+            "Labels": {
+              "case": "labels",
+              "actions": {
+                "List_labels": {
+                  "runAfter": {},
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_gc-5fdealos-20gmail-5fc12c8485be9726a2",
+                      "operationId": "ListLabels",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_gc-5fdealos-20gmail-5fc12c8485be9726a2"
+                    },
+                    "parameters": {},
+                    "authentication": "@parameters('$authentication')"
+                  }
+                },
+                "Labelled": {
+                  "runAfter": {
+                    "List_labels": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "Response",
+                  "kind": "Http",
+                  "inputs": {
+                    "statusCode": 200,
+                    "body": "@body('List_labels')"
+                  }
+                }
+              }
+            },
+            "Me": {
+              "case": "profile",
+              "actions": {
+                "Get_profile": {
+                  "runAfter": {},
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_gc-5fdealos-20gmail-5fc12c8485be9726a2",
+                      "operationId": "GetProfile",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_gc-5fdealos-20gmail-5fc12c8485be9726a2"
+                    },
+                    "parameters": {},
+                    "authentication": "@parameters('$authentication')"
+                  }
+                },
+                "Profiled": {
+                  "runAfter": {
+                    "Get_profile": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "Response",
+                  "kind": "Http",
+                  "inputs": {
+                    "statusCode": 200,
+                    "body": "@body('Get_profile')"
+                  }
+                }
+              }
+            },
+            "Draft": {
+              "case": "create_draft",
+              "actions": {
+                "Create_draft": {
+                  "runAfter": {},
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_gc-5fdealos-20gmail-5fc12c8485be9726a2",
+                      "operationId": "CreateDraft",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_gc-5fdealos-20gmail-5fc12c8485be9726a2"
+                    },
+                    "parameters": {
+                      "body/message/raw": "@triggerBody()?['raw']",
+                      "body/message/threadId": "@triggerBody()?['thread_id']"
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  }
+                },
+                "Drafted": {
+                  "runAfter": {
+                    "Create_draft": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "Response",
+                  "kind": "Http",
+                  "inputs": {
+                    "statusCode": 200,
+                    "body": "@body('Create_draft')"
+                  }
+                }
+              }
+            },
+            "Label": {
+              "case": "add_label",
+              "actions": {
+                "Add_label": {
+                  "runAfter": {},
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_gc-5fdealos-20gmail-5fc12c8485be9726a2",
+                      "operationId": "ModifyMessage",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_gc-5fdealos-20gmail-5fc12c8485be9726a2"
+                    },
+                    "parameters": {
+                      "id": "@triggerBody()?['id']",
+                      "body/addLabelIds": "@createArray(triggerBody()?['q'])"
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  }
+                },
+                "Label_added": {
+                  "runAfter": {
+                    "Add_label": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "Response",
+                  "kind": "Http",
+                  "inputs": {
+                    "statusCode": 200,
+                    "body": "@body('Add_label')"
+                  }
+                }
+              }
+            },
+            "Unlabel": {
+              "case": "remove_label",
+              "actions": {
+                "Remove_label": {
+                  "runAfter": {},
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_gc-5fdealos-20gmail-5fc12c8485be9726a2",
+                      "operationId": "ModifyMessage",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_gc-5fdealos-20gmail-5fc12c8485be9726a2"
+                    },
+                    "parameters": {
+                      "id": "@triggerBody()?['id']",
+                      "body/removeLabelIds": "@createArray(triggerBody()?['q'])"
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  }
+                },
+                "Label_removed": {
+                  "runAfter": {
+                    "Remove_label": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "Response",
+                  "kind": "Http",
+                  "inputs": {
+                    "statusCode": 200,
+                    "body": "@body('Remove_label')"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "actions": {}
+          },
+          "expression": "@triggerBody()?['action']",
+          "type": "Switch"
+        }
+      }
+    },
+    "templateName": null
+  },
+  "schemaVersion": "1.0.0.0"
+}

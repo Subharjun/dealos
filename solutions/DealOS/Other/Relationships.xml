@@ -22,6 +22,7 @@
   <EntityRelationship Name="business_unit_gc_inspection" />
   <EntityRelationship Name="business_unit_gc_invoice" />
   <EntityRelationship Name="business_unit_gc_kyccheck" />
+  <EntityRelationship Name="business_unit_gc_lead" />
   <EntityRelationship Name="business_unit_gc_licence" />
   <EntityRelationship Name="business_unit_gc_listing" />
   <EntityRelationship Name="business_unit_gc_lot" />
@@ -41,6 +42,7 @@
   <EntityRelationship Name="business_unit_gc_reviewtask" />
   <EntityRelationship Name="business_unit_gc_rfqinvite" />
   <EntityRelationship Name="business_unit_gc_screening" />
+  <EntityRelationship Name="business_unit_gc_sellerlot" />
   <EntityRelationship Name="business_unit_gc_shipment" />
   <EntityRelationship Name="business_unit_gc_shipmentdocument" />
   <EntityRelationship Name="business_unit_gc_stagetransition" />
@@ -51,10 +53,12 @@
   <EntityRelationship Name="gc_account_gc_dispute_gc_raisedby" />
   <EntityRelationship Name="gc_account_gc_inspection_gc_agency" />
   <EntityRelationship Name="gc_account_gc_invoice_gc_billto" />
+  <EntityRelationship Name="gc_account_gc_lead_gc_account" />
   <EntityRelationship Name="gc_account_gc_notificationpreference_gc_account" />
   <EntityRelationship Name="gc_account_gc_rating_gc_ratee" />
   <EntityRelationship Name="gc_account_gc_rating_gc_rater" />
   <EntityRelationship Name="gc_account_gc_rfqinvite_gc_seller" />
+  <EntityRelationship Name="gc_account_gc_sellerlot_gc_seller" />
   <EntityRelationship Name="gc_account_gc_warehouse_gc_operator" />
   <EntityRelationship Name="gc_agentrun_gc_account" />
   <EntityRelationship Name="gc_agentrun_gc_deal" />
@@ -73,6 +77,7 @@
   <EntityRelationship Name="gc_auditevent_gc_agentrun" />
   <EntityRelationship Name="gc_buyerrequirement_gc_buyer" />
   <EntityRelationship Name="gc_buyerrequirement_gc_commodity" />
+  <EntityRelationship Name="gc_buyerrequirement_gc_conversation_gc_requirement" />
   <EntityRelationship Name="gc_buyerrequirement_gc_deal_requirement" />
   <EntityRelationship Name="gc_buyerrequirement_gc_destinationcountry" />
   <EntityRelationship Name="gc_buyerrequirement_gc_rfqinvite_gc_requirement" />
@@ -86,6 +91,7 @@
   <EntityRelationship Name="gc_conversation_gc_counterparty" />
   <EntityRelationship Name="gc_conversation_gc_deal" />
   <EntityRelationship Name="gc_conversation_gc_listing" />
+  <EntityRelationship Name="gc_conversation_gc_sellerlot_gc_sellerthread" />
   <EntityRelationship Name="gc_conversation_gc_sourcedocument" />
   <EntityRelationship Name="gc_country_gc_warehouse_gc_country" />
   <EntityRelationship Name="gc_countryrule_gc_commodity" />
@@ -149,6 +155,7 @@
   <EntityRelationship Name="gc_match_gc_listing" />
   <EntityRelationship Name="gc_match_gc_requirement" />
   <EntityRelationship Name="gc_message_gc_conversation" />
+  <EntityRelationship Name="gc_message_gc_document_gc_message" />
   <EntityRelationship Name="gc_message_gc_sendercontact" />
   <EntityRelationship Name="gc_milestone_gc_deal" />
   <EntityRelationship Name="gc_milestone_gc_evidencedocument" />
@@ -181,9 +188,12 @@
   <EntityRelationship Name="gc_reviewtask_gc_decidedby" />
   <EntityRelationship Name="gc_reviewtask_gc_dispute_gc_reviewtask" />
   <EntityRelationship Name="gc_reviewtask_gc_listing" />
+  <EntityRelationship Name="gc_rfqinvite_gc_conversation_gc_invite" />
   <EntityRelationship Name="gc_screening_gc_account" />
   <EntityRelationship Name="gc_screening_gc_clearedby" />
   <EntityRelationship Name="gc_screening_gc_contact" />
+  <EntityRelationship Name="gc_sellerlot_gc_conversation_gc_sellerlot" />
+  <EntityRelationship Name="gc_sellerlot_gc_deal_gc_sellerlot" />
   <EntityRelationship Name="gc_shipment_gc_deal" />
   <EntityRelationship Name="gc_shipment_gc_forwarder" />
   <EntityRelationship Name="gc_shipment_gc_shipmentdocument_gc_shipment" />
@@ -252,6 +262,8 @@
   <EntityRelationship Name="lk_gc_invoice_modifiedby" />
   <EntityRelationship Name="lk_gc_kyccheck_createdby" />
   <EntityRelationship Name="lk_gc_kyccheck_modifiedby" />
+  <EntityRelationship Name="lk_gc_lead_createdby" />
+  <EntityRelationship Name="lk_gc_lead_modifiedby" />
   <EntityRelationship Name="lk_gc_licence_createdby" />
   <EntityRelationship Name="lk_gc_licence_modifiedby" />
   <EntityRelationship Name="lk_gc_listing_createdby" />
@@ -294,6 +306,8 @@
   <EntityRelationship Name="lk_gc_screening_modifiedby" />
   <EntityRelationship Name="lk_gc_secret_createdby" />
   <EntityRelationship Name="lk_gc_secret_modifiedby" />
+  <EntityRelationship Name="lk_gc_sellerlot_createdby" />
+  <EntityRelationship Name="lk_gc_sellerlot_modifiedby" />
   <EntityRelationship Name="lk_gc_shipment_createdby" />
   <EntityRelationship Name="lk_gc_shipment_modifiedby" />
   <EntityRelationship Name="lk_gc_shipmentdocument_createdby" />
@@ -336,6 +350,7 @@
   <EntityRelationship Name="owner_gc_inspection" />
   <EntityRelationship Name="owner_gc_invoice" />
   <EntityRelationship Name="owner_gc_kyccheck" />
+  <EntityRelationship Name="owner_gc_lead" />
   <EntityRelationship Name="owner_gc_licence" />
   <EntityRelationship Name="owner_gc_listing" />
   <EntityRelationship Name="owner_gc_lot" />
@@ -355,6 +370,7 @@
   <EntityRelationship Name="owner_gc_reviewtask" />
   <EntityRelationship Name="owner_gc_rfqinvite" />
   <EntityRelationship Name="owner_gc_screening" />
+  <EntityRelationship Name="owner_gc_sellerlot" />
   <EntityRelationship Name="owner_gc_shipment" />
   <EntityRelationship Name="owner_gc_shipmentdocument" />
   <EntityRelationship Name="owner_gc_stagetransition" />
@@ -381,6 +397,7 @@
   <EntityRelationship Name="team_gc_inspection" />
   <EntityRelationship Name="team_gc_invoice" />
   <EntityRelationship Name="team_gc_kyccheck" />
+  <EntityRelationship Name="team_gc_lead" />
   <EntityRelationship Name="team_gc_licence" />
   <EntityRelationship Name="team_gc_listing" />
   <EntityRelationship Name="team_gc_lot" />
@@ -400,6 +417,7 @@
   <EntityRelationship Name="team_gc_reviewtask" />
   <EntityRelationship Name="team_gc_rfqinvite" />
   <EntityRelationship Name="team_gc_screening" />
+  <EntityRelationship Name="team_gc_sellerlot" />
   <EntityRelationship Name="team_gc_shipment" />
   <EntityRelationship Name="team_gc_shipmentdocument" />
   <EntityRelationship Name="team_gc_stagetransition" />
@@ -426,6 +444,7 @@
   <EntityRelationship Name="user_gc_inspection" />
   <EntityRelationship Name="user_gc_invoice" />
   <EntityRelationship Name="user_gc_kyccheck" />
+  <EntityRelationship Name="user_gc_lead" />
   <EntityRelationship Name="user_gc_licence" />
   <EntityRelationship Name="user_gc_listing" />
   <EntityRelationship Name="user_gc_lot" />
@@ -445,6 +464,7 @@
   <EntityRelationship Name="user_gc_reviewtask" />
   <EntityRelationship Name="user_gc_rfqinvite" />
   <EntityRelationship Name="user_gc_screening" />
+  <EntityRelationship Name="user_gc_sellerlot" />
   <EntityRelationship Name="user_gc_shipment" />
   <EntityRelationship Name="user_gc_shipmentdocument" />
   <EntityRelationship Name="user_gc_stagetransition" />

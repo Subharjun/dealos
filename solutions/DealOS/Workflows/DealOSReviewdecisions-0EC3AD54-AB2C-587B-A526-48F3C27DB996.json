@@ -628,6 +628,91 @@
                     }
                   }
                 },
+                "Desk_decisions": {
+                  "case": 303300009,
+                  "actions": {
+                    "Desk_accept_offer": {
+                      "type": "If",
+                      "expression": "@and(equals(triggerOutputs()?['body/gc_status'], 303300001), equals(json(coalesce(triggerOutputs()?['body/gc_payload'], '{}'))?['action'], 'desk.accept_offer'))",
+                      "actions": {
+                        "Set_buyer_price": {
+                          "type": "OpenApiConnection",
+                          "inputs": {
+                            "host": {
+                              "connectionName": "shared_commondataserviceforapps",
+                              "operationId": "UpdateRecord",
+                              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                            },
+                            "parameters": {
+                              "entityName": "gc_deals",
+                              "recordId": "@{json(coalesce(triggerOutputs()?['body/gc_payload'], '{}'))?['dealId']}",
+                              "item/gc_buyerprice": "@float(json(coalesce(triggerOutputs()?['body/gc_payload'], '{}'))?['buyerPrice'])"
+                            },
+                            "authentication": "@parameters('$authentication')"
+                          },
+                          "runAfter": {}
+                        },
+                        "Accept_offer": {
+                          "type": "OpenApiConnection",
+                          "inputs": {
+                            "host": {
+                              "connectionName": "shared_commondataserviceforapps",
+                              "operationId": "UpdateRecord",
+                              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                            },
+                            "parameters": {
+                              "entityName": "gc_offers",
+                              "recordId": "@{json(coalesce(triggerOutputs()?['body/gc_payload'], '{}'))?['offerId']}",
+                              "item/gc_status": 303300002
+                            },
+                            "authentication": "@parameters('$authentication')"
+                          },
+                          "runAfter": {
+                            "Set_buyer_price": [
+                              "Succeeded"
+                            ]
+                          }
+                        }
+                      },
+                      "else": {
+                        "actions": {}
+                      },
+                      "runAfter": {}
+                    },
+                    "Desk_contract_signed": {
+                      "type": "If",
+                      "expression": "@and(equals(triggerOutputs()?['body/gc_status'], 303300001), equals(json(coalesce(triggerOutputs()?['body/gc_payload'], '{}'))?['action'], 'desk.contract_signed'))",
+                      "actions": {
+                        "Mark_contract_signed": {
+                          "type": "OpenApiConnection",
+                          "inputs": {
+                            "host": {
+                              "connectionName": "shared_commondataserviceforapps",
+                              "operationId": "UpdateRecord",
+                              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                            },
+                            "parameters": {
+                              "entityName": "gc_contracts",
+                              "recordId": "@{json(coalesce(triggerOutputs()?['body/gc_payload'], '{}'))?['contractId']}",
+                              "item/gc_status": 303300003,
+                              "item/gc_signedon": "@utcNow()"
+                            },
+                            "authentication": "@parameters('$authentication')"
+                          },
+                          "runAfter": {}
+                        }
+                      },
+                      "else": {
+                        "actions": {}
+                      },
+                      "runAfter": {
+                        "Desk_accept_offer": [
+                          "Succeeded"
+                        ]
+                      }
+                    }
+                  }
+                },
                 "Shipment_booking": {
                   "case": 303300006,
                   "actions": {

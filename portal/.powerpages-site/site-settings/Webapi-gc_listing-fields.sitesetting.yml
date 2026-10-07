@@ -1,4 +1,0 @@
-description: "DealOS: columns of gc_listing the site may read or write"
-id: fb485ffd-d3f9-58e5-8610-b79beacbf31c
-name: Webapi/gc_listing/fields
-value: "createdon,gc_askprice,gc_badge,gc_commodity,gc_currency,gc_grade,gc_incoterm,gc_listingid,gc_name,gc_namedplace,gc_origincountry,gc_quantity,gc_quantityunit,gc_seller,gc_status"

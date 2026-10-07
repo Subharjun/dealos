@@ -1,4 +1,0 @@
-description: Detailed Web API errors (Dev only; turn off before go-live).
-id: a7185977-724c-55e0-ab0d-91e4a6d214f3
-name: Webapi/error/innererror
-value: true

@@ -1,0 +1,11 @@
+<customapiresponseproperty uniquename="Found">
+  <description default="Leads found or updated.">
+    <label description="Leads found or updated." languagecode="1033" />
+  </description>
+  <displayname default="Found">
+    <label description="Found" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <name>gc_DiscoverSellers.Found</name>
+  <type>7</type>
+</customapiresponseproperty>

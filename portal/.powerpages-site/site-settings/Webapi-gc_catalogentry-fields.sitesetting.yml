@@ -1,4 +1,0 @@
-description: "DealOS: columns of gc_catalogentry the site may read or write"
-id: 2f3af92c-f12f-5157-a647-84abf92fd3f8
-name: Webapi/gc_catalogentry/fields
-value: "_gc_listing_value,gc_askprice,gc_availablequantity,gc_badge,gc_catalogentryid,gc_commodity,gc_currency,gc_facts,gc_family,gc_form,gc_grade,gc_incoterm,gc_name,gc_namedplace,gc_origincountry,gc_pricebasis,gc_publishedon,gc_quantity,gc_unit"

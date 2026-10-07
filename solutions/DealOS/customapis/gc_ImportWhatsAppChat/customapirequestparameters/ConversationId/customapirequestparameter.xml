@@ -1,0 +1,12 @@
+<customapirequestparameter uniquename="ConversationId">
+  <description default="The gc_conversation (channel WhatsApp Export) whose gc_sourcedocument holds the export.">
+    <label description="The gc_conversation (channel WhatsApp Export) whose gc_sourcedocument holds the export." languagecode="1033" />
+  </description>
+  <displayname default="ConversationId">
+    <label description="ConversationId" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isoptional>0</isoptional>
+  <name>gc_ImportWhatsAppChat.ConversationId</name>
+  <type>12</type>
+</customapirequestparameter>

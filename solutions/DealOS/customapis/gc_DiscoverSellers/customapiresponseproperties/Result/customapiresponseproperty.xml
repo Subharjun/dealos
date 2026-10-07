@@ -1,0 +1,11 @@
+<customapiresponseproperty uniquename="Result">
+  <description default="JSON: leads, skipped, model.">
+    <label description="JSON: leads, skipped, model." languagecode="1033" />
+  </description>
+  <displayname default="Result">
+    <label description="Result" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <name>gc_DiscoverSellers.Result</name>
+  <type>10</type>
+</customapiresponseproperty>

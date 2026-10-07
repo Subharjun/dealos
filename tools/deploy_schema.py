@@ -174,6 +174,29 @@ TABLES = [
         lookup("gc_Account", "Account", "The account created when we first contacted the lead.", "account"),
         memo("gc_Notes", "Notes", "Free notes."),
     ]),
+    ("gc_SellerLot", "Seller lot", "Seller lots", "A seller's stock (price, quantity) offered to several buyers on the Email Desk: timed (highest bids win at the deadline) or open-ended (bids go to the seller, who decides).", [
+        lookup("gc_Seller", "Seller", "The seller offering the lot.", "account"),
+        lookup("gc_SellerThread", "Seller thread", "The email thread with the seller.", "gc_conversation"),
+        text("gc_CommodityText", "Commodity (as written)", "The material as the seller wrote it.", 400),
+        memo("gc_Specification", "Specification", "Grade, purity and sizing as written."),
+        num("gc_Quantity", "Quantity", "Quantity available."),
+        text("gc_Unit", "Unit", "Quantity unit (MT, Kg, ...).", 30),
+        num("gc_Price", "Seller price", "Seller's price per unit (never shown to buyers)."),
+        text("gc_Currency", "Currency", "ISO currency.", 3),
+        text("gc_Incoterm", "Incoterm", "Delivery basis code.", 10),
+        text("gc_NamedPlace", "Named place", "Port or place of the delivery basis."),
+        text("gc_Origin", "Origin", "Country of origin.", 100),
+        memo("gc_Terms", "Terms (as written)", "Payment, lead time and packing as written."),
+        when("gc_ValidUntil", "Valid until", "Validity of the seller's offer."),
+        when("gc_BidDeadline", "Bid deadline", "When offers from buyers close. Empty on an open lot = open-ended (the seller decides)."),
+        text("gc_Window", "Window", "How long buyers may bid, e.g. '48 hours (seller)', 'Open-ended (default)'.", 100),
+        when("gc_DiscoveredOn", "Buyers searched on", "When the web search for buyers ran."),
+        choice("gc_Status", "Status", "Lot progress.", ["Open", "Closed", "Allocated", "Withdrawn"]),
+        num("gc_Allocated", "Allocated", "Quantity allocated to winning buyers."),
+        when("gc_ClosedOn", "Closed on", "When bidding was closed."),
+        when("gc_RemindedOn", "Reminded on", "When buyers were reminded that offers close soon."),
+        memo("gc_Outcome", "Outcome", "JSON: floor price and the ranking of bids at close."),
+    ]),
     ("gc_NotificationPreference", "Notification preference", "Notification preferences", "How and in which language a contact wants to be told about updates.", [
         lookup("gc_Contact", "Contact", "Person the preference belongs to.", "contact"),
         lookup("gc_Account", "Account", "Company of the contact.", "account"),
@@ -222,6 +245,14 @@ EXTRA_COLUMNS = [  # (table logical name, column spec)
     ("gc_offer", memo("gc_Terms", "Terms (as written)", "Origin, lead time, payment, packing and other terms as written in the email.")),
     ("gc_message", flag("gc_AutoSend", "Auto-send", "The desk sends this draft itself (briefings to us; routine mail when email.autosend allows).")),
     ("gc_buyerrequirement", when("gc_DiscoveredOn", "Sellers discovered on", "When web seller discovery last ran for this requirement.")),
+    # Seller lots and follow-ups (7 Oct 2026)
+    ("gc_deal", lookup("gc_SellerLot", "Seller lot", "The seller lot this desk deal bids on.", "gc_sellerlot")),
+    ("gc_deal", when("gc_BidOn", "Bid on", "When the buyer's bid on the lot was recorded (ties go to the earliest).")),
+    ("gc_conversation", lookup("gc_SellerLot", "Seller lot", "The seller lot this thread is about.", "gc_sellerlot")),
+    ("gc_conversation", integer("gc_Chases", "Chasers", "Follow-up drafts sent because the other side had not answered.")),
+    ("gc_conversation", when("gc_ChasedOn", "Chased on", "When the last follow-up was drafted.")),
+    # Sellers take turns (7 Oct 2026)
+    ("gc_buyerrequirement", lookup("gc_ActiveDeal", "Active seller deal", "The seller deal the buyer is negotiating now (the first seller to quote); later sellers wait in the queue.", "gc_deal")),
 ]
 
 # Options added to local choices after their column was created: (table, column, value, label)

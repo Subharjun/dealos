@@ -1,4 +1,0 @@
-description: "DealOS: columns of gc_deal the site may read or write"
-id: 0d870e1f-f3d2-5ecc-9b93-b00b413dbca9
-name: Webapi/gc_deal/fields
-value: "gc_currency,gc_dealid,gc_dealnumber,gc_incoterm,gc_name,gc_namedplace,gc_price,gc_quantity,gc_quantityunit,gc_stage,gc_statusoverlay,modifiedon"

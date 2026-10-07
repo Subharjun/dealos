@@ -1,0 +1,18 @@
+<customapi uniquename="gc_Agent_MailTriage">
+  <allowedcustomprocessingsteptype>0</allowedcustomprocessingsteptype>
+  <bindingtype>0</bindingtype>
+  <description default="Classifies a received email (buyer requirement, offer to sell, reply, documents, pitch, scam, not trade) and scores whether it is genuine trade; hard signals are applied in code. Labels: Genuine / Review / Ignored.">
+    <label description="Classifies a received email (buyer requirement, offer to sell, reply, documents, pitch, scam, not trade) and scores whether it is genuine trade; hard signals are applied in code. Labels: Genuine / Review / Ignored." languagecode="1033" />
+  </description>
+  <displayname default="Agent: Mail Triage">
+    <label description="Agent: Mail Triage" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isfunction>0</isfunction>
+  <isprivate>0</isprivate>
+  <name>gc_Agent_MailTriage</name>
+  <plugintypeid>
+    <plugintypeexportkey>80e9c839-6ac1-f111-aaaf-7ced8daf451f</plugintypeexportkey>
+  </plugintypeid>
+  <workflowsdkstepenabled>0</workflowsdkstepenabled>
+</customapi>

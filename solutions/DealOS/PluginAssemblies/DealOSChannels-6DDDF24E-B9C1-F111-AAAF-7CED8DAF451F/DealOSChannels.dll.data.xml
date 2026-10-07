@@ -1,0 +1,18 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<PluginAssembly FullName="DealOS.Channels, Version=1.0.0.0, Culture=neutral, PublicKeyToken=86365882dd551a78" PluginAssemblyId="6dddf24e-b9c1-f111-aaaf-7ced8daf451f" CustomizationLevel="1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Description>DealOS channels: WhatsApp chat import (sub-solution 13) and voice/audio transcription (sub-solution 14)</Description>
+  <IsolationMode>2</IsolationMode>
+  <SourceType>0</SourceType>
+  <IntroducedVersion>1.0.0.0</IntroducedVersion>
+  <FileName>/PluginAssemblies/DealOSChannels-6DDDF24E-B9C1-F111-AAAF-7CED8DAF451F/DealOSChannels.dll</FileName>
+  <PluginTypes>
+    <PluginType AssemblyQualifiedName="DealOS.Channels.Plugins.ImportWhatsAppChatPlugin, DealOS.Channels, Version=1.0.0.0, Culture=neutral, PublicKeyToken=86365882dd551a78" PluginTypeId="70ddf24e-b9c1-f111-aaaf-7ced8daf451f" Name="DealOS.Channels.Plugins.ImportWhatsAppChatPlugin">
+      <Description>Import WhatsApp chat</Description>
+      <FriendlyName>ImportWhatsAppChatPlugin</FriendlyName>
+    </PluginType>
+    <PluginType AssemblyQualifiedName="DealOS.Channels.Plugins.TranscribeAudioPlugin, DealOS.Channels, Version=1.0.0.0, Culture=neutral, PublicKeyToken=86365882dd551a78" PluginTypeId="71ddf24e-b9c1-f111-aaaf-7ced8daf451f" Name="DealOS.Channels.Plugins.TranscribeAudioPlugin">
+      <Description>Transcribe audio</Description>
+      <FriendlyName>TranscribeAudioPlugin</FriendlyName>
+    </PluginType>
+  </PluginTypes>
+</PluginAssembly>

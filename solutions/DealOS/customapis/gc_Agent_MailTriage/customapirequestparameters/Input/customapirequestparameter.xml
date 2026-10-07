@@ -1,0 +1,12 @@
+<customapirequestparameter uniquename="Input">
+  <description default="Optional JSON object with extra instructions or data, e.g. {&quot;perspective&quot;:&quot;buyer&quot;,&quot;limits&quot;:{&quot;max_price&quot;:9800}}.">
+    <label description="Optional JSON object with extra instructions or data, e.g. {&quot;perspective&quot;:&quot;buyer&quot;,&quot;limits&quot;:{&quot;max_price&quot;:9800}}." languagecode="1033" />
+  </description>
+  <displayname default="Input">
+    <label description="Input" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isoptional>1</isoptional>
+  <name>gc_Agent_MailTriage.Input</name>
+  <type>10</type>
+</customapirequestparameter>

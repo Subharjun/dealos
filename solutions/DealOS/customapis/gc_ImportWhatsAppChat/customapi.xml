@@ -1,0 +1,18 @@
+<customapi uniquename="gc_ImportWhatsAppChat">
+  <allowedcustomprocessingsteptype>0</allowedcustomprocessingsteptype>
+  <bindingtype>0</bindingtype>
+  <description default="Import the WhatsApp chat export (.txt or .zip with media) attached to a WhatsApp Export conversation as gc_messages; media become Quarantined gc_documents of their message. Idempotent per message; call again while Remaining &gt; 0.">
+    <label description="Import the WhatsApp chat export (.txt or .zip with media) attached to a WhatsApp Export conversation as gc_messages; media become Quarantined gc_documents of their message. Idempotent per message; call again while Remaining &gt; 0." languagecode="1033" />
+  </description>
+  <displayname default="Import WhatsApp chat">
+    <label description="Import WhatsApp chat" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isfunction>0</isfunction>
+  <isprivate>0</isprivate>
+  <name>gc_ImportWhatsAppChat</name>
+  <plugintypeid>
+    <plugintypeexportkey>70ddf24e-b9c1-f111-aaaf-7ced8daf451f</plugintypeexportkey>
+  </plugintypeid>
+  <workflowsdkstepenabled>0</workflowsdkstepenabled>
+</customapi>

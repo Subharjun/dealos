@@ -39,40 +39,6 @@ Check(r4.Errors.Any(e => e.Contains("Claimed")), "requires hedging for claimed v
 var r5 = MessageValidator.Check("Seller states 500 MT copper cathode, 99.99% Cu, CIF basis.", known, new[] { "Seller Mining Ltd" }, false, new[] { "500" }, true);
 Check(r5.Ok, "accepts grounded, hedged teaser");
 
-// Escrow maths (shared by the Payment agent and gc_OpenEscrow): tranches add up exactly and commission + net = gross
-var plan = J.Obj("name", "1.5% seller", "rate_pct", 1.5, "payer", "Seller");
-var tranchesIn = new List<Dictionary<string, object>> { J.Obj("pct", 30.0, "condition", "BL"), J.Obj("pct", 70.0, "condition", "Delivered") };
-var sched = ToolCatalog.ReleaseMath(4500000.01, tranchesIn, plan);
-var rows = J.Arr(sched, "tranches").OfType<Dictionary<string, object>>().ToList();
-decimal Dec(Dictionary<string, object> o, string k) => Convert.ToDecimal(J.Get(o, k));
-Check(rows.Sum(t => Dec(t, "gross")) == 4500000.01m, "release tranches sum to contract value");
-Check(rows.Sum(t => Dec(t, "commission_deducted")) == Dec(sched, "commission_total"), "seller-paid commission fully deducted");
-Check(rows.All(t => Dec(t, "commission_deducted") + Dec(t, "net_to_seller") == Dec(t, "gross")), "commission + net = gross per tranche");
-var buyerPays = ToolCatalog.ReleaseMath(1000, tranchesIn, J.Obj("rate_pct", 2.0, "payer", "Buyer"));
-Check(Dec(buyerPays, "buyer_commission") == 20m && J.Arr(buyerPays, "tranches").OfType<Dictionary<string, object>>().All(t => Dec(t, "commission_deducted") == 0), "buyer-paid commission not deducted from seller");
-Check(Dec(ToolCatalog.ReleaseMath(1000, tranchesIn, null), "commission_total") == 0m, "no plan means zero commission");
-
-// Chat reply guard (Buyer Concierge): seller identity and unhedged claimed values are sent back to the model
-var concierge = new DealOS.Agents.Agents.BuyerConciergeAgent();
-var chat = new DealOS.Agents.Runtime.AgentContext { Agent = concierge };
-MessageValidator.CollectNumbers("300 MT, 9000 USD, 99.99", chat.KnownNumbers);
-chat.Scratch["counterparty_terms"] = new List<string> { "Seller Mining Ltd" };
-chat.Scratch["claimed_numbers"] = new HashSet<string> { "99.99" };
-Check(concierge.CheckFinish(chat, J.Obj("reply", "Seller Mining Ltd has 300 MT at 9000 USD.")) != null, "chat reply: rejects seller identity");
-Check(concierge.CheckFinish(chat, J.Obj("reply", "Purity 99.99% Cu, 300 MT.")) != null, "chat reply: requires hedging for claimed values");
-Check(concierge.CheckFinish(chat, J.Obj("reply", "One listing: 300 MT at 9000 USD FOB; the seller states 99.99% Cu.")) == null, "chat reply: accepts grounded, masked, hedged reply");
-Check(concierge.CheckFinish(chat, J.Obj("reply", "Expect about 9500 USD landed.")) != null, "chat reply: rejects invented numbers");
-
-// Portal guard rules: what a site user may do to a status
-int Bv = Choice.Base;
-Check(DealOS.Agents.Portal.PortalRules.ListingMove(Bv, Bv + 1) && DealOS.Agents.Portal.PortalRules.ListingMove(Bv + 3, Bv + 1), "portal: seller can submit a draft or needs-info listing");
-Check(!DealOS.Agents.Portal.PortalRules.ListingMove(Bv + 1, Bv + 4) && !DealOS.Agents.Portal.PortalRules.ListingMove(Bv, Bv + 4), "portal: seller can never publish a listing");
-Check(DealOS.Agents.Portal.PortalRules.ListingMove(Bv + 4, Bv + 6) && !DealOS.Agents.Portal.PortalRules.ListingMove(Bv + 6, Bv), "portal: published listing can be withdrawn, withdrawn cannot come back");
-Check(!DealOS.Agents.Portal.PortalRules.ListingEditable(Bv + 4) && DealOS.Agents.Portal.PortalRules.ListingEditable(Bv), "portal: only draft / needs-info listings are editable");
-Check(DealOS.Agents.Portal.PortalRules.RfqMove(Bv, Bv + 1) && !DealOS.Agents.Portal.PortalRules.RfqMove(Bv + 1, Bv + 3), "portal: buyer can open an RFQ but not mark it fulfilled");
-Check(DealOS.Agents.Portal.PortalRules.InviteMoveBySeller(Bv, Bv + 2) && !DealOS.Agents.Portal.PortalRules.InviteMoveBySeller(Bv + 3, Bv + 2), "portal: seller accepts an open invite, not a declined one");
-Check(!DealOS.Agents.Portal.PortalRules.InviteMoveByBuyer(Bv, Bv + 2) && DealOS.Agents.Portal.PortalRules.InviteMoveByBuyer(Bv, Bv + 5), "portal: buyer can withdraw but not accept an invite");
-
 // Email Desk: Gmail parsing, hard signals and the triage verdict
 string B64u(string s) => Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(s)).Replace('+', '-').Replace('/', '_').TrimEnd('=');
 string GmailJson(string from, string subject, string auth, string text, string extraHeaders, string attachmentPart) =>
@@ -136,9 +102,96 @@ Check(mime.Contains("To: seller@x.example\r\n") && mime.Contains("Reply-To: desk
 Check(DealOS.Agents.Mail.Desk.WithoutSignOff("Dear Rakesh,\n\nWe will revert shortly.\n\nBest regards,") == "Dear Rakesh,\n\nWe will revert shortly." &&
       DealOS.Agents.Mail.Desk.WithoutSignOff("Price confirmed.\n\nKind regards,\nTrade Desk") == "Price confirmed." &&
       DealOS.Agents.Mail.Desk.WithoutSignOff("Thank you for the quote. We revert today.") == "Thank you for the quote. We revert today.", "desk: drafts lose the writer's own sign-off");
+Check(DealOS.Agents.Mail.Desk.Greet("Dear Buyer,\n\nWe are pleased to confirm.", "Rakesh Jain") == "Dear Rakesh Jain,\n\nWe are pleased to confirm." &&
+      DealOS.Agents.Mail.Desk.Greet("Dear Seller,\n\nConfirmed.", null) == "Dear Sir or Madam,\n\nConfirmed." &&
+      DealOS.Agents.Mail.Desk.Greet("Dear Sir,\n\nConfirmed.", null) == "Dear Sir,\n\nConfirmed." &&
+      DealOS.Agents.Mail.Desk.Greet("Rakesh,\n\nNoted.", "Rakesh Jain") == "Rakesh,\n\nNoted." &&
+      DealOS.Agents.Mail.Desk.Greet("Dear Buyers' team is...", "X") == "Dear Buyers' team is...", "desk: generic greetings use the contact's name");
+Check(DealOS.Agents.Mail.Desk.PersonName("Rakesh Jain <rakesh.jain@x.example>") == "Rakesh Jain" && DealOS.Agents.Mail.Desk.PersonName("\"Li Wei\" <l@x.example>") == "Li Wei" &&
+      DealOS.Agents.Mail.Desk.PersonName("sales@x.example") == null && DealOS.Agents.Mail.Desk.PersonName("") == null, "desk: contact name from the sender label");
+var t1 = Guid.NewGuid(); var t2 = Guid.NewGuid();
+var threads = new List<KeyValuePair<Guid, string>> { new KeyValuePair<Guid, string>(t1, "Vanadium Pentoxide (V2O5) enquiry – X"), new KeyValuePair<Guid, string>(t2, "Calcium metal enquiry – X") };
+Check(DealOS.Agents.Mail.Desk.PickThread(threads, "Quotation: vanadium pentoxide flakes") == t1 && DealOS.Agents.Mail.Desk.PickThread(threads, "Our price list") == null &&
+      DealOS.Agents.Mail.Desk.PickThread(threads.Take(1).ToList(), "Our price list") == t1, "desk: a seller's fresh email joins the matching open enquiry");
+{
+    var t0 = new DateTime(2026, 10, 7, 9, 0, 0, DateTimeKind.Utc);
+    Func<int, decimal, decimal, int, DealOS.Agents.Mail.Lots.Bid> bid = (n, price, q, minute) =>
+        new DealOS.Agents.Mail.Lots.Bid { DealId = new Guid(n, 0, 0, new byte[8]), Price = price, Quantity = q, On = t0.AddMinutes(minute) };
+    var bids = new[] { bid(1, 10200m, 10m, 5), bid(2, 10400m, 10m, 9), bid(3, 10400m, 5m, 2), bid(4, 9900m, 5m, 1) };
+    var won = DealOS.Agents.Mail.Lots.Winners(bids, 10145.50m, 15m);
+    // 10,400 x 5 (earlier) and 10,400 x 10 fill the 15 MT; 10,200 does not fit; 9,900 is under the floor
+    Check(won.Count == 2 && won[0].DealId == bids[2].DealId && won[1].DealId == bids[1].DealId, "lots: highest price wins, ties go to the earliest bid, while quantity lasts");
+    var partial = DealOS.Agents.Mail.Lots.Winners(new[] { bid(1, 10500m, 20m, 1), bid(2, 10300m, 8m, 2) }, 10145.50m, 15m);
+    Check(partial.Count == 1 && partial[0].Price == 10300m, "lots: a bid larger than the lot is skipped, the next one that fits wins");
+    Check(DealOS.Agents.Mail.Lots.Winners(new[] { bid(1, 10100m, 5m, 1) }, 10145.50m, 15m).Count == 0, "lots: no winner below the floor (seller price + margin)");
+    Func<bool, double?, string, DealOS.Agents.Mail.Lots.Window> win = DealOS.Agents.Mail.Lots.WindowOf;
+    Check(win(false, 48, "24").Hours == 48 && win(false, 48, "24").Stated, "lots: the seller's window (48 h) wins over the default");
+    Check(win(true, null, "24").Hours == null && win(true, 48, "24").Label == "Open-ended (seller)", "lots: 'until sold' makes the lot open-ended");
+    Check(win(false, null, "24").Hours == 24 && !win(false, null, "24").Stated && win(false, null, null).Hours == 24, "lots: no window in the email = the default (24 h)");
+    Check(win(false, null, "0").Hours == null && win(false, null, "open").Hours == null, "lots: default 0 or 'open' = open-ended");
+    Check(win(false, 5000, "24").Hours == 720 && win(false, 0.2, "24").Hours == 1, "lots: a window is kept between 1 hour and 30 days");
+}
+Check(DealOS.Agents.Mail.Desk.HasPriceAndQuantity("Quantity: 20 MT\nPrice: USD 41,000 per MT CIF") && !DealOS.Agents.Mail.Desk.HasPriceAndQuantity("We have FeMo70 in stock, please ask for price") &&
+      !DealOS.Agents.Mail.Desk.HasPriceAndQuantity("Price: USD 41,000 per MT"), "lots: an offer with price and quantity is a lot, not a lead");
+{
+    var leaked = "Product: Ferro Molybdenum FeMo70 (Mo 70% min, Cu 0.5% max), lumps 10-50 mm. Quantity: 20 MT. Price: USD 41,000 per MT CIF Nhava Sheva. Packing: 1 MT steel drums. " +
+                 "Origin: China. Payment: LC at sight. Validity: 7 days. Contact Wang at wang@x.example. Made by Xinmo Moly works.";
+    var safe = DealOS.Agents.Mail.Desk.SafeSpec(leaked, "[AGENT-TEST] Xinmo Moly Test Co");
+    Check(safe == "Ferro Molybdenum FeMo70 (Mo 70% min, Cu 0.5% max), lumps 10-50 mm", "lots: a buyer sees only the technical specification (no seller price, terms, contact or name): " + safe);
+    Check(DealOS.Agents.Mail.Desk.SafeSpec("Mo 70% min\nCu 0.5% max\nSize 10-50 mm", "X") == "Mo 70% min; Cu 0.5% max; Size 10-50 mm", "lots: a clean specification is kept");
+}
+Check(DealOS.Agents.Mail.Desk.LeadScore(DealOS.Agents.Mail.Desk.Tokens("Ferro Tungsten FeW80"), "FERRO MOLYBDENUM FEMO70 LUMPS", 5, null, now) == 0 &&
+      DealOS.Agents.Mail.Desk.LeadScore(DealOS.Agents.Mail.Desk.Tokens("Ferro Tungsten FeW80"), "FERRO TUNGSTEN FEW80 LUMPS", 5, null, now) > 0 &&
+      DealOS.Agents.Mail.Desk.LeadScore(DealOS.Agents.Mail.Desk.Tokens("Calcium metal"), "CALCIUM METAL GRANULES", 1, null, now) > 0, "desk: 'Ferro X' leads match only on X, not on 'ferro'");
 var pdf = DealOS.Agents.Mail.PdfWriter.Write("SALES CONTRACT", Enumerable.Range(1, 120).Select(i => "Clause " + i + ": (terms) apply \\ as agreed"));
 var pdfText = System.Text.Encoding.ASCII.GetString(pdf);
 Check(pdfText.StartsWith("%PDF-1.4") && pdfText.Contains("/Count 3") && pdfText.Contains("\\(terms\\)") && pdfText.TrimEnd().EndsWith("%%EOF"), "desk: contract PDF with 3 pages and escaped text");
+
+// OpenAI: the runtime's Gemini-format request translates to the Responses API and back
+{
+    var g = J.Obj(
+        "systemInstruction", J.Obj("parts", new List<object> { J.Obj("text", "RULES") }),
+        "contents", new List<object> {
+            J.Obj("role", "user", "parts", new List<object> { J.Obj("text", "CONTEXT"), J.Obj("inlineData", J.Obj("mimeType", "application/pdf", "data", "QUJD")) }),
+            J.Obj("role", "model", "parts", new List<object> { J.Obj("functionCall", J.Obj("name", "save_quote", "id", "call_1", "args", J.Obj("price", 9850))) }),
+            J.Obj("role", "user", "parts", new List<object> { J.Obj("functionResponse", J.Obj("name", "save_quote", "id", "call_1", "response", J.Obj("ok", true)) ) }) },
+        "tools", new List<object> { J.Obj("functionDeclarations", new List<object> { J.Obj("name", "save_quote", "description", "d", "parameters", S.Obj(null, "price", S.Num("p"), "note?", S.Str("n"))) }) },
+        "toolConfig", J.Obj("functionCallingConfig", J.Obj("mode", "ANY", "allowedFunctionNames", new List<object> { "finish" })),
+        "generationConfig", J.Obj("temperature", 0.2));
+    var o = OpenAIClient.Translate("gpt-5.4-mini", g, "low");
+    var input = (List<object>)o["input"];
+    var tool = (Dictionary<string, object>)((List<object>)o["tools"])[0];
+    var ps = (Dictionary<string, object>)tool["parameters"];
+    Check(J.Str(o, "instructions") == "RULES" && (bool)o["store"] == false, "openai: system rules become instructions; nothing stored at OpenAI");
+    Check(input.Count == 3 && J.Str((Dictionary<string, object>)((List<object>)((Dictionary<string, object>)input[0])["content"])[1], "type") == "input_file" &&
+          J.Str((Dictionary<string, object>)input[1], "type") == "function_call" && J.Str((Dictionary<string, object>)input[2], "type") == "function_call_output" &&
+          J.Str((Dictionary<string, object>)input[2], "call_id") == "call_1", "openai: PDF part, tool call and tool result map to Responses items with the same call id");
+    Check(J.Str(ps, "type") == "object" && !ps.ContainsKey("propertyOrdering") && J.Str((Dictionary<string, object>)((Dictionary<string, object>)ps["properties"])["price"], "type") == "number",
+          "openai: tool schemas become JSON Schema (lower-case types, no propertyOrdering)");
+    Check(J.Str((Dictionary<string, object>)o["tool_choice"], "name") == "finish" && J.Str((Dictionary<string, object>)o["reasoning"], "effort") == "low" && !o.ContainsKey("temperature"),
+          "openai: forced finish maps to tool_choice; gpt-5 gets reasoning effort, not temperature");
+    Check(OpenAIClient.Translate("gpt-4.1-mini", g, "low").ContainsKey("temperature") && !OpenAIClient.Translate("gpt-4.1-mini", g, "low").ContainsKey("reasoning"),
+          "openai: gpt-4.1 fallback gets temperature, not reasoning");
+    var resp = OpenAIClient.Read(Json.ParseObject("{\"model\":\"gpt-5.4-mini\",\"status\":\"completed\",\"usage\":{\"input_tokens\":10,\"output_tokens\":5},\"output\":[" +
+        "{\"type\":\"reasoning\",\"id\":\"rs_1\",\"encrypted_content\":\"x\"},{\"type\":\"function_call\",\"call_id\":\"call_9\",\"name\":\"finish\",\"arguments\":\"{\\\"summary\\\":\\\"ok\\\"}\",\"status\":\"completed\"}]}"), "gpt-5.4-mini");
+    Check(resp.Calls.Count == 1 && resp.Calls[0].Id == "call_9" && J.Str(resp.Calls[0].Args, "summary") == "ok" && resp.TokensIn == 10 &&
+          ((List<object>)resp.Content["openai_items"]).Count == 2, "openai: function calls are read back with their call id; reasoning items ride along");
+    var next = OpenAIClient.Translate("gpt-4.1-mini", J.Obj("contents", new List<object> { resp.Content }), "low");
+    Check(((List<object>)next["input"]).Count == 1, "openai: after a fallback to another model, the first model's encrypted reasoning is dropped");
+}
+
+{
+    var schema = S.Obj(null, "category", S.Str("c"), "offer?", S.Obj("o", "commodity", S.Str("x"), "price?", S.Str("p")), "company?", S.Str("c"));
+    var v = J.Obj("category", "Buyer Requirement", "offer", J.Obj("commodity", "", "price", null), "company", "");
+    S.Prune(schema, v);
+    Check(!v.ContainsKey("offer") && !v.ContainsKey("company") && S.Validate(schema, v).Count == 0, "schema: empty optional blocks a model filled in are dropped before validation");
+}
+
+{
+    var t = DealOS.Agents.Mail.Desk.SafeTerms("Origin: Brazil\nLead time: within 6 weeks\nOur offer: 5 MT Niobium Pentoxide 99.5% min, origin Brazil, USD 29,500 per MT CIF Nhava Sheva, LC at sight.\n" +
+                                              "Payment: LC at sight\nContact Pedro at pedro@alpha.example\nPrice 29500 firm", "[AGENT-TEST] Alpha Niobium Test SA", 29500m);
+    Check(t == "Origin: Brazil\nLead time: within 6 weeks\nPayment: LC at sight", "desk: a seller's terms reach the buyer without the seller's price, contacts or name: " + t);
+}
 
 // Schemas + manifest
 var manifest = new List<object>();

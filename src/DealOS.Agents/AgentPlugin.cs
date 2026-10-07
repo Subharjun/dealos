@@ -14,19 +14,11 @@ namespace DealOS.Agents
         public static readonly IReadOnlyList<AgentDefinition> All = new AgentDefinition[]
         {
             new DocumentIntelligenceAgent(),
-            new ListingVerificationAgent(),
             new PartyVerificationAgent(),
             new BuyerVerificationAgent(),
             new ComplianceAgent(),
-            new MatchingAgent(),
-            new PricingAgent(),
-            new NegotiationAgent(),
             new ContractAgent(),
-            new PaymentAgent(),
-            new LogisticsAgent(),
             new AdminSupervisorAgent(),
-            new BuyerConciergeAgent(),
-            new SellerAssistantAgent(),
             new MailTriageAgent(),
             new TradeDeskAgent()
         };
@@ -112,7 +104,7 @@ namespace DealOS.Agents
                 SubjectId = subjectId,
                 Input = input ?? new Dictionary<string, object>(),
                 Deadline = started.AddSeconds(Math.Max(30, Math.Min(110, dv.SettingInt("agents.time_budget_seconds", 100)))),
-                Model = dv.Setting(def.ModelSettingKey) ?? dv.Setting("agents.model.default") ?? "gemini-3.5-flash"
+                Model = Models.Model(dv, def.ModelSettingKey)
             };
 
             var log = new RunLogger(dv);
@@ -121,10 +113,10 @@ namespace DealOS.Agents
             try
             {
                 if (ctx.SubjectId != null) ctx.Subject = dv.Retrieve(def.SubjectTable, ctx.SubjectId.Value);
-                var apiKey = dv.Secret("gemini.api_key");
-                if (string.IsNullOrWhiteSpace(apiKey)) throw new ToolRefusal("Gemini API key is not configured (gc_secret 'gemini.api_key').");
-                var gemini = new GeminiClient(apiKey, dv.Setting("agents.gemini_base_url")) { CallTimeout = TimeSpan.FromSeconds(Math.Max(10, dv.SettingInt("agents.call_timeout_seconds", 45))) };
-                var runtime = new AgentRuntime(gemini, log);
+                IModelClient client;
+                try { client = Models.Client(dv); }
+                catch (InvalidPluginExecutionException ex) { throw new ToolRefusal(ex.Message); }
+                var runtime = new AgentRuntime(client, log);
                 outcome = runtime.Run(ctx);
             }
             catch (ToolRefusal ex)

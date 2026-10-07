@@ -1,0 +1,18 @@
+<customapi uniquename="gc_TranscribeAudio">
+  <allowedcustomprocessingsteptype>0</allowedcustomprocessingsteptype>
+  <bindingtype>0</bindingtype>
+  <description default="Transcribe an audio gc_document (voice note, call recording) with Gemini: transcript and English translation as gc_documentpage rows, appended to the voice note's gc_message, model call logged in gc_modelcall. Idempotent unless Force.">
+    <label description="Transcribe an audio gc_document (voice note, call recording) with Gemini: transcript and English translation as gc_documentpage rows, appended to the voice note's gc_message, model call logged in gc_modelcall. Idempotent unless Force." languagecode="1033" />
+  </description>
+  <displayname default="Transcribe audio">
+    <label description="Transcribe audio" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isfunction>0</isfunction>
+  <isprivate>0</isprivate>
+  <name>gc_TranscribeAudio</name>
+  <plugintypeid>
+    <plugintypeexportkey>71ddf24e-b9c1-f111-aaaf-7ced8daf451f</plugintypeexportkey>
+  </plugintypeid>
+  <workflowsdkstepenabled>0</workflowsdkstepenabled>
+</customapi>

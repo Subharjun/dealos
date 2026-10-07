@@ -1,0 +1,11 @@
+<customapiresponseproperty uniquename="ThreadId">
+  <description default="Gmail thread to draft in (empty = new thread).">
+    <label description="Gmail thread to draft in (empty = new thread)." languagecode="1033" />
+  </description>
+  <displayname default="ThreadId">
+    <label description="ThreadId" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <name>gc_BuildEmailRaw.ThreadId</name>
+  <type>10</type>
+</customapiresponseproperty>

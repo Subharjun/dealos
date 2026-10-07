@@ -1,4 +1,0 @@
-description: "DealOS: columns of gc_dispute the site may read or write"
-id: 2eaeaeca-cfa1-5bf2-a825-27a84a5b455f
-name: Webapi/gc_dispute/fields
-value: "gc_Deal,gc_description,gc_disputeid,gc_name,gc_reason,gc_status"

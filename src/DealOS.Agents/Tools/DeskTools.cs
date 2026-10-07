@@ -23,6 +23,14 @@ namespace DealOS.Agents.Tools
         private static readonly Regex PhoneRx = new Regex(@"\+?\d[\d\s().-]{8,}\d", RegexOptions.Compiled);
         private static readonly string[] BankWords = { "iban", "swift", "account number", "account no", "a/c no", "bank details", "beneficiary", "routing number", "ifsc" };
         private static readonly string[] SourcingNotStated = { "Not stated" };
+        /// <summary>Phrases that make an email read like a template or an AI rather than a trader (the house style is short and plain).</summary>
+        private static readonly string[] TemplateTells =
+        {
+            "hope this email finds you", "hope this finds you", "hope you are doing well", "hope you're doing well", "thank you for reaching out",
+            "we are pleased to", "i am pleased to", "we are delighted", "i am delighted", "certainly", "rest assured", "do not hesitate", "don't hesitate",
+            "feel free to", "as an ai", "i'd be happy to", "we would be happy to", "happy to assist", "delve", "leverage", "seamless", "valued partner",
+            "furthermore", "moreover", "in conclusion", "we appreciate your patience", "i trust this", "we trust this", "please be advised"
+        };
 
         public static IEnumerable<Tool> Build()
         {
@@ -65,22 +73,79 @@ namespace DealOS.Agents.Tools
             yield return new Tool
             {
                 Name = "save_seller_lead",
-                Description = "Unsolicited offer to sell (a thread that is not one of our enquiries): keep the seller and what they offer as a lead for future sourcing.",
+                Description = "Unsolicited offer to sell (a thread that is not one of our enquiries): keep the seller as a lead. If the email gives a price AND a quantity, pass price, quantity and unit: the offer is then saved as a seller lot and offered to our buyers (same as save_seller_lot).",
                 Writes = true,
                 Parameters = S.Obj(null,
                     "commodity", S.Str("What they offer, as written."),
                     "details?", S.Str("Specification, quantity, origin, port, terms as written."),
+                    "price?", S.Num("Seller's price per unit, if written."),
+                    "quantity?", S.Num("Quantity available, if written."),
+                    "unit?", S.Enum("Quantity unit.", units),
+                    "incoterm?", S.Enum("Delivery basis.", DeskChoice.Incoterms),
+                    "named_place?", S.Str("Port or place of the delivery basis."),
+                    "origin?", S.Str("Country of origin."),
                     "company?", S.Str("Seller company."),
                     "contact_name?", S.Str("Person."),
                     "country?", S.Str("Country of the seller or the material."),
+                    "window_hours?", S.Num("How long buyers may bid, in hours, ONLY if the seller wrote it (e.g. 'valid 24 hours' = 24, '2 days' = 48)."),
+                    "open_ended?", S.Bool("True ONLY if the seller wrote that the offer stays open until sold / no deadline: buyers' offers then go to the seller as they come."),
                     "website?", S.Str("Website if written.")),
                 Run = SaveSellerLead
             };
 
             yield return new Tool
             {
+                Name = "buyer_declines_lot",
+                Description = "Buyer thread: the buyer says they are not interested in a lot we offered (a supplier quote with offers_close). Closes their bid so the desk does not wait for them.",
+                Writes = true,
+                Parameters = S.Obj(null, "reason?", S.Str("Their reason, as written.")),
+                Run = BuyerDeclinesLot
+            };
+
+            yield return new Tool
+            {
+                Name = "save_seller_lot",
+                Description = "A seller offers stock with a price AND a quantity (an offer to sell, not an answer to our enquiry): save it as a lot. A new lot is offered (masked) to matching buyers. " +
+                              "Timed lot (window_hours, or the default): buyers bid until the deadline and the highest prices win. Open-ended lot: each buyer's offer goes to the seller, who decides. " +
+                              "Call again in the same thread when the seller changes price (a counter: it goes to the buyers), quantity or window.",
+                Writes = true,
+                Parameters = S.Obj(null,
+                    "commodity", S.Str("Material as written."),
+                    "specification?", S.Str("Grade, purity, sizing as written (one item per line)."),
+                    "quantity", S.Num("Quantity available, as a number."),
+                    "unit", S.Enum("Quantity unit.", units),
+                    "price", S.Num("Seller's price per unit as written in their email."),
+                    "currency?", S.Str("ISO currency, default USD."),
+                    "incoterm?", S.Enum("Delivery basis.", DeskChoice.Incoterms),
+                    "named_place?", S.Str("Port or place of the delivery basis."),
+                    "origin?", S.Str("Country of origin."),
+                    "valid_until?", S.Str("Offer validity as an ISO date, if written."),
+                    "window_hours?", S.Num("How long buyers may bid, in hours, ONLY if the seller wrote it (e.g. 'valid 24 hours' = 24, '2 days' = 48)."),
+                    "open_ended?", S.Bool("True ONLY if the seller wrote that the offer stays open until sold / no deadline: buyers' offers then go to the seller as they come."),
+                    "terms_text?", S.Str("Payment, lead time, packing and other terms as written."),
+                    "company?", S.Str("Seller company."),
+                    "contact_name?", S.Str("Person.")),
+                Run = SaveSellerLot
+            };
+
+            yield return new Tool
+            {
+                Name = "seller_closes_lot",
+                Description = "Seller lot thread: the seller accepts one of our bids (give the price per unit they accept, as in our bid email or theirs) or withdraws the lot. " +
+                              "The best bids at or above that price win while quantity lasts; Confirm deal tasks and the confirmation drafts are created for you. A NEW price from the seller is a counter: use save_seller_lot instead.",
+                Writes = true,
+                Parameters = S.Obj(null,
+                    "accept_price?", S.Num("Price per unit the seller accepts (one of our bids), as written in the thread."),
+                    "withdraw?", S.Bool("True if the seller withdraws the lot (sold elsewhere, no longer available)."),
+                    "evidence", S.Str("The seller's words, quoted.")),
+                Run = SellerClosesLot
+            };
+
+            yield return new Tool
+            {
                 Name = "save_seller_quote",
-                Description = "Seller thread (our enquiry): record the seller's quote or counter-offer, or that they decline. The price must be written in their email.",
+                Description = "Seller thread (our enquiry): record the seller's quote or counter-offer, or that they decline / withdraw. The price must be written in their email. " +
+                              "Sellers take turns: the first to quote is negotiated with the buyer, later ones are queued (the result says which).",
                 Writes = true,
                 Parameters = S.Obj(null,
                     "declined", S.Bool("True if the seller cannot or will not supply."),
@@ -115,7 +180,8 @@ namespace DealOS.Agents.Tools
                 Writes = true,
                 Parameters = S.Obj(null,
                     "price", S.Num("Price per unit the buyer proposes, as written."),
-                    "offer_id?", S.Str("Which supplier quote it answers; default the best one.")),
+                    "offer_id?", S.Str("Which supplier quote it answers; default the best one."),
+                    "quantity?", S.Num("Quantity the buyer wants, if they wrote one (matters for lots).")),
                 Run = RecordBuyerPrice
             };
 
@@ -124,8 +190,21 @@ namespace DealOS.Agents.Tools
                 Name = "buyer_accepts",
                 Description = "Buyer thread: the buyer clearly accepts our quoted price. Opens a 'Confirm deal' task; a person confirms before anything is binding.",
                 Writes = true,
-                Parameters = S.Obj(null, "offer_id?", S.Str("The supplier quote behind our price; default the one we last quoted."), "evidence", S.Str("The buyer's words of acceptance, quoted.")),
+                Parameters = S.Obj(null, "offer_id?", S.Str("The supplier quote behind our price; default the one we last quoted."), "evidence", S.Str("The buyer's words of acceptance, quoted."),
+                                   "quantity?", S.Num("Quantity the buyer wants, if they wrote one (matters for lots).")),
                 Run = BuyerAccepts
+            };
+
+            yield return new Tool
+            {
+                Name = "buyer_rejects_offer",
+                Description = "Buyer thread: the buyer turns down our current offer outright (not a counter-offer with a price: use record_buyer_price for that). " +
+                              "The deal with the current supplier closes; if the buyer is still looking, the next supplier who quoted comes up and its offer is drafted to the buyer automatically.",
+                Writes = true,
+                Parameters = S.Obj(null,
+                    "still_looking", S.Bool("True if the buyer still wants the material (e.g. 'too expensive', 'not this offer'); false if they no longer need it."),
+                    "reason", S.Str("The buyer's reason, as written.")),
+                Run = BuyerRejectsOffer
             };
 
             yield return new Tool
@@ -276,6 +355,16 @@ namespace DealOS.Agents.Tools
             var conv = ctx.Subject;
             if (Ref(conv, "gc_requirement") != null) throw new ToolRefusal("This thread belongs to an enquiry; use save_seller_quote.");
             var msg = Latest(ctx);
+            if (!J.Bool(a, "from_lot"))
+            {
+                if (J.Num(a, "price") != null && J.Num(a, "quantity") != null)
+                {
+                    if (J.Str(a, "unit") == null) a["unit"] = "MT";
+                    return SaveSellerLot(ctx, a);
+                }
+                if (msg != null && Desk.HasPriceAndQuantity(msg.GetAttributeValue<string>("gc_text")))
+                    throw new ToolRefusal("The email states a price and a quantity: call again with price, quantity and unit (and incoterm, named_place, origin) so the offer is saved as a lot and offered to our buyers.");
+            }
             var from = msg == null ? null : msg.GetAttributeValue<string>("gc_fromaddress");
             var existing = string.IsNullOrEmpty(from) ? null : ctx.Dv.Query("gc_lead", new[] { "gc_leadid", "gc_commodities" }, 1, "gc_email", ConditionOperator.Equal, from).FirstOrDefault();
             var products = (J.Str(a, "commodity") + (J.Str(a, "details") == null ? "" : " — " + J.Str(a, "details"))).Trim();
@@ -306,6 +395,71 @@ namespace DealOS.Agents.Tools
             return J.Obj("ok", true, "lead_id", ctx.DryRun ? null : id.ToString());
         }
 
+        private static object BuyerDeclinesLot(AgentContext ctx, Dictionary<string, object> a)
+        {
+            var reqId = Ref(ctx.Subject, "gc_requirement");
+            if (Side(ctx.Subject) != DeskChoice.Side.Buyer || reqId == null) throw new ToolRefusal("buyer_declines_lot is for a buyer thread.");
+            foreach (var d in ctx.Dv.Query("gc_deal", new[] { "gc_sellerlot", "gc_stage" }, 50, "gc_requirement", ConditionOperator.Equal, reqId.Value))
+            {
+                var lot = Ref(d, "gc_sellerlot") == null ? null : Lots.Get(ctx.Dv, Ref(d, "gc_sellerlot").Value);
+                if (lot == null || Lots.StatusOf(lot) != Lots.Status.Open || Opt(d, "gc_stage") > DeskChoice.DealStage.Negotiation) continue;
+                return Lots.Decline(new DeskWriter(ctx.Dv, ctx), lot, d.Id, J.Str(a, "reason"));
+            }
+            throw new ToolRefusal("This buyer has no open lot offer to decline.");
+        }
+
+        private static object SaveSellerLot(AgentContext ctx, Dictionary<string, object> a)
+        {
+            var conv = ctx.Subject;
+            if (Ref(conv, "gc_requirement") != null) throw new ToolRefusal("This thread answers one of our enquiries; use save_seller_quote.");
+            var price = J.Num(a, "price");
+            if (price == null || price <= 0) throw new ToolRefusal("A lot needs the seller's price per unit; without it use save_seller_lead and ask for the price.");
+            if (!InThread(ctx, price.Value)) throw new ToolRefusal("Price " + price + " is not written in the seller's emails. Record only prices they wrote.");
+            var qty = J.Num(a, "quantity");
+            if (qty == null || qty <= 0) throw new ToolRefusal("A lot needs the quantity available; without it use save_seller_lead and ask for it.");
+            var msg = Latest(ctx);
+            var from = (msg == null ? null : msg.GetAttributeValue<string>("gc_fromaddress") ?? "").Trim().ToLowerInvariant();
+            var w = new DeskWriter(ctx.Dv, ctx);
+            var sellerId = Ref(conv, "gc_counterparty");
+            if (sellerId == null)
+            {
+                if (string.IsNullOrEmpty(from)) throw new ToolRefusal("The seller's email address is not known.");
+                var lead = ctx.Dv.Query("gc_lead", new[] { "gc_leadid", "gc_account", "gc_website", "gc_phone" }, 1, "gc_email", ConditionOperator.Equal, from).FirstOrDefault();
+                if (lead == null)
+                {
+                    SaveSellerLead(ctx, J.Obj("from_lot", true, "commodity", J.Str(a, "commodity"), "details", "Lot: " + qty + " " + J.Str(a, "unit") + " at " + price,
+                                              "company", J.Str(a, "company"), "contact_name", J.Str(a, "contact_name"), "country", J.Str(a, "origin")));
+                    lead = ctx.Dv.Query("gc_lead", new[] { "gc_leadid", "gc_account", "gc_website", "gc_phone" }, 1, "gc_email", ConditionOperator.Equal, from).FirstOrDefault();
+                }
+                if (lead == null) return J.Obj("ok", true, "note", "Dry run: the seller lead and the lot would be created.");
+                sellerId = Desk.SellerAccount(w, lead, from, J.Str(a, "company") ?? (msg.GetAttributeValue<string>("gc_senderlabel") ?? from));
+            }
+            if (ctx.DryRun) return J.Obj("ok", true, "note", "Dry run: the lot would be saved and offered to matching buyers.");
+            var result = Lots.Save(w, conv, sellerId.Value, a);
+            LeadResponded(ctx, sellerId);
+            return result;
+        }
+
+        private static object SellerClosesLot(AgentContext ctx, Dictionary<string, object> a)
+        {
+            var lotId = Ref(ctx.Subject, "gc_sellerlot");
+            if (Side(ctx.Subject) != DeskChoice.Side.Seller || lotId == null) throw new ToolRefusal("seller_closes_lot is for the seller's lot thread.");
+            var lot = Lots.Get(ctx.Dv, lotId.Value);
+            var price = J.Num(a, "accept_price");
+            if (price != null && !InThread(ctx, price.Value) && !InOurEmails(ctx, (decimal)price.Value))
+                throw new ToolRefusal("Price " + price + " is not in this thread. Give the bid price the seller accepts, as written.");
+            return Lots.SellerDecides(new DeskWriter(ctx.Dv, ctx), lot, (decimal?)price, J.Bool(a, "withdraw"), J.Str(a, "evidence"));
+        }
+
+        /// <summary>A price we wrote in this thread (our bids to a lot seller are in our own emails, not theirs).</summary>
+        private static bool InOurEmails(AgentContext ctx, decimal price)
+        {
+            var numbers = new HashSet<string>();
+            foreach (var m in ctx.Dv.Query("gc_message", new[] { "gc_text" }, 50, "gc_conversation", ConditionOperator.Equal, ctx.Subject.Id))
+                MessageValidator.CollectNumbers(m.GetAttributeValue<string>("gc_text"), numbers);
+            return MessageValidator.Normalise(price.ToString(CultureInfo.InvariantCulture)).Any(numbers.Contains);
+        }
+
         // ---------------------------------------------------------------- seller side
 
         private static object SaveSellerQuote(AgentContext ctx, Dictionary<string, object> a)
@@ -327,6 +481,14 @@ namespace DealOS.Agents.Tools
                     ctx.Update(inv, "seller_declined");
                 }
                 LeadResponded(ctx, sellerId);
+                var reqOfDeal = Ref(deal, "gc_requirement");
+                if (reqOfDeal != null && Desk.ActiveDeal(ctx.Dv, reqOfDeal.Value) == dealId.Value)
+                {
+                    // The seller we were negotiating with walks away: the next queued seller comes up for the buyer.
+                    var moved = Desk.Break(new DeskWriter(ctx.Dv, ctx), reqOfDeal.Value, "the seller withdrew" + (J.Str(a, "decline_reason") == null ? "" : ": " + Desk.Cut(J.Str(a, "decline_reason"), 200)), true, false);
+                    return J.Obj("ok", true, "declined", true, "deal_off", true, "next", moved,
+                                 "note", "No draft to this seller is needed (a short thank-you is optional). " + J.Str(moved, "note"));
+                }
                 return J.Obj("ok", true, "declined", true);
             }
             var price = J.Num(a, "price");
@@ -373,9 +535,25 @@ namespace DealOS.Agents.Tools
             }
             LeadResponded(ctx, sellerId);
             ReleaseAttachments(ctx, dealId.Value);
-            AdvanceStage(ctx, Ref(deal, "gc_requirement"), DeskChoice.Stage.Quoted);
-            return J.Obj("ok", true, "offer_id", ctx.DryRun ? null : offerId.ToString(), "round", round,
-                         "next", "Call quote_to_buyer with this offer_id, then draft to the buyer thread.");
+            var reqId = Ref(deal, "gc_requirement");
+            var turn = reqId == null || ctx.DryRun ? "active" : Desk.TakeTurn(new DeskWriter(ctx.Dv, ctx), reqId.Value, dealId.Value);
+            if (turn == "active") AdvanceStage(ctx, reqId, DeskChoice.Stage.Quoted);
+            return J.Obj("ok", true, "offer_id", ctx.DryRun ? null : offerId.ToString(), "round", round, "turn", turn,
+                         "next", NextAfterQuote(ctx, reqId, offerId, round > 1 || lastBid != null, turn));
+        }
+
+        /// <summary>What to do after a seller quote: quote the buyer (active seller), or thank and wait (queued seller).</summary>
+        private static string NextAfterQuote(AgentContext ctx, Guid? reqId, Guid offerId, bool counter, string turn)
+        {
+            if (reqId == null) return "Draft a short thank-you to the seller if useful.";
+            if (turn == "queued")
+            {
+                var position = Desk.Queue(ctx.Dv, reqId.Value).FindIndex(d => d.Id == Ref(ctx.Subject, "gc_deal")) + 1;
+                return "QUEUED (position " + Math.Max(1, position) + "): the buyer is already negotiating with another supplier who answered first. Do NOT quote the buyer. " +
+                       "Draft a short thank-you to this seller: we have noted their offer and will come back to them. Never mention other suppliers or buyers.";
+            }
+            return (counter ? "This is the active supplier's counter-offer" : "This supplier answered first and is now the ACTIVE supplier for this buyer") +
+                   ": call quote_to_buyer with offer_id " + (ctx.DryRun ? "(this quote)" : offerId.ToString()) + ", then draft our offer to the buyer thread. A short thank-you to the seller is optional.";
         }
 
         private static object QuoteToBuyer(AgentContext ctx, Dictionary<string, object> a)
@@ -383,6 +561,8 @@ namespace DealOS.Agents.Tools
             var offer = SellerOffer(ctx, J.Str(a, "offer_id"));
             var deal = ctx.Dv.Retrieve("gc_deal", Ref(offer, "gc_deal").Value, "gc_requirement", "gc_quantityunit");
             var reqId = Ref(deal, "gc_requirement");
+            if (reqId != null && Lots.OfDeal(ctx.Dv, deal.Id) == null && Desk.ActiveDeal(ctx.Dv, reqId.Value) != deal.Id)
+                throw new ToolRefusal("This supplier is queued: the buyer is negotiating with the supplier who answered first. Do not quote the buyer from this offer.");
             var ours = Desk.PriceToBuyer(offer.GetAttributeValue<decimal>("gc_price"), Desk.Margin(ctx.Dv));
             if (reqId != null)
             {
@@ -395,7 +575,8 @@ namespace DealOS.Agents.Tools
             var result = J.Obj("our_price_to_buyer", ours, "currency", offer.GetAttributeValue<string>("gc_currency") ?? "USD",
                                "quantity", offer.GetAttributeValue<decimal?>("gc_quantity"), "unit", Desk.UnitLabel(deal.GetAttributeValue<OptionSetValue>("gc_quantityunit")),
                                "incoterm", Desk.Label(DeskChoice.Incoterms, offer.GetAttributeValue<OptionSetValue>("gc_incoterm")),
-                               "named_place", offer.GetAttributeValue<string>("gc_namedplace"), "terms", offer.GetAttributeValue<string>("gc_terms"),
+                               "named_place", offer.GetAttributeValue<string>("gc_namedplace"),
+                               "terms", Desk.SafeTerms(offer.GetAttributeValue<string>("gc_terms"), Desk.SellerName(ctx.Dv, deal.Id), offer.GetAttributeValue<decimal?>("gc_price")),
                                "buyer_thread", buyerThread == null ? null : buyerThread.Value.ToString(),
                                "rule", "Quote ONLY our_price_to_buyer to the buyer. Never mention the seller, their price or our margin.");
             ctx.Remember(result);
@@ -406,6 +587,15 @@ namespace DealOS.Agents.Tools
         {
             var conv = ctx.Subject;
             var dealId = Ref(conv, "gc_deal");
+            var lotId = Ref(conv, "gc_sellerlot");
+            if (Side(conv) == DeskChoice.Side.Seller && dealId == null && lotId != null)
+            {
+                // A lot seller accepting "our bid": unambiguous only when one price is on the table.
+                var prices = Lots.OpenBids(ctx.Dv, lotId.Value).Select(b => b.GetAttributeValue<decimal>("gc_price")).Distinct().ToList();
+                if (prices.Count != 1)
+                    throw new ToolRefusal(prices.Count == 0 ? "There is no open bid of ours on this lot." : "Several bids are open (" + string.Join(", ", prices.Select(Desk.Num)) + "): use seller_closes_lot with the accept_price the seller accepts.");
+                return Lots.SellerDecides(new DeskWriter(ctx.Dv, ctx), Lots.Get(ctx.Dv, lotId.Value), prices[0], false, J.Str(a, "evidence"));
+            }
             if (Side(conv) != DeskChoice.Side.Seller || dealId == null) throw new ToolRefusal("seller_accepts_bid is for a seller thread.");
             var deal = ctx.Dv.Retrieve("gc_deal", dealId.Value, "gc_buyer", "gc_requirement", "gc_name");
             var bid = OurBids(ctx, dealId.Value, Ref(deal, "gc_buyer")).FirstOrDefault(b => Opt(b, "gc_status") == DeskChoice.Offer.Open);
@@ -429,9 +619,12 @@ namespace DealOS.Agents.Tools
             if (offer == null) throw new ToolRefusal("No supplier quote yet. Tell the buyer we are collecting offers.");
             var margin = Desk.Margin(ctx.Dv);
             var ourQuote = Desk.PriceToBuyer(offer.GetAttributeValue<decimal>("gc_price"), margin);
+            var dealId = Ref(offer, "gc_deal").Value;
+            // On a lot buyers compete: any price is a bid, including one above our asking price.
+            var lot = Lots.OfDeal(ctx.Dv, dealId);
+            if (lot != null) return Lots.RecordBid(new DeskWriter(ctx.Dv, ctx), lot, dealId, reqId.Value, (decimal)p.Value, (decimal?)J.Num(a, "quantity"));
             if ((decimal)p.Value >= ourQuote)
                 throw new ToolRefusal("The buyer's price is at or above our quoted price (" + ourQuote.ToString(CultureInfo.InvariantCulture) + "): treat it as acceptance (buyer_accepts).");
-            var dealId = Ref(offer, "gc_deal").Value;
             var deal = ctx.Dv.Retrieve("gc_deal", dealId, "gc_buyer", "gc_quantity");
             var bid = Desk.BidToSeller((decimal)p.Value, margin);
             var round = ctx.Dv.Query("gc_offer", new[] { "gc_offerid" }, 50, "gc_deal", ConditionOperator.Equal, dealId).Count + 1;
@@ -479,8 +672,20 @@ namespace DealOS.Agents.Tools
             else offer = SellerQuotes(ctx, reqId.Value).FirstOrDefault(o => Desk.PriceToBuyer(o.GetAttributeValue<decimal>("gc_price"), margin) == ours.Value);
             if (offer == null) throw new ToolRefusal("Could not find the supplier quote behind our price " + ours + "; give offer_id.");
             var deal = ctx.Dv.Retrieve("gc_deal", Ref(offer, "gc_deal").Value, "gc_name");
+            var lot = Lots.OfDeal(ctx.Dv, deal.Id);
+            if (lot != null)
+                return Lots.RecordBid(new DeskWriter(ctx.Dv, ctx), lot, deal.Id, reqId.Value, Desk.PriceToBuyer(offer.GetAttributeValue<decimal>("gc_price"), margin), (decimal?)J.Num(a, "quantity"));
             return ConfirmTask(ctx, offer, Desk.PriceToBuyer(offer.GetAttributeValue<decimal>("gc_price"), margin), deal.Id, deal.GetAttributeValue<string>("gc_name"),
                                "Buyer accepted our price", J.Str(a, "evidence"));
+        }
+
+        private static object BuyerRejectsOffer(AgentContext ctx, Dictionary<string, object> a)
+        {
+            var reqId = Ref(ctx.Subject, "gc_requirement");
+            if (Side(ctx.Subject) != DeskChoice.Side.Buyer || reqId == null) throw new ToolRefusal("buyer_rejects_offer is for the buyer's thread.");
+            if (Desk.ActiveDeal(ctx.Dv, reqId.Value) == null) throw new ToolRefusal("There is no supplier offer in play for this buyer. If they no longer need the material, say so in your draft.");
+            return Desk.Break(new DeskWriter(ctx.Dv, ctx), reqId.Value, "the buyer turned the offer down" + (J.Str(a, "reason") == null ? "" : ": " + Desk.Cut(J.Str(a, "reason"), 200)),
+                              J.Bool(a, "still_looking", true), true);
         }
 
         /// <summary>Acceptance never binds by itself: a Deal Manager confirms, then the Review decisions flow accepts the offer.</summary>
@@ -567,6 +772,10 @@ namespace DealOS.Agents.Tools
                     target = conv.Id;
                     break;
             }
+            object drafted;
+            if (ctx.Scratch.TryGetValue("desk_drafted_threads", out drafted) && ((HashSet<Guid>)drafted).Contains(target))
+                throw new ToolRefusal("The desk already drafted the email for that thread in this run (for example the next supplier's offer or a confirmation); " +
+                                      "it must not be replaced. Do not draft to that thread again; finish.");
             var t = target == conv.Id ? conv : ctx.Dv.Retrieve("gc_conversation", target, "gc_side", "gc_requirement", "gc_deal", "gc_counterparty");
             if (t == null) throw new ToolRefusal("Thread " + target + " was not found.");
             if (target != conv.Id && Ref(t, "gc_requirement") != Ref(conv, "gc_requirement"))
@@ -574,6 +783,7 @@ namespace DealOS.Agents.Tools
             var body = (J.Str(a, "body") ?? "").Trim();
             var problems = CheckDraft(ctx, t, body);
             if (problems.Count > 0) throw new ToolRefusal("Draft refused: " + string.Join(" ", problems) + " Rewrite it.");
+            body = Desk.Greet(body, Desk.ContactName(ctx.Dv, target));
 
             var to = Desk.ReplyAddress(ctx.Dv, target);
             if (string.IsNullOrWhiteSpace(to))
@@ -601,6 +811,10 @@ namespace DealOS.Agents.Tools
             var lower = body.ToLowerInvariant();
             foreach (var w in BankWords.Where(lower.Contains)) errors.Add("No bank or payment details ('" + w + "').");
             if (Regex.IsMatch(lower, @"\bmargin\b|\bmark-?up\b|\bour commission\b")) errors.Add("Never mention our margin or commission.");
+            var tells = TemplateTells.Where(lower.Contains).ToList();
+            if (tells.Count > 0) errors.Add("Reads like a template or an AI, not a trader: '" + string.Join("', '", tells) + "'. Say it plainly in your own short words.");
+            if (body.Contains("—") || body.Contains("!")) errors.Add("No em dashes or exclamation marks; write plain sentences.");
+            if (Regex.IsMatch(body, @"\*\*|^#", RegexOptions.Multiline)) errors.Add("Plain text only: no markdown (** or #).");
 
             var unknown = new List<string>();
             foreach (Match m in NumberRx.Matches(body))
@@ -737,12 +951,15 @@ namespace DealOS.Agents.Tools
         }
 
         /// <summary>Quotes from sellers (offers whose sender is the deal's seller) on the requirement's live deals, newest first.</summary>
+        /// <summary>The quotes the buyer side works with: the active seller's (sellers take turns) and lot offers. Queued sellers stay hidden.</summary>
         public static List<Entity> SellerQuotes(AgentContext ctx, Guid requirementId)
         {
             var list = new List<Entity>();
-            foreach (var d in ctx.Dv.Query("gc_deal", new[] { "gc_seller", "gc_stage" }, 50, "gc_requirement", ConditionOperator.Equal, requirementId))
+            var active = Desk.ActiveDeal(ctx.Dv, requirementId);
+            foreach (var d in ctx.Dv.Query("gc_deal", new[] { "gc_seller", "gc_stage", "gc_sellerlot" }, 50, "gc_requirement", ConditionOperator.Equal, requirementId))
             {
                 if (Opt(d, "gc_stage") == DeskChoice.DealStage.Cancelled) continue;
+                if (d.Id != active && Ref(d, "gc_sellerlot") == null) continue;
                 var seller = Ref(d, "gc_seller");
                 list.AddRange(ctx.Dv.Query("gc_offer", new[] { "gc_price", "gc_currency", "gc_quantity", "gc_incoterm", "gc_namedplace", "gc_terms", "gc_status", "gc_fromparty", "gc_deal", "gc_paymentterms", "createdon" }, 20,
                                            "gc_deal", ConditionOperator.Equal, d.Id).Where(o => Ref(o, "gc_fromparty") == seller));
