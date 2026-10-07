@@ -40,7 +40,7 @@ Nothing here touches money: **no escrow and no payment handling.** Payment terms
 
 | Topic | Before | Now |
 |---|---|---|
-| Front door | Power Pages site plus chat | **Gmail** `desk@gmail.com`. The site and its chat agents were removed from the build on 7 Oct 2026 (the deployed site stays parked in Dev until its trial ends). |
+| Front door | Power Pages site plus chat | **Gmail** (the connected mailbox; none connected since the 7 Oct handover). The site and its chat agents were removed from the build on 7 Oct 2026 (the deployed site stays parked in Dev until its trial ends). |
 | Who talks to whom | Buyer and seller met on the platform | **Back to back:** buyer ↔ us and seller ↔ us, in separate email threads |
 | Sellers | Listed and verified on the site | **Sourced per requirement** from leads, IndiaMART and warehouses |
 | Negotiation | Offers and counters on the site | **By email.** The buyer's proposed price goes to the seller, and a counter goes back. |

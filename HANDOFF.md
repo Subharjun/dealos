@@ -1,6 +1,6 @@
 # HANDOFF: resume here
 
-**Last updated:** 7 October 2026, about 19:45 IST (email desk only; OpenAI **out of credits**; approve by reply fixed and passing; **sanctions screening** (official OFAC / UN / UK lists) and **company registry** checks (GLEIF, Companies House) built and deployed, partly tested; inspection agencies and forwarders not started; all pushed to GitHub)
+**Last updated:** 7 October 2026, evening (handover: the previous owner's Gmail, Google OAuth client and AI keys removed from the repo and its history; connect your own mailbox and keys before testing; otherwise as at 19:45: sanctions screening and company registry built, partly tested; inspection agencies and forwarders not started)
 **Read first in any new chat:**
 1. this file
 2. [docs/EMAIL_DESK.md](docs/EMAIL_DESK.md), the current front door
@@ -13,7 +13,7 @@ New team members: [docs/TEAM_SETUP.md](docs/TEAM_SETUP.md).
 ## 0. Where things stand (read this first)
 
 ### What DealOS is now
-An **email trade desk in Gmail** for minerals and metals. The bot is the trader in the middle, **back to back**: buyer and seller each deal only with us, in separate threads, and never learn who the other is. Our margin is the price difference (`trade.margin_percent` = 3, placeholder). **Every email to a party is a Gmail draft a person sends** (`email.autosend` = off). Live in Dev on `desk@gmail.com` (testing filter: only mail to the `+dealos` alias).
+An **email trade desk in Gmail** for minerals and metals. The bot is the trader in the middle, **back to back**: buyer and seller each deal only with us, in separate threads, and never learn who the other is. Our margin is the price difference (`trade.margin_percent` = 3, placeholder). **Every email to a party is a Gmail draft a person sends** (`email.autosend` = off). **No mailbox connected (handover, 7 Oct):** the previous owner's Gmail, Google OAuth app and AI keys are removed. Connect your own mailbox ([docs/EMAIL_DESK.md](docs/EMAIL_DESK.md) section 3, Parts A to D) and add AI keys (section 3 below) before anything runs. Testing filter once connected: only mail to the `+dealos` alias.
 
 **Only the email desk remains** (the user's decision, 7 Oct): the website (Power Pages code, 2 chat agents, portal plug-ins) and the marketplace-only parts (6 agents, 18 flows incl. Notify party, escrow operations, catalog) were removed from the repo **and** from Dev. Tables and old data stay in Dev; the deployed site stays parked until its trial ends (about 4 Jan 2027). Removed code: git history at `c55f3bb`.
 
@@ -30,13 +30,13 @@ An **email trade desk in Gmail** for minerals and metals. The bot is the trader 
 ### House style (7 Oct, from the owner's real coal chat)
 Short and plain like a trader: bulleted indicative specs with "~", one clear ask, "Let me confirm and revert". `draft_email` refuses template/AI phrases ("I hope this email finds you well", "We are pleased to", "do not hesitate"...), em dashes, exclamation marks and markdown; all code-written emails were rewritten the same way. A request for our **company profile** gets the stored PDF attached (`tools/company_profile.py set <pdf>`; none on file → a task). Requests for a **quality report** and **prices for another port** become a task for a person (no invented prices, seller documents masked first).
 
-### BLOCKER (7 Oct 15:41): the OpenAI account has no credits
-Every model call fails with `429 insufficient_quota / credit_balance_exhausted`, so triage and the Trade Desk stop. The full E2E run was stopped after triage passed. **Add credits at platform.openai.com → Billing**, then `python3 tools/e2e_all.py`. Or switch back to Gemini meanwhile: `python3 tools/deploy_agents.py --provider gemini` (free tier: slow, no web search).
+### BLOCKER (handover): no mailbox and no AI keys
+The previous owner's Gmail connection, Google OAuth client and OpenAI / Gemini keys were removed for the handover, so Mailbox sync and Desk drafts are off and every agent call fails until new ones are set. Steps: (1) your own Google OAuth app and Gmail connection, [docs/EMAIL_DESK.md](docs/EMAIL_DESK.md) section 3; (2) `OPENAI_API_KEY` (with credits) and optionally `GEMINI_API_KEY` in `.env`, then `python3 tools/deploy_agents.py`; (3) `python3 tools/e2e_all.py`. (Before the handover the OpenAI account had also run out of credits, which stopped the 15:26 E2E run after triage passed.)
 
 **Incident, cleaned up:** web discovery ran during the noon and afternoon tests (the deployed plug-in predated the `email.discovery.enabled` switch) and found real companies; the desk then made enquiry drafts to them (Sinochem Nanjing, DS Alloyd, Forbes Pharma, Yogi Chem, Vanmo Tech, CDH Fine Chemical, Powder Pack, MPIL, Fitechem, CDHR Metal, Caymon Chem, Beijing Daoking). **None was sent**: all 18 were discarded and are gone from Gmail Drafts (checked). The switch is now deployed and `e2e_all.py` turns discovery off during tests. Their leads, seller threads and Inquiry deals remain as test data.
 
 ### AI provider
-**OpenAI** since 7 Oct (`agents.provider` = openai, `gpt-5.4-mini` via the Responses API, fallback `gpt-4.1-mini`, `store=false`). `Infrastructure/ModelClient.cs` translates the runtime's requests. Gemini is standby: `python3 tools/deploy_agents.py --provider gemini`. **The OpenAI key was pasted in chat: rotate it.**
+**OpenAI** since 7 Oct (`agents.provider` = openai, `gpt-5.4-mini` via the Responses API, fallback `gpt-4.1-mini`, `store=false`). `Infrastructure/ModelClient.cs` translates the runtime's requests. Gemini is standby: `python3 tools/deploy_agents.py --provider gemini`. No key is stored at the moment (handover): put yours in `.env` and run `deploy_agents.py`.
 
 ### Totals in Dev
 - **8 agents:** Mail Triage, Trade Desk, Document Intelligence, Onboarding KYB, Buyer Verification, Compliance, Contract, Admin Supervisor
@@ -140,11 +140,11 @@ The problem it solves: mineral trade runs on WhatsApp and email chains, with for
 | Web API from the CLI | `python3 tools/dv.py login` (browser sign-in; device code is blocked). Token in `.dv_token.json` (git-ignored). **A password change revokes it (AADSTS50173): log in again.** The same refresh token is exchanged for the Power Apps and Flow APIs (`deploy_connector.py bind`, `gmail_kit.py`). |
 | PAC CLI | `DOTNET_ROOT=/opt/homebrew/opt/dotnet/libexec ~/.dotnet/tools/pac` (profile `dealos`) |
 | .NET | SDK 10 at `/opt/homebrew/opt/dotnet/libexec/dotnet` (`dotnet` on PATH is v8) |
-| OpenAI key (in use) | `.env` `OPENAI_API_KEY` + Dataverse `gc_secret` `openai.api_key`. `agents.provider` = openai. **Rotate it** (it was pasted in chat), then `deploy_agents.py`. |
-| Gemini key (standby) | `.env` `GEMINI_API_KEY` + `gc_secret` `gemini.api_key`. Free tier: no Google Search, about 5 requests/min, daily caps. Rotate it (it was pasted in chat). |
-| Gmail | Mailbox `desk@gmail.com`. Google Cloud project **"My First Project"**: Gmail API on, OAuth consent screen "DealOS Email Desk" (External), scope `gmail.modify`. OAuth client "DealOS Power Automate", **Client ID** `set-the-google-client-id` (also in `.env` `GMAIL_CLIENT_ID`). The secret is only in the connector's Security tab. Redirect URI `https://global.consent.azure-apim.net/redirect/gc-5fdealos-20gmail-5fc12c8485be9726a2`. |
-| Google app status | **Check whether it was published** ("In production"). If it's still in Testing with the user as test user, the Gmail connection **expires every 7 days**. Fix: Google Auth Platform → Audience → Publish app. |
-| Power Automate | Custom connector **DealOS Gmail** (`shared_gc-5fdealos-20gmail-5fc12c8485be9726a2`, in the solution), connection reference `gc_gmail` → connection `fcbe6c4cbf774649b49bfe659161b8a8` (Connected) |
+| OpenAI key | **None (handover).** Your key in `.env` `OPENAI_API_KEY` → `python3 tools/deploy_agents.py` stores it in Dataverse `gc_secret` `openai.api_key`. `agents.provider` = openai. |
+| Gemini key (standby) | **None (handover).** `.env` `GEMINI_API_KEY` → `gc_secret` `gemini.api_key`. Free tier: no Google Search, about 5 requests/min, daily caps. |
+| Gmail | **No mailbox connected (handover).** Create your own Google Cloud project with the Gmail API, an OAuth consent screen (External, scope `gmail.modify`) and an OAuth client (Web application) with the connector's redirect URI `https://global.consent.azure-apim.net/redirect/gc-5fdealos-20gmail-5fc12c8485be9726a2`; Client ID in `.env` `GMAIL_CLIENT_ID` → `python3 tools/deploy_connector.py`; the secret only in the connector's Security tab. Full steps: [docs/EMAIL_DESK.md](docs/EMAIL_DESK.md) section 3. **When the mailbox changes, clear the setting `email.gmail.history_id`** (it belongs to the old mailbox). |
+| Google app status | **Check whether it was published** ("In production"). If it stays in Testing, the Gmail connection **expires every 7 days**. Fix: Google Auth Platform → Audience → Publish app. |
+| Power Automate | Custom connector **DealOS Gmail** (`shared_gc-5fdealos-20gmail-5fc12c8485be9726a2`, in the solution), connection reference `gc_gmail` → **no connection (handover)**; bind yours with `python3 tools/deploy_connector.py bind`. Flows **Mailbox sync** and **Desk drafts** are off until then. |
 | KYB registers | **DealOS GLEIF**: connection reference `gc_gleif` → connection `08bada89da1c4b339fd131e04bdbe013` (Connected, no key). **DealOS Companies House**: connector and reference `gc_companieshouse` deployed, **no connection**: get a free key at https://developer.company-information.service.gov.uk (create an application, REST API key), put `COMPANIES_HOUSE_API_KEY=...` in `.env`, run `python3 tools/deploy_connector.py registries`, set `registry.companies_house` = on, redeploy **Party onboarding** and **Party re-check**. |
 | DocuSign | Connection reference `gc_docusign` on **Docusign Demo** exists in Dev; **no connection yet** (needs a DocuSign developer account). Steps: [docs/EMAIL_DESK.md](docs/EMAIL_DESK.md) "E-signature setup". |
 | Old site (removed from the build) | https://dealos-gigacore.powerappsportals.com still exists in Dev, parked, until its trial ends (about 4 Jan 2027). Delete it in the Power Pages admin centre whenever convenient. |
@@ -361,8 +361,8 @@ python3 tools/export_solution.py                   # sync solutions/ with Dev
 - [ ] Optional resilience: fall back from OpenAI to Gemini automatically when OpenAI says `insufficient_quota`, so the desk keeps working when credits run out.
 - [ ] **Re-export the solution** (`python3 tools/export_solution.py`) after the run: `solutions/` still contains the removed site plug-ins, marketplace flows and agents until it is exported again.
 - [x] **Commit and push** the 7 Oct work (pushed 7 Oct about 16:45).
-- [ ] **Rotate the OpenAI key** (pasted in chat): new key → `.env` `OPENAI_API_KEY` → `python3 tools/deploy_agents.py`.
-- [ ] **Check that the Google app is "In production"**, or the Gmail connection breaks after 7 days.
+- [ ] **Your own AI keys** (the previous ones were removed at handover): `.env` `OPENAI_API_KEY` → `python3 tools/deploy_agents.py`.
+- [ ] **Your own Gmail mailbox and Google app** (EMAIL_DESK.md section 3); publish the Google app ("In production"), or the connection breaks after 7 days.
 - [x] **Company profile PDF**: `tools/company_profile.py set <pdf>`; the desk attaches it when asked (none on file → a task). No real profile stored yet.
 - [x] E2E proof (7 Oct 00:40 and 09:21, Gemini); polish ("Dear <name>", "not this time" notes); OpenAI replaces Gemini billing (7 Oct).
 - [ ] **User decisions:**
@@ -412,7 +412,6 @@ python3 tools/export_solution.py                   # sync solutions/ with Dev
 
 ### Housekeeping: deliberately last (the user's decision)
 - [ ] Remove all test data: `[AGENT-TEST]`, `[SMOKE]`, test leads, test KYB/screenings, test Gmail messages and briefing thread (now over Gmail's 100-message thread cap; also the `[AGENT-TEST] Approve by reply` tasks and `SEND probe` drafts from today's runs).
-- [ ] Key rotation: OpenAI (in use) and Gemini (standby) were both pasted in chat.
 - [ ] Plug-in trace log back to Exception. Optionally delete the parked Power Pages site and the marketplace tables/data in Dev (listings, catalog, payments, chats).
 - [ ] Optional: `agents.pricing` for cost tracking.
 
