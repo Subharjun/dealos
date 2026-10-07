@@ -1,0 +1,14 @@
+adx_entitypermission_webrole:
+- 7e5b23a5-7fb9-4e98-b46f-7c02a184baed
+append: false
+appendto: false
+create: false
+delete: false
+entitylogicalname: gc_match
+entityname: DealOS - Matches - seller
+id: 111cf9c5-528f-531f-825c-ded20bf5e1ca
+parententitypermission: ecea758f-15c7-58d3-bd25-9192396a4fec
+parentrelationship: gc_match_gc_listing
+read: true
+scope: 756150003
+write: true

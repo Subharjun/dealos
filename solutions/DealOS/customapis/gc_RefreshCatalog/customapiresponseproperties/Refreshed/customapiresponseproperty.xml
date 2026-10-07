@@ -1,0 +1,11 @@
+<customapiresponseproperty uniquename="Refreshed">
+  <description default="Entries created or updated.">
+    <label description="Entries created or updated." languagecode="1033" />
+  </description>
+  <displayname default="Refreshed">
+    <label description="Refreshed" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <name>gc_RefreshCatalog.Refreshed</name>
+  <type>7</type>
+</customapiresponseproperty>

@@ -1,0 +1,13 @@
+adx_entitypermission_webrole:
+- 7e5b23a5-7fb9-4e98-b46f-7c02a184baed
+append: true
+appendto: true
+contactrelationship: account_primary_contact
+create: false
+delete: false
+entitylogicalname: account
+entityname: DealOS - Company - own
+id: 45c6c45a-e52f-58f1-bbbc-79fe45bc7d0e
+read: true
+scope: 756150001
+write: true

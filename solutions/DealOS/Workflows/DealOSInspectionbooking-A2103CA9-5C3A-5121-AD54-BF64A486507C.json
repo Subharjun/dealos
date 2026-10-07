@@ -1,0 +1,295 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_commondataserviceforapps": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "gc_dataverse"
+        },
+        "api": {
+          "name": "shared_commondataserviceforapps"
+        }
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$connections": {
+          "defaultValue": {},
+          "type": "Object"
+        },
+        "$authentication": {
+          "defaultValue": {},
+          "type": "SecureObject"
+        }
+      },
+      "triggers": {
+        "When_a_deal_is_funded": {
+          "type": "OpenApiConnectionWebhook",
+          "inputs": {
+            "host": {
+              "connectionName": "shared_commondataserviceforapps",
+              "operationId": "SubscribeWebhookTrigger",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "subscriptionRequest/message": 3,
+              "subscriptionRequest/entityname": "gc_deal",
+              "subscriptionRequest/scope": 4,
+              "subscriptionRequest/filterexpression": "gc_stage eq 303300007",
+              "subscriptionRequest/filteringattributes": "gc_stage"
+            },
+            "authentication": "@parameters('$authentication')"
+          },
+          "runtimeConfiguration": {
+            "concurrency": {
+              "runs": 1
+            }
+          }
+        }
+      },
+      "actions": {
+        "Try": {
+          "type": "Scope",
+          "actions": {
+            "Existing_inspection": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "ListRecords",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_inspections",
+                  "$select": "gc_inspectionid",
+                  "$filter": "_gc_deal_value eq @{triggerOutputs()?['body/gc_dealid']} and gc_status ne 303300006",
+                  "$top": 1
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {}
+            },
+            "Already_booked": {
+              "type": "If",
+              "expression": "@greater(length(outputs('Existing_inspection')?['body/value']), 0)",
+              "actions": {
+                "Inspection_exists": {
+                  "type": "Terminate",
+                  "inputs": {
+                    "runStatus": "Succeeded"
+                  },
+                  "runAfter": {}
+                }
+              },
+              "else": {
+                "actions": {}
+              },
+              "runAfter": {
+                "Existing_inspection": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Create_inspection": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "CreateRecord",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_inspections",
+                  "item/gc_name": "@{take(concat('Inspection – ', triggerOutputs()?['body/gc_name']), 200)}",
+                  "item/gc_status": 303300000,
+                  "item/gc_result": 303300000,
+                  "item/gc_Deal@odata.bind": "@{concat('gc_deals(', triggerOutputs()?['body/gc_dealid'], ')')}"
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {
+                "Already_booked": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Link_lot": {
+              "type": "If",
+              "expression": "@not(empty(triggerOutputs()?['body/_gc_lot_value']))",
+              "actions": {
+                "Set_lot": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_commondataserviceforapps",
+                      "operationId": "UpdateRecord",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                    },
+                    "parameters": {
+                      "entityName": "gc_inspections",
+                      "recordId": "@{outputs('Create_inspection')?['body/gc_inspectionid']}",
+                      "item/gc_Lot@odata.bind": "@{concat('gc_lots(', triggerOutputs()?['body/_gc_lot_value'], ')')}"
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  },
+                  "runAfter": {}
+                }
+              },
+              "else": {
+                "actions": {}
+              },
+              "runAfter": {
+                "Create_inspection": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Booking_task": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "CreateRecord",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_reviewtasks",
+                  "item/gc_name": "@{take(concat('Book independent inspection: ', triggerOutputs()?['body/gc_name']), 100)}",
+                  "item/gc_kind": 303300001,
+                  "item/gc_purpose": 303300009,
+                  "item/gc_assigneerole": 303300005,
+                  "item/gc_status": 303300000,
+                  "item/gc_payload": "@{string(addProperty(addProperty(json('{}'), 'inspectionId', outputs('Create_inspection')?['body/gc_inspectionid']), 'instructions', 'Choose an independent agency (never one proposed by the seller), set the warehouse, date and agency on the inspection, then set it to Booked. The agency uploads the report directly.'))}",
+                  "item/gc_deal@odata.bind": "gc_deals(@{triggerOutputs()?['body/gc_dealid']})"
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {
+                "Link_lot": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Notify_buyer": {
+              "type": "Workflow",
+              "inputs": {
+                "host": {
+                  "workflowReferenceName": "4f7bfa4c-432c-512b-b763-c703a64a583b"
+                },
+                "body": {
+                  "text": "@{triggerOutputs()?['body/_gc_buyer_value']}",
+                  "text_1": "Independent inspection is being arranged",
+                  "text_2": "Escrow for '@{triggerOutputs()?['body/gc_name']}' is funded. DealOS is booking an independent inspection (sampling, assay, weighing and sealing) before shipment. You will be told the date.",
+                  "text_3": "inspection.requested"
+                }
+              },
+              "runAfter": {
+                "Booking_task": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Notify_seller": {
+              "type": "Workflow",
+              "inputs": {
+                "host": {
+                  "workflowReferenceName": "4f7bfa4c-432c-512b-b763-c703a64a583b"
+                },
+                "body": {
+                  "text": "@{triggerOutputs()?['body/_gc_seller_value']}",
+                  "text_1": "Independent inspection is being arranged",
+                  "text_2": "Escrow for '@{triggerOutputs()?['body/gc_name']}' is funded. DealOS is booking an independent inspection (sampling, assay, weighing and sealing) before shipment. You will be told the date.",
+                  "text_3": "inspection.requested"
+                }
+              },
+              "runAfter": {
+                "Notify_buyer": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Audit": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "CreateRecord",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_auditevents",
+                  "item/gc_hash": "set-by-invariants-plugin",
+                  "item/gc_name": "inspection.requested",
+                  "item/gc_actor": "flow:inspection",
+                  "item/gc_action": "inspection.requested",
+                  "item/gc_subjecttype": "gc_deal",
+                  "item/gc_subjectid": "@{triggerOutputs()?['body/gc_dealid']}",
+                  "item/gc_details": "@{take(string(addProperty(json('{}'), 'inspection', outputs('Create_inspection')?['body/gc_inspectionid'])), 100000)}"
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {
+                "Notify_seller": [
+                  "Succeeded"
+                ]
+              }
+            }
+          },
+          "runAfter": {}
+        },
+        "Catch": {
+          "type": "Scope",
+          "actions": {
+            "Record_failure": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "CreateRecord",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_flowfailures",
+                  "item/gc_name": "DealOS | Inspection booking",
+                  "item/gc_flowname": "DealOS | Inspection booking",
+                  "item/gc_runurl": "https://make.powerautomate.com/environments/@{workflow()?['tags']?['environmentName']}/flows/@{workflow()?['name']}/runs/@{workflow()?['run']?['name']}",
+                  "item/gc_step": "Try",
+                  "item/gc_error": "@{take(string(result('Try')), 3900)}",
+                  "item/gc_payload": "@{take(string(triggerOutputs()?['body']), 100000)}",
+                  "item/gc_status": 303300000
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {}
+            },
+            "Fail_run": {
+              "type": "Terminate",
+              "inputs": {
+                "runStatus": "Failed",
+                "runError": {
+                  "code": "DealOSFlowFailure",
+                  "message": "Recorded in Flow failures"
+                }
+              },
+              "runAfter": {
+                "Record_failure": [
+                  "Succeeded"
+                ]
+              }
+            }
+          },
+          "runAfter": {
+            "Try": [
+              "Failed",
+              "TimedOut"
+            ]
+          }
+        }
+      }
+    },
+    "templateName": null
+  },
+  "schemaVersion": "1.0.0.0"
+}

@@ -1,0 +1,4 @@
+description: "DealOS: Web API access to gc_document"
+id: 6fbff433-3611-5811-8dd6-0d2880fd3661
+name: Webapi/gc_document/enabled
+value: true

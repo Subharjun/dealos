@@ -2,12 +2,16 @@
   <!-- Offline checks for the agent plug-in: JSON, validator, schemas; also writes the agent manifest used by tools/deploy_agents.py. -->
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net10.0</TargetFramework>
+    <!-- net8.0 so both installed SDKs (dotnet@8 on PATH, used by VS Code; SDK 10) can build it; RollForward lets it run on the .NET 10 runtime. -->
+    <TargetFramework>net8.0</TargetFramework>
+    <RollForward>Major</RollForward>
     <NoWarn>NU1701</NoWarn>
     <Nullable>disable</Nullable>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.CrmSdk.CoreAssemblies" Version="9.0.2.*" />
+    <!-- Overrides the vulnerable 6.0.1 that CoreAssemblies pulls in (GHSA-555c-2p6r-68mm). -->
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="8.0.1" />
     <Reference Include="DealOS.Agents">
       <HintPath>../../src/DealOS.Agents/bin/Release/net462/DealOS.Agents.dll</HintPath>
     </Reference>

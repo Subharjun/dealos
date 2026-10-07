@@ -1,0 +1,30 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Workflow WorkflowId="{9db1c128-e0e0-5ada-88ed-b3efeb815ad9}" Name="DealOS | Dispute closed" Description="Dispute Resolved or Withdrawn → overlay lifted when no other dispute is open → refund outcome: Finance Refund task; cancel outcome: deal Cancelled → both told." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <JsonFileName>/Workflows/DealOSDisputeclosed-9DB1C128-E0E0-5ADA-88ED-B3EFEB815AD9.json</JsonFileName>
+  <Type>1</Type>
+  <Subprocess>0</Subprocess>
+  <Category>5</Category>
+  <Mode>0</Mode>
+  <Scope>4</Scope>
+  <OnDemand>0</OnDemand>
+  <TriggerOnCreate>0</TriggerOnCreate>
+  <TriggerOnDelete>0</TriggerOnDelete>
+  <AsyncAutodelete>0</AsyncAutodelete>
+  <SyncWorkflowLogOnFailure>0</SyncWorkflowLogOnFailure>
+  <StateCode>1</StateCode>
+  <StatusCode>2</StatusCode>
+  <RunAs>1</RunAs>
+  <IsTransacted>1</IsTransacted>
+  <IntroducedVersion>1.0.0.0</IntroducedVersion>
+  <IsCustomizable>1</IsCustomizable>
+  <BusinessProcessType>0</BusinessProcessType>
+  <IsCustomProcessingStepAllowedForOtherPublishers>1</IsCustomProcessingStepAllowedForOtherPublishers>
+  <ModernFlowType>0</ModernFlowType>
+  <PrimaryEntity>none</PrimaryEntity>
+  <LocalizedNames>
+    <LocalizedName languagecode="1033" description="DealOS | Dispute closed" />
+  </LocalizedNames>
+  <Descriptions>
+    <Description languagecode="1033" description="Dispute Resolved or Withdrawn → overlay lifted when no other dispute is open → refund outcome: Finance Refund task; cancel outcome: deal Cancelled → both told." />
+  </Descriptions>
+</Workflow>

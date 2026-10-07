@@ -1,0 +1,14 @@
+adx_entitypermission_webrole:
+- 7e5b23a5-7fb9-4e98-b46f-7c02a184baed
+append: false
+appendto: false
+create: false
+delete: false
+entitylogicalname: gc_offer
+entityname: DealOS - Offers - buyer deals
+id: f33723e9-088c-5d1c-a9bf-7ff9d54b9578
+parententitypermission: ee36b70f-1e8e-5efb-8207-700fd7b50f33
+parentrelationship: gc_offer_gc_deal
+read: true
+scope: 756150003
+write: false

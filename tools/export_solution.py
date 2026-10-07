@@ -16,7 +16,16 @@ import dv  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PAC = os.path.expanduser("~/.dotnet/tools/pac")
-DOTNET_ROOT = "/opt/homebrew/opt/dotnet/libexec"
+def dotnet_root():
+    """pac needs a .NET 10 runtime: DOTNET_ROOT if it has one, else the Homebrew install."""
+    for root in (os.environ.get("DOTNET_ROOT"), "/opt/homebrew/opt/dotnet/libexec"):
+        if root and any(v.startswith("10.") for v in os.listdir(os.path.join(root, "shared", "Microsoft.NETCore.App"))
+                        if os.path.isdir(os.path.join(root, "shared", "Microsoft.NETCore.App"))):
+            return root
+    sys.exit("No .NET 10 runtime found; set DOTNET_ROOT to a .NET 10 install.")
+
+
+DOTNET_ROOT = dotnet_root()
 
 
 def main():

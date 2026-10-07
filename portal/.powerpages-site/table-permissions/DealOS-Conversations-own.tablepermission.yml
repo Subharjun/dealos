@@ -1,0 +1,13 @@
+adx_entitypermission_webrole:
+- 7e5b23a5-7fb9-4e98-b46f-7c02a184baed
+append: true
+appendto: true
+contactrelationship: gc_contact_gc_conversation_gc_contact
+create: true
+delete: false
+entitylogicalname: gc_conversation
+entityname: DealOS - Conversations - own
+id: 1324e341-2c43-5da1-8c17-838d07212c45
+read: true
+scope: 756150001
+write: false

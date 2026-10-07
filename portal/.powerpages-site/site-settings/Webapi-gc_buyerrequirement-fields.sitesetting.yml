@@ -1,0 +1,4 @@
+description: "DealOS: columns of gc_buyerrequirement the site may read or write"
+id: 69248a2d-912f-5e98-98f7-f4336f4785d1
+name: Webapi/gc_buyerrequirement/fields
+value: "createdon,gc_buyer,gc_buyerrequirementid,gc_commodity,gc_currency,gc_destinationcountry,gc_destinationport,gc_incoterm,gc_inspectionrequired,gc_name,gc_quantity,gc_quantityunit,gc_specification,gc_status,gc_targetprice,gc_validuntil"

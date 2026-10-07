@@ -1,0 +1,11 @@
+<customapiresponseproperty uniquename="Removed">
+  <description default="Entries removed.">
+    <label description="Entries removed." languagecode="1033" />
+  </description>
+  <displayname default="Removed">
+    <label description="Removed" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <name>gc_RefreshCatalog.Removed</name>
+  <type>7</type>
+</customapiresponseproperty>

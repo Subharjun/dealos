@@ -260,6 +260,9 @@ namespace DealOS.Agents.Tools
                     "due_on?", S.Str("Due date YYYY-MM-DD, only if stated in the data.")),
                 Run = Milestone
             };
+
+            foreach (var t in ChatTools.Build()) yield return t;
+            foreach (var t in DeskTools.Build()) yield return t;
         }
 
         // ---------- write tools ----------

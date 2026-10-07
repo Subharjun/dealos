@@ -1,0 +1,18 @@
+<customapi uniquename="gc_Agent_SellerAssistant">
+  <allowedcustomprocessingsteptype>0</allowedcustomprocessingsteptype>
+  <bindingtype>0</bindingtype>
+  <description default="Chat agent for sellers: shows listing status and evidence gaps, records the seller's answers to verification questions, drafts listings, and explains RFQ invites, matches, deals and payouts.">
+    <label description="Chat agent for sellers: shows listing status and evidence gaps, records the seller's answers to verification questions, drafts listings, and explains RFQ invites, matches, deals and payouts." languagecode="1033" />
+  </description>
+  <displayname default="Agent: Seller Assistant">
+    <label description="Agent: Seller Assistant" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isfunction>0</isfunction>
+  <isprivate>0</isprivate>
+  <name>gc_Agent_SellerAssistant</name>
+  <plugintypeid>
+    <plugintypeexportkey>80e9c839-6ac1-f111-aaaf-7ced8daf451f</plugintypeexportkey>
+  </plugintypeid>
+  <workflowsdkstepenabled>0</workflowsdkstepenabled>
+</customapi>

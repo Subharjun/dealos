@@ -1,0 +1,4 @@
+description: "DealOS: Web API access to gc_rfqinvite"
+id: 91ca6035-8f43-5d15-8c01-915d530aeaa3
+name: Webapi/gc_rfqinvite/enabled
+value: true

@@ -1,0 +1,4 @@
+description: "DealOS: columns of contact the site may read or write"
+id: 2e4a182c-3272-5f81-9135-794e1bb22292
+name: Webapi/contact/fields
+value: "_parentcustomerid_value,contactid,firstname,lastname,parentcustomerid_account"

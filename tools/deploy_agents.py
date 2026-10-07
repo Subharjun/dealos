@@ -8,6 +8,9 @@ Steps:
   5. Agent settings in gc_platformsetting (created only when missing)
   6. Deterministic operations (plug-in type DealOS.Agents.Operations.OperationsPlugin):
      gc_AcceptOffer, gc_OpenEscrow, gc_ReleaseDeal, gc_InstructRelease, plus the gc_deal.gc_requirement lookup
+  7. Chat trigger (plug-in type DealOS.Agents.ChatPlugin): async step on gc_message Create that answers with the
+     conversation's agent (Buyer Concierge / Seller Assistant); needs tools/deploy_schema.py first
+  8. Email Desk operations (plug-in type DealOS.Agents.Mail.MailPlugin): gc_IngestEmail, gc_AttachEmailFile
 Everything is created inside the DealOS solution.
 
 Usage:
@@ -42,6 +45,30 @@ SETTINGS = [  # key, value, value type label, description
     ("notifications.email.enabled", "false", "Bool", "true = the Notify party flow emails parties; false = it only records what it would have sent."),
     ("notifications.email.redirect", "", "Text", "If set, every party email goes to this address instead (testing)."),
     ("admin.digest.recipients", "", "Text", "Semicolon-separated emails for the daily AdminSupervisor digest; empty = the flow owner's mailbox."),
+    ("chat.max_messages_per_hour", "30", "Number", "User messages per conversation per hour that the chat agents answer; above it a limit notice is sent."),
+    ("chat.history_messages", "12", "Number", "Earlier messages of the conversation given to the chat agent as context."),
+    ("email.enabled", "false", "Bool", "true = the Mailbox sync flow reads Gmail and triages new email; false = it does nothing."),
+    ("email.sync.query", "to:{user}+dealos@{domain} newer_than:7d", "Text",
+     "Gmail search for mail the desk reads; {user} and {domain} are filled from the connected mailbox (labels DealOS/Processed and "
+     "DealOS/Error are always excluded). Testing: only mail to the +dealos alias. Live: 'in:inbox newer_than:7d'."),
+    ("email.sync.max_per_run", "5", "Number", "Emails the Mailbox sync flow handles per run (Gemini free tier: keep it small)."),
+    ("email.self_addresses", "", "Text", "Extra addresses of ours (aliases), separated by semicolons; the connected mailbox is detected automatically. "
+     "Mail from them is recorded as Outbound."),
+    ("email.triage.proceed", "65", "Number", "Triage score from which a trade email is Genuine."),
+    ("email.triage.ignore", "30", "Number", "Triage score below which a trade email is Ignored (between the two: Review)."),
+    ("email.attachments.max_mb", "10", "Number", "Largest attachment the desk stores (PDF, images, Office, text)."),
+    ("email.reply_to", "{user}+dealos@{domain}", "Text", "Reply-To on desk emails ({user}/{domain} from the connected mailbox), so answers reach the address the "
+     "desk reads while testing; empty = no Reply-To (live, when email.sync.query reads the whole inbox)."),
+    ("email.signature", "Best regards,\\nTrade Desk\\nGigacore Energy Pvt Ltd", "Text", "Signature added under every desk email (\\n = new line)."),
+    ("email.sourcing.max_sellers", "5", "Number", "Sellers the desk contacts per requirement and sourcing round."),
+    ("email.autosend", "off", "Text", "off = every desk email waits in Gmail Drafts for a person; routine = enquiries to sellers and replies without "
+     "prices go out by themselves; all = everything except contracts goes out by itself. Briefings to us are always sent."),
+    ("desk.owner_email", "{mailbox}", "Text", "Who gets the desk briefings ({mailbox} = the connected mailbox; 'off' = none)."),
+    ("email.discovery.max", "8", "Number", "Companies the web seller discovery looks for per requirement."),
+    ("trade.margin_percent", "3", "Number", "Our margin (back to back): price to buyer = seller price × (1 + margin/100). Decision pending; 3 is a placeholder."),
+    ("trade.company_name", "Gigacore Energy Pvt Ltd", "Text", "Our legal name on contracts."),
+    ("trade.governing_law", "laws of India; disputes by arbitration in Mumbai under the Arbitration and Conciliation Act, 1996", "Text",
+     "Governing law and disputes clause of the contract template (confirm with counsel)."),
 ]
 VALUE_TYPES = {"Bool": 303300000, "Number": 303300001, "Text": 303300002, "Json": 303300003}
 
@@ -58,11 +85,14 @@ def label(text):
 
 
 def env_key():
-    with open(os.path.join(ROOT, ".env")) as f:
-        for line in f:
-            if line.startswith("GEMINI_API_KEY="):
-                return line.split("=", 1)[1].strip()
-    sys.exit("GEMINI_API_KEY missing in .env")
+    """The key from .env, or None. Team members without the key deploy everything else and leave the stored secret as it is."""
+    path = os.path.join(ROOT, ".env")
+    if os.path.exists(path):
+        with open(path) as f:
+            for line in f:
+                if line.startswith("GEMINI_API_KEY="):
+                    return line.split("=", 1)[1].strip() or None
+    return None
 
 
 def ensure_secret_table():
@@ -132,7 +162,11 @@ def upsert_assembly():
         print("+ plug-in assembly registered")
     types = {}
     for typename, friendly, desc in [("DealOS.Agents.AgentPlugin", "AgentPlugin", "Runs a DealOS agent"),
-                                     ("DealOS.Agents.Operations.OperationsPlugin", "OperationsPlugin", "Deterministic deal operations (accept offer, open escrow)")]:
+                                     ("DealOS.Agents.Operations.OperationsPlugin", "OperationsPlugin", "Deterministic deal operations (accept offer, open escrow)"),
+                                     ("DealOS.Agents.ChatPlugin", "ChatPlugin", "Answers chat messages with the conversation's agent"),
+                                     ("DealOS.Agents.Portal.CatalogPlugin", "CatalogPlugin", "Keeps the public masked catalog (gc_catalogentry) in step with listings"),
+                                     ("DealOS.Agents.Portal.PortalGuardPlugin", "PortalGuardPlugin", "Validates every write from the Power Pages site"),
+                                     ("DealOS.Agents.Mail.MailPlugin", "MailPlugin", "Email Desk: stores Gmail messages and attachments")]:
         s = ok(*dv.get(f"plugintypes?$select=plugintypeid&$filter=typename eq '{typename}' and _pluginassemblyid_value eq {aid}"), "read type")
         rows = s.get("value", [])
         if rows:
@@ -223,6 +257,51 @@ OPERATIONS = [
 ]
 
 
+REFRESH_CATALOG = {"api": "gc_RefreshCatalog", "display": "Refresh catalog",
+                   "description": "Rebuild the public catalog entry of one listing, or (no ListingId) of every published listing and remove stale entries.",
+                   "request": [("ListingId", 10, "Optional gc_listing GUID; empty = all published listings.", True)],
+                   "response": [("Refreshed", 7, "Entries created or updated."), ("Removed", 7, "Entries removed.")]}
+
+
+MAIL_OPERATIONS = [
+    {"api": "gc_IngestEmail", "display": "Ingest email",
+     "description": "Store one Gmail message (users.messages.get, format=full) as a gc_message in the conversation of its Gmail thread. "
+                    "Idempotent on the Gmail id. Returns the attachments still to fetch.",
+     "request": [("MessageJson", 10, "The Gmail message JSON (format=full).", False),
+                 ("MailboxAddress", 10, "Address of the connected mailbox (from Gmail's profile); its mail is recorded as Outbound.", True)],
+     "response": [("Status", 10, "Created or Exists."), ("MessageId", 10, "The gc_message."), ("ConversationId", 10, "The gc_conversation."),
+                  ("Direction", 10, "Inbound or Outbound."), ("NeedsTriage", 0, "True for a received email not yet triaged."),
+                  ("Attachments", 10, "JSON array of {attachmentId, fileName, mimeType, size} to fetch and store."),
+                  ("Summary", 10, "What happened, for a human.")]},
+    {"api": "gc_AttachEmailFile", "display": "Attach email file",
+     "description": "Store one email attachment (base64url from Gmail) as a Quarantined gc_document of the email. Idempotent per file name.",
+     "request": [("MessageId", 12, "The gc_message the file belongs to.", False), ("FileName", 10, "File name.", False),
+                 ("MimeType", 10, "MIME type.", True), ("Data", 10, "File content, base64url (as Gmail returns it).", False)],
+     "response": [("Status", 10, "Created or Exists."), ("DocumentId", 10, "The gc_document.")]},
+    {"api": "gc_BuildEmailRaw", "display": "Build email",
+     "description": "A pending Email Desk draft (gc_message) as the base64url RFC 2822 message for Gmail drafts.create, threaded as a reply, with its attachments.",
+     "request": [("MessageId", 12, "The draft gc_message.", False), ("MailboxAddress", 10, "Connected mailbox (for the Reply-To alias).", True)],
+     "response": [("Raw", 10, "base64url RFC 2822 message."), ("ThreadId", 10, "Gmail thread to draft in (empty = new thread)."), ("To", 10, "Recipient.")]},
+    {"api": "gc_SourceRequirement", "display": "Source requirement",
+     "description": "Shortlist seller leads for a buyer requirement and open masked source requests (deal, invite, seller thread, enquiry draft) per seller with an email.",
+     "request": [("RequirementId", 12, "The gc_buyerrequirement.", False)],
+     "response": [("Invited", 7, "Source requests opened."), ("Result", 10, "JSON: matched leads, requests, leads without email.")]},
+    {"api": "gc_DiscoverSellers", "display": "Discover sellers",
+     "description": "Web seller discovery for a buyer requirement: Gemini with Google Search finds producers/exporters (public business contacts only) "
+                    "and saves them as leads (source Web Search). Once per requirement unless Force.",
+     "request": [("RequirementId", 12, "The gc_buyerrequirement.", False), ("Force", 0, "Run again even if it ran before.", True)],
+     "response": [("Found", 7, "Leads found or updated."), ("Result", 10, "JSON: leads, skipped, model.")]},
+    {"api": "gc_DeskBrief", "display": "Desk briefing",
+     "description": "A briefing email to the desk owner (desk.owner_email) in the 'DealOS desk briefing' thread; sent automatically by the Desk drafts flow.",
+     "request": [("Subject", 10, "Short subject.", False), ("Text", 10, "Body.", False)],
+     "response": [("MessageId", 10, "The briefing gc_message (empty when briefings are off).")]},
+    {"api": "gc_DeskContract", "display": "Desk contract out",
+     "description": "For an approved contract of an Email Desk deal: back-to-back contract PDFs and drafts with them to the buyer and seller threads.",
+     "request": [("ContractId", 12, "The gc_contract (Sent For Signature).", False)],
+     "response": [("Result", 10, "JSON: status, documents, drafts.")]},
+]
+
+
 def upsert_operation(op, type_id):
     api = op["api"]
     rows = ok(*dv.get(f"customapis?$select=customapiid&$filter=uniquename eq '{api}'"), "read api").get("value", [])
@@ -270,6 +349,56 @@ def ensure_requirement_lookup():
     print("+ gc_deal.gc_requirement lookup created")
 
 
+def ensure_step(type_id, typename, message, entity, stage, mode, description, filtering=None):
+    """One plug-in step (stage 20 pre-operation / 40 post-operation; mode 0 sync / 1 async), created when missing."""
+    name = f"{typename}: {message} of {entity}"
+    if ok(*dv.get(f"sdkmessageprocessingsteps?$select=sdkmessageprocessingstepid&$filter=name eq '{name}'"), "read step").get("value"):
+        print(f"= step {name}")
+        return
+    msg = ok(*dv.get(f"sdkmessages?$select=sdkmessageid&$filter=name eq '{message}'"), f"read {message} message")["value"][0]["sdkmessageid"]
+    flt = ok(*dv.get(f"sdkmessagefilters?$select=sdkmessagefilterid&$filter=primaryobjecttypecode eq '{entity}' and _sdkmessageid_value eq {msg}"),
+             f"read {entity} filter")["value"][0]["sdkmessagefilterid"]
+    body = {"name": name, "description": description, "mode": mode, "stage": stage, "rank": 1, "supporteddeployment": 0,
+            "eventhandler_plugintype@odata.bind": f"/plugintypes({type_id})",
+            "sdkmessageid@odata.bind": f"/sdkmessages({msg})", "sdkmessagefilterid@odata.bind": f"/sdkmessagefilters({flt})"}
+    if mode == 1:
+        body["asyncautodelete"] = True
+    if filtering:
+        body["filteringattributes"] = filtering
+    ok(*dv.request("POST", "sdkmessageprocessingsteps", body, SOL), "create step " + name)
+    print(f"+ step {name} ({'async' if mode else 'sync'})")
+
+
+def ensure_chat_step(type_id):
+    """Asynchronous post-operation step on gc_message Create: the conversation's chat agent answers each user message."""
+    ensure_step(type_id, "DealOS.Agents.ChatPlugin", "Create", "gc_message", 40, 1,
+                "Runs gc_Agent_BuyerConcierge or gc_Agent_SellerAssistant on a user's chat message and stores the reply.")
+
+
+CATALOG_FIELDS = "gc_status,gc_badge,gc_askprice,gc_quantity,gc_quantityunit,gc_grade,gc_incoterm,gc_namedplace,gc_currency,gc_pricebasis,gc_commodity,gc_origincountry,gc_publishedon,statecode"
+GUARDED = {  # table → messages the site may send (anything else has no table permission)
+    "contact": ["Update"], "account": ["Create", "Update"],
+    "gc_listing": ["Create", "Update", "Delete"], "gc_buyerrequirement": ["Create", "Update", "Delete"],
+    "gc_document": ["Create", "Update", "Delete"], "gc_rfqinvite": ["Create", "Update"], "gc_match": ["Create", "Update"],
+    "gc_conversation": ["Create", "Update"], "gc_message": ["Create", "Update"], "gc_rating": ["Create", "Update"],
+    "gc_dispute": ["Create", "Update"], "gc_deal": ["Create", "Update"], "gc_offer": ["Create", "Update"],
+}
+
+
+def ensure_portal_steps(types):
+    catalog, guard = types["DealOS.Agents.Portal.CatalogPlugin"], types["DealOS.Agents.Portal.PortalGuardPlugin"]
+    desc = "Rebuilds the listing's public catalog entry (gc_catalogentry)."
+    ensure_step(catalog, "DealOS.Agents.Portal.CatalogPlugin", "Create", "gc_listing", 40, 1, desc)
+    ensure_step(catalog, "DealOS.Agents.Portal.CatalogPlugin", "Update", "gc_listing", 40, 1, desc, CATALOG_FIELDS)
+    for entity, fields in (("gc_fact", "gc_status,gc_displayvalue,statecode"), ("gc_lot", "gc_status,gc_quantity,gc_listing")):
+        ensure_step(catalog, "DealOS.Agents.Portal.CatalogPlugin", "Create", entity, 40, 1, desc)
+        ensure_step(catalog, "DealOS.Agents.Portal.CatalogPlugin", "Update", entity, 40, 1, desc, fields)
+    for entity, messages in GUARDED.items():
+        for message in messages:
+            ensure_step(guard, "DealOS.Agents.Portal.PortalGuardPlugin", message, entity, 20, 0,
+                        "Power Pages writes only: forces ownership to the signed-in contact's company and allows only legal status changes.")
+
+
 def ensure_settings():
     for key, value, vtype, desc in SETTINGS:
         s = ok(*dv.get(f"gc_platformsettings?$select=gc_platformsettingid&$filter=gc_key eq '{key}'"), "read setting")
@@ -288,7 +417,11 @@ def main():
         sys.exit("Run the harness first: dotnet run --project tests/DealOS.Agents.Harness -- build/agents")
     agents = json.load(open(MANIFEST))
     ensure_secret_table()
-    upsert_secret("gemini.api_key", env_key())
+    key = env_key()
+    if key:
+        upsert_secret("gemini.api_key", key)
+    else:
+        print("= no GEMINI_API_KEY in .env; the stored gemini.api_key is left unchanged")
     ensure_agent_option()
     types = upsert_assembly()
     for a in agents:
@@ -296,6 +429,11 @@ def main():
     ensure_requirement_lookup()
     for op in OPERATIONS:
         upsert_operation(op, types["DealOS.Agents.Operations.OperationsPlugin"])
+    ensure_chat_step(types["DealOS.Agents.ChatPlugin"])
+    ensure_portal_steps(types)
+    upsert_operation(REFRESH_CATALOG, types["DealOS.Agents.Portal.CatalogPlugin"])
+    for op in MAIL_OPERATIONS:
+        upsert_operation(op, types["DealOS.Agents.Mail.MailPlugin"])
     ensure_settings()
     print(f"Deployed {len(agents)} agents and {len(OPERATIONS)} operations.")
 

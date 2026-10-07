@@ -1,0 +1,4 @@
+description: "DealOS: Web API access to gc_dispute"
+id: 44ed0620-a273-5a08-b9ca-35468ab37db9
+name: Webapi/gc_dispute/enabled
+value: true

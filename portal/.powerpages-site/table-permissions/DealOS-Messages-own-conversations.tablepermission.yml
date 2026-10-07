@@ -1,0 +1,14 @@
+adx_entitypermission_webrole:
+- 7e5b23a5-7fb9-4e98-b46f-7c02a184baed
+append: true
+appendto: false
+create: true
+delete: false
+entitylogicalname: gc_message
+entityname: DealOS - Messages - own conversations
+id: 5b973d17-1fda-5bd9-93d4-d62ce5d148c2
+parententitypermission: 1324e341-2c43-5da1-8c17-838d07212c45
+parentrelationship: gc_message_gc_conversation
+read: true
+scope: 756150003
+write: false

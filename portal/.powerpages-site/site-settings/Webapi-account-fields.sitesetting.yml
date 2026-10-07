@@ -1,0 +1,4 @@
+description: "DealOS: columns of account the site may read or write"
+id: e3d0d3d5-f821-5217-b598-d2cdea268bf9
+name: Webapi/account/fields
+value: "accountid,gc_country,gc_kybstatus,gc_partyrole,gc_registrationnumber,gc_trusttier,name,primarycontactid"

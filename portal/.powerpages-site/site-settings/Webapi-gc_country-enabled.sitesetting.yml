@@ -1,0 +1,4 @@
+description: "DealOS: Web API access to gc_country"
+id: 54d1ebb1-c0eb-5140-bd2f-4b8039cc360f
+name: Webapi/gc_country/enabled
+value: true

@@ -1,0 +1,4 @@
+description: "DealOS: Web API access to gc_fact"
+id: 6fd30cb1-b65a-598d-910c-d824c47c823e
+name: Webapi/gc_fact/enabled
+value: true

@@ -4,7 +4,7 @@
 **Environment:** Giga core's Environment (Dev), solution `DealOS`
 **AI provider:** Google Gemini (default `gemini-3.5-flash`, with fallbacks)
 
-There are **12 agents**, each deployed as a Dataverse Custom API named `gc_Agent_<Name>`. A Power Automate flow (or Copilot Studio, Power Pages, or any Web API client) calls an agent the same way it calls any other Dataverse action. Each agent:
+There are **16 agents**, each deployed as a Dataverse Custom API named `gc_Agent_<Name>`. Twelve are back-office specialists; two (**Buyer Concierge** and **Seller Assistant**) are the chat agents people talk to on the marketplace site. A Power Automate flow (or Copilot Studio, Power Pages, or any Web API client) calls an agent the same way it calls any other Dataverse action. Each agent:
 
 1. **Pre-loads its data with code:** listings, facts, documents, parties and rules.
 2. **Asks Gemini to reason** within a strict instruction set and a limited tool set.
@@ -44,6 +44,37 @@ flowchart LR
 | `gc_Agent_Payment` | `gc_deal` | Plans the escrow tranches with commission (deterministic maths). Checks which releases have **verified** milestones. | `gc_reviewtask` (Fund Release, only when the code-checked milestones are verified) | Finance approves every release |
 | `gc_Agent_Logistics` | `gc_deal` | Builds the corridor document checklist (domestic or international). Creates milestones, chases missing documents. | `gc_milestone`, draft chaser, `gc_reviewtask` | Shipment Booking |
 | `gc_Agent_AdminSupervisor` | — (no subject) | Daily ops digest: approvals, stuck deals, listings waiting, failures, AI spend. | Nothing (read-only) | — |
+| `gc_Agent_BuyerConcierge` | `gc_conversation` | Chat with a buyer: searches the masked catalog, explains evidence, shows the buyer's RFQs, matches, deals and offers (landed cost), drafts an RFQ. | `gc_buyerrequirement` (Draft), the reply `gc_message` | The buyer sends the RFQ from the site |
+| `gc_Agent_MailTriage` | `gc_message` | Email Desk: classifies a received email (Buyer Requirement, Offer To Sell, Thread Reply, Documents, Vendor Pitch, Scam, Not Trade), scores genuineness 0–100 and extracts the requirement or offer. Reads up to 2 attached PDFs/images. **The verdict (Genuine / Review / Ignored) is decided in code** from the score plus hard signals: failed DMARC/SPF+DKIM, dangerous attachments, link shorteners and Reply-To redirection. A known sender or a thread we wrote in is never Ignored, and prompt injection is never Genuine. See [EMAIL_DESK.md](EMAIL_DESK.md). | Triage columns on `gc_message` and `gc_conversation` | — (labels only; nothing is sent) |
+| `gc_Agent_TradeDesk` | `gc_conversation` (an email thread) | Email Desk: works a genuine email like a trader in the middle (back to back). **Buyer thread:** saves the requirement, starts sourcing, quotes our price, records the buyer's price proposal, records acceptance. **Seller thread:** records the quote, decline or acceptance of our bid. **Unsolicited offer:** saves a seller lead. **Signed contract:** opens a check task. It drafts every reply. The margin maths are in code (`Desk.PriceToBuyer` / `BidToSeller`), and the buyer side never sees supplier names or prices. `draft_email` refuses the other party's name, email, domain or price, our margin, contact details, links and bank details. See [EMAIL_DESK.md](EMAIL_DESK.md). | `gc_buyerrequirement`, buyer account and contact, `gc_lead`, `gc_offer`, invites, deals and seller threads (via sourcing), draft `gc_message`s, review tasks | **Confirm deal** (acceptance never binds by itself); **Signed contract received**; every email is sent by a person from Gmail |
+| `gc_Agent_SellerAssistant` | `gc_conversation` | Chat with a seller: what each listing still needs, records the seller's answers to verification questions (as Claimed assertions), drafts a listing, explains invites, deals and net payouts. | `gc_listing` (Draft), `gc_assertion` + answered `gc_question`, the reply `gc_message` | The seller submits the listing from the site |
+
+---
+
+## Chat agents (Buyer Concierge, Seller Assistant)
+
+**Trigger.** The `ChatPlugin` runs asynchronously on every `gc_message` created in a conversation, unless the message is the platform's own (`gc_isplatform`). It picks the agent from `gc_conversation.gc_assistant` (otherwise from the account's roles), runs it with `{"message_id": …}`, and the agent writes its reply as a platform `gc_message` with up to 3 suggested next steps in `gc_attachments`. If the run fails, a short apology is posted instead. The website polls the conversation for the reply.
+
+**Identity.** The person is the conversation's company (`gc_counterparty`). On the site the portal guard sets that company, so a user can only chat as their own company. Every chat tool filters by that account in code. Another party's records are reachable only as the published, masked catalog: no seller, asset, listing title or location.
+
+**Guards, in code:**
+
+| Guard | Effect |
+|---|---|
+| Reply validator (`CheckFinish`) | Before the reply is accepted, it is checked like a drafted message. Numbers must appear in the data or the user's own messages, and counterparty names must not appear. For the buyer it also checks evidence wording: no "verified" without a Verified fact, and seller-claimed values must be hedged. A rejected reply goes back to the model to rewrite. |
+| Drafts only | `draft_rfq` and `draft_listing` create Draft records; the user sends or submits them on the site. At most 5 drafts per company per 24 hours. |
+| User-stated prices only | A target or ask price is accepted only if the user typed that number. |
+| Verbatim answers | `record_answer` stores only text copied from the latest message. It becomes a Claimed assertion (source Message), the question is linked, and evidence is re-resolved. |
+| Rate limit | `chat.max_messages_per_hour` (30) per conversation; above it a notice is posted and no model runs. |
+| Sender check | A message whose sender contact belongs to another company is not answered. |
+
+**Try it from the terminal:**
+
+```bash
+python3 tools/chat.py new <account-guid> buyer          # prints a conversation id ([AGENT-TEST])
+python3 tools/chat.py say <conversation-guid> "Need 250 MT copper cathode, FOB. What do you have?"
+python3 tools/chat.py show <conversation-guid>
+```
 
 ---
 
@@ -113,6 +144,8 @@ python3 tools/run_agent.py Negotiation <offer-guid> --input '{"perspective":"buy
 | `agents.call_timeout_seconds` | `45` | Per Gemini call |
 | `agents.pricing` | `{}` | USD per 1M tokens per model prefix, so `gc_modelcall.gc_costusd` is filled |
 | `agents.generation_config` | (empty) | Extra Gemini `generationConfig` (e.g. thinking settings) |
+| `chat.max_messages_per_hour` | `30` | User messages per conversation per hour the chat agents answer |
+| `chat.history_messages` | `12` | Earlier messages given to a chat agent as context |
 | `dd1.max_asks`, `questions.cooldown_hours`, `evidence.extraction_threshold` | existing | Reused by the agents |
 
 **The Gemini key** is stored in `gc_secret` (`gemini.api_key`). That table is organisation-owned, has no privileges for user roles, and is read only by the plug-in as SYSTEM. It is never in the repo; locally it lives in `.env`, which git ignores.
@@ -132,7 +165,7 @@ python3 tools/seed_test_data.py cleanup                                # remove 
 pac solution export --name DealOS --path /tmp/DealOS.zip && pac solution unpack --zipfile /tmp/DealOS.zip --folder solutions/DealOS --packagetype Unmanaged --allowDelete true
 ```
 
-The first time, `python3 tools/dv.py login` does a device sign-in. The token is cached in `.dv_token.json`, which git ignores.
+The first time, `python3 tools/dv.py login` opens a browser sign-in. The token is cached in `.dv_token.json`, which git ignores.
 
 ---
 
@@ -152,6 +185,10 @@ The first time, `python3 tools/dv.py login` does a device sign-in. The token is 
 | Logistics | dry | International checklist (South Africa → Germany). Waits for Funded before acting. |
 | OnboardingKYB / BuyerVerification | dry | Pending checks recorded, 3 asks maximum, tier stays Unverified |
 | Matching | dry | One candidate proposed, score 68, explained (S level unknown) |
+| BuyerConcierge | live, via a chat message | Found the one copper listing without naming the seller, said its facts are only claimed, explained escrow and inspection. 39 s. |
+| BuyerConcierge | live | Drafted the RFQ the buyer described (250 MT, target 8800 USD, Hamburg, inspection) as Draft. 26 s. |
+| SellerAssistant | live | Listed what the draft listing still needs (12 missing facts, 3 open questions). |
+| SellerAssistant | live | Recorded "ML-2024-0457" as the answer to the mining-licence question: Claimed assertion, question answered, fact Claimed. 30 s. |
 
 ---
 
@@ -161,4 +198,4 @@ The first time, `python3 tools/dv.py login` does a device sign-in. The token is 
 2. **Rotate the API key.** It was pasted into a chat. After you switch to a paid key, run `python3 tools/deploy_agents.py` to store the new one.
 3. **Plug-in limits:** each run gets at most about 100 seconds. Documents are limited to 14 MB, and only PDF, image or text files are supported (convert DOCX/XLSX first).
 4. **Workflows are built.** 22 flows and 4 operations APIs compose these agents across the whole trade; see [WORKFLOWS.md](WORKFLOWS.md).
-5. **Front-door chat agents:** Buyer Concierge and Seller Assistant, in Copilot Studio (via `pac copilot init/push`), calling these Custom APIs as tools.
+5. **Front-door chat agents are built** as `gc_Agent_BuyerConcierge` and `gc_Agent_SellerAssistant` on this runtime (decided 6 Oct 2026 instead of Copilot Studio, to avoid paying Copilot credits on top of Gemini). WhatsApp can later post into the same `gc_message` table through a flow.

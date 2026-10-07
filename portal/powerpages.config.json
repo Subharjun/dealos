@@ -1,0 +1,7 @@
+{
+  "$schema": "https://www.schemastore.org/powerpages.config.json",
+  "siteName": "DealOS Marketplace",
+  "compiledPath": "dist",
+  "defaultLandingPage": "index.html",
+  "bundleFilePatterns": ["index-*.js", "index-*.css"]
+}

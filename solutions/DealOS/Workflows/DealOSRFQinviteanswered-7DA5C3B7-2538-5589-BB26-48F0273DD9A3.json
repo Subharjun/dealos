@@ -1,0 +1,360 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_commondataserviceforapps": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "gc_dataverse"
+        },
+        "api": {
+          "name": "shared_commondataserviceforapps"
+        }
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$connections": {
+          "defaultValue": {},
+          "type": "Object"
+        },
+        "$authentication": {
+          "defaultValue": {},
+          "type": "SecureObject"
+        }
+      },
+      "triggers": {
+        "When_an_invite_is_answered": {
+          "type": "OpenApiConnectionWebhook",
+          "inputs": {
+            "host": {
+              "connectionName": "shared_commondataserviceforapps",
+              "operationId": "SubscribeWebhookTrigger",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "subscriptionRequest/message": 3,
+              "subscriptionRequest/entityname": "gc_rfqinvite",
+              "subscriptionRequest/scope": 4,
+              "subscriptionRequest/filteringattributes": "gc_status"
+            },
+            "authentication": "@parameters('$authentication')"
+          },
+          "conditions": [
+            {
+              "expression": "@or(equals(triggerOutputs()?['body/gc_status'], 303300002), equals(triggerOutputs()?['body/gc_status'], 303300003))"
+            }
+          ],
+          "runtimeConfiguration": {
+            "concurrency": {
+              "runs": 1
+            }
+          }
+        }
+      },
+      "actions": {
+        "Try": {
+          "type": "Scope",
+          "actions": {
+            "Requirement": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "GetItem",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_buyerrequirements",
+                  "recordId": "@{triggerOutputs()?['body/_gc_requirement_value']}",
+                  "$select": "gc_name,_gc_buyer_value,gc_quantity,gc_quantityunit,gc_incoterm,gc_currency"
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {}
+            },
+            "Listing": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "GetItem",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_listings",
+                  "recordId": "@{triggerOutputs()?['body/_gc_listing_value']}",
+                  "$select": "gc_name,_gc_seller_value,_gc_commodity_value,gc_currency,gc_incoterm,gc_namedplace"
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {
+                "Requirement": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Stamp_response": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "UpdateRecord",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_rfqinvites",
+                  "recordId": "@{triggerOutputs()?['body/gc_rfqinviteid']}",
+                  "item/gc_respondedon": "@utcNow()"
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {
+                "Listing": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Accepted_or_declined": {
+              "type": "If",
+              "expression": "@equals(triggerOutputs()?['body/gc_status'], 303300002)",
+              "actions": {
+                "Existing_deal": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_commondataserviceforapps",
+                      "operationId": "ListRecords",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                    },
+                    "parameters": {
+                      "entityName": "gc_deals",
+                      "$select": "gc_dealid",
+                      "$filter": "_gc_requirement_value eq @{triggerOutputs()?['body/_gc_requirement_value']} and _gc_listing_value eq @{triggerOutputs()?['body/_gc_listing_value']}",
+                      "$top": 1
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  },
+                  "runAfter": {}
+                },
+                "Need_deal": {
+                  "type": "If",
+                  "expression": "@equals(length(outputs('Existing_deal')?['body/value']), 0)",
+                  "actions": {
+                    "Create_deal": {
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "host": {
+                          "connectionName": "shared_commondataserviceforapps",
+                          "operationId": "CreateRecord",
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                        },
+                        "parameters": {
+                          "entityName": "gc_deals",
+                          "item/gc_name": "@{take(concat('RFQ: ', body('Listing')?['gc_name']), 100)}",
+                          "item/gc_stage": 303300000,
+                          "item/gc_currency": "@{coalesce(body('Requirement')?['gc_currency'], body('Listing')?['gc_currency'], 'USD')}",
+                          "item/gc_quantity": "@body('Requirement')?['gc_quantity']",
+                          "item/gc_quantityunit": "@body('Requirement')?['gc_quantityunit']",
+                          "item/gc_incoterm": "@coalesce(body('Requirement')?['gc_incoterm'], body('Listing')?['gc_incoterm'])",
+                          "item/gc_namedplace": "@{coalesce(body('Listing')?['gc_namedplace'], '')}",
+                          "item/gc_buyer@odata.bind": "@{concat('accounts(', body('Requirement')?['_gc_buyer_value'], ')')}",
+                          "item/gc_seller@odata.bind": "@{concat('accounts(', body('Listing')?['_gc_seller_value'], ')')}",
+                          "item/gc_listing@odata.bind": "@{concat('gc_listings(', triggerOutputs()?['body/_gc_listing_value'], ')')}",
+                          "item/gc_Requirement@odata.bind": "@{concat('gc_buyerrequirements(', triggerOutputs()?['body/_gc_requirement_value'], ')')}"
+                        },
+                        "authentication": "@parameters('$authentication')"
+                      },
+                      "runAfter": {}
+                    },
+                    "Set_commodity": {
+                      "type": "If",
+                      "expression": "@not(empty(body('Listing')?['_gc_commodity_value']))",
+                      "actions": {
+                        "Link_commodity": {
+                          "type": "OpenApiConnection",
+                          "inputs": {
+                            "host": {
+                              "connectionName": "shared_commondataserviceforapps",
+                              "operationId": "UpdateRecord",
+                              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                            },
+                            "parameters": {
+                              "entityName": "gc_deals",
+                              "recordId": "@{outputs('Create_deal')?['body/gc_dealid']}",
+                              "item/gc_commodity@odata.bind": "@{concat('gc_commodities(', body('Listing')?['_gc_commodity_value'], ')')}"
+                            },
+                            "authentication": "@parameters('$authentication')"
+                          },
+                          "runAfter": {}
+                        }
+                      },
+                      "else": {
+                        "actions": {}
+                      },
+                      "runAfter": {
+                        "Create_deal": [
+                          "Succeeded"
+                        ]
+                      }
+                    },
+                    "Link_invite": {
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "host": {
+                          "connectionName": "shared_commondataserviceforapps",
+                          "operationId": "UpdateRecord",
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                        },
+                        "parameters": {
+                          "entityName": "gc_rfqinvites",
+                          "recordId": "@{triggerOutputs()?['body/gc_rfqinviteid']}",
+                          "item/gc_Deal@odata.bind": "@{concat('gc_deals(', outputs('Create_deal')?['body/gc_dealid'], ')')}"
+                        },
+                        "authentication": "@parameters('$authentication')"
+                      },
+                      "runAfter": {
+                        "Set_commodity": [
+                          "Succeeded"
+                        ]
+                      }
+                    }
+                  },
+                  "else": {
+                    "actions": {}
+                  },
+                  "runAfter": {
+                    "Existing_deal": [
+                      "Succeeded"
+                    ]
+                  }
+                },
+                "Notify_buyer_accepted": {
+                  "type": "Workflow",
+                  "inputs": {
+                    "host": {
+                      "workflowReferenceName": "4f7bfa4c-432c-512b-b763-c703a64a583b"
+                    },
+                    "body": {
+                      "text": "@{body('Requirement')?['_gc_buyer_value']}",
+                      "text_1": "A seller accepted your RFQ invite",
+                      "text_2": "A seller accepted your invite for '@{body('Requirement')?['gc_name']}' (listing '@{body('Listing')?['gc_name']}'). Their offer will appear in DealOS, with landed cost, so you can compare it with other sellers. Identities stay masked until a contract is signed.",
+                      "text_3": "rfq.accepted"
+                    }
+                  },
+                  "runAfter": {
+                    "Need_deal": [
+                      "Succeeded"
+                    ]
+                  }
+                }
+              },
+              "else": {
+                "actions": {
+                  "Notify_buyer_declined": {
+                    "type": "Workflow",
+                    "inputs": {
+                      "host": {
+                        "workflowReferenceName": "4f7bfa4c-432c-512b-b763-c703a64a583b"
+                      },
+                      "body": {
+                        "text": "@{body('Requirement')?['_gc_buyer_value']}",
+                        "text_1": "A seller declined your RFQ invite",
+                        "text_2": "A seller declined your invite for '@{body('Requirement')?['gc_name']}' (listing '@{body('Listing')?['gc_name']}'). Your other invites are unaffected; you can invite more sellers from the RFQ in DealOS.",
+                        "text_3": "rfq.declined"
+                      }
+                    },
+                    "runAfter": {}
+                  }
+                }
+              },
+              "runAfter": {
+                "Stamp_response": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Audit": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "CreateRecord",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_auditevents",
+                  "item/gc_hash": "set-by-invariants-plugin",
+                  "item/gc_name": "rfq.answered",
+                  "item/gc_actor": "flow:rfq-invite",
+                  "item/gc_action": "rfq.answered",
+                  "item/gc_subjecttype": "gc_rfqinvite",
+                  "item/gc_subjectid": "@{triggerOutputs()?['body/gc_rfqinviteid']}",
+                  "item/gc_details": "@{take(string(addProperty(json('{}'), 'status', triggerOutputs()?['body/gc_status'])), 100000)}"
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {
+                "Accepted_or_declined": [
+                  "Succeeded"
+                ]
+              }
+            }
+          },
+          "runAfter": {}
+        },
+        "Catch": {
+          "type": "Scope",
+          "actions": {
+            "Record_failure": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "CreateRecord",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_flowfailures",
+                  "item/gc_name": "DealOS | RFQ invite answered",
+                  "item/gc_flowname": "DealOS | RFQ invite answered",
+                  "item/gc_runurl": "https://make.powerautomate.com/environments/@{workflow()?['tags']?['environmentName']}/flows/@{workflow()?['name']}/runs/@{workflow()?['run']?['name']}",
+                  "item/gc_step": "Try",
+                  "item/gc_error": "@{take(string(result('Try')), 3900)}",
+                  "item/gc_payload": "@{take(string(triggerOutputs()?['body']), 100000)}",
+                  "item/gc_status": 303300000
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {}
+            },
+            "Fail_run": {
+              "type": "Terminate",
+              "inputs": {
+                "runStatus": "Failed",
+                "runError": {
+                  "code": "DealOSFlowFailure",
+                  "message": "Recorded in Flow failures"
+                }
+              },
+              "runAfter": {
+                "Record_failure": [
+                  "Succeeded"
+                ]
+              }
+            }
+          },
+          "runAfter": {
+            "Try": [
+              "Failed",
+              "TimedOut"
+            ]
+          }
+        }
+      }
+    },
+    "templateName": null
+  },
+  "schemaVersion": "1.0.0.0"
+}

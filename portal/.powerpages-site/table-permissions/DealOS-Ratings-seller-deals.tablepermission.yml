@@ -1,0 +1,14 @@
+adx_entitypermission_webrole:
+- 7e5b23a5-7fb9-4e98-b46f-7c02a184baed
+append: true
+appendto: false
+create: true
+delete: false
+entitylogicalname: gc_rating
+entityname: DealOS - Ratings - seller deals
+id: 77012226-de96-5c45-8ede-0b2494448e7a
+parententitypermission: 035a6767-8a09-50d8-98f7-fb4b56f84c03
+parentrelationship: gc_deal_gc_rating_gc_deal
+read: false
+scope: 756150003
+write: false

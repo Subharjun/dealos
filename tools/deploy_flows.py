@@ -8,6 +8,7 @@ Usage:
   python3 tools/deploy_flows.py --only "Offer pricing" # one flow (substring of the name)
   python3 tools/deploy_flows.py --off                 # deploy but leave them off
   python3 tools/deploy_flows.py --dump build/flows    # write the generated JSON only, no deployment
+  python3 tools/deploy_flows.py --tests --off         # the test-only flows (Email Desk test kit), left off
 """
 import argparse
 import json
@@ -61,8 +62,9 @@ def main():
     ap.add_argument("--only")
     ap.add_argument("--off", action="store_true")
     ap.add_argument("--dump")
+    ap.add_argument("--tests", action="store_true", help="deploy the test-only flows instead of the product flows")
     args = ap.parse_args()
-    flows = [build() for build in definitions.ALL]
+    flows = [build() for build in (definitions.TESTS if args.tests else definitions.ALL)]
     if args.only:
         flows = [f for f in flows if args.only.lower() in f["name"].lower()]
     if args.dump:

@@ -10,9 +10,21 @@
       <Description>Runs a DealOS agent</Description>
       <FriendlyName>AgentPlugin</FriendlyName>
     </PluginType>
+    <PluginType AssemblyQualifiedName="DealOS.Agents.ChatPlugin, DealOS.Agents, Version=1.0.0.0, Culture=neutral, PublicKeyToken=6a7897f805501b8c" PluginTypeId="ba7f2eb2-91c1-f111-aaaf-7ced8daf451f" Name="DealOS.Agents.ChatPlugin">
+      <Description>Answers chat messages with the conversation's agent</Description>
+      <FriendlyName>ChatPlugin</FriendlyName>
+    </PluginType>
     <PluginType AssemblyQualifiedName="DealOS.Agents.Operations.OperationsPlugin, DealOS.Agents, Version=1.0.0.0, Culture=neutral, PublicKeyToken=6a7897f805501b8c" PluginTypeId="dbea2422-70c1-f111-aaaf-7ced8daf451f" Name="DealOS.Agents.Operations.OperationsPlugin">
       <Description>Deterministic deal operations (accept offer, open escrow)</Description>
       <FriendlyName>OperationsPlugin</FriendlyName>
+    </PluginType>
+    <PluginType AssemblyQualifiedName="DealOS.Agents.Portal.CatalogPlugin, DealOS.Agents, Version=1.0.0.0, Culture=neutral, PublicKeyToken=6a7897f805501b8c" PluginTypeId="e9a16793-95c1-f111-aaaf-7ced8daf451f" Name="DealOS.Agents.Portal.CatalogPlugin">
+      <Description>Keeps the public masked catalog (gc_catalogentry) in step with listings</Description>
+      <FriendlyName>CatalogPlugin</FriendlyName>
+    </PluginType>
+    <PluginType AssemblyQualifiedName="DealOS.Agents.Portal.PortalGuardPlugin, DealOS.Agents, Version=1.0.0.0, Culture=neutral, PublicKeyToken=6a7897f805501b8c" PluginTypeId="eaa16793-95c1-f111-aaaf-7ced8daf451f" Name="DealOS.Agents.Portal.PortalGuardPlugin">
+      <Description>Validates every write from the Power Pages site</Description>
+      <FriendlyName>PortalGuardPlugin</FriendlyName>
     </PluginType>
   </PluginTypes>
 </PluginAssembly>

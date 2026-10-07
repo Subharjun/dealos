@@ -1,0 +1,271 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_commondataserviceforapps": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "gc_dataverse"
+        },
+        "api": {
+          "name": "shared_commondataserviceforapps"
+        }
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$connections": {
+          "defaultValue": {},
+          "type": "Object"
+        },
+        "$authentication": {
+          "defaultValue": {},
+          "type": "SecureObject"
+        }
+      },
+      "triggers": {
+        "When_commission_is_taken": {
+          "type": "OpenApiConnectionWebhook",
+          "inputs": {
+            "host": {
+              "connectionName": "shared_commondataserviceforapps",
+              "operationId": "SubscribeWebhookTrigger",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "subscriptionRequest/message": 3,
+              "subscriptionRequest/entityname": "gc_paymentrelease",
+              "subscriptionRequest/scope": 4,
+              "subscriptionRequest/filterexpression": "gc_status eq 303300004",
+              "subscriptionRequest/filteringattributes": "gc_status"
+            },
+            "authentication": "@parameters('$authentication')"
+          },
+          "runtimeConfiguration": {
+            "concurrency": {
+              "runs": 1
+            }
+          }
+        }
+      },
+      "actions": {
+        "Try": {
+          "type": "Scope",
+          "actions": {
+            "Has_commission": {
+              "type": "If",
+              "expression": "@greater(coalesce(triggerOutputs()?['body/gc_commissionamount'], 0), 0)",
+              "actions": {},
+              "else": {
+                "actions": {
+                  "No_commission": {
+                    "type": "Terminate",
+                    "inputs": {
+                      "runStatus": "Succeeded"
+                    },
+                    "runAfter": {}
+                  }
+                }
+              },
+              "runAfter": {}
+            },
+            "Existing_invoice": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "ListRecords",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_invoices",
+                  "$select": "gc_invoiceid",
+                  "$filter": "_gc_release_value eq @{triggerOutputs()?['body/gc_paymentreleaseid']}",
+                  "$top": 1
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {
+                "Has_commission": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Already_invoiced": {
+              "type": "If",
+              "expression": "@greater(length(outputs('Existing_invoice')?['body/value']), 0)",
+              "actions": {
+                "Invoice_exists": {
+                  "type": "Terminate",
+                  "inputs": {
+                    "runStatus": "Succeeded"
+                  },
+                  "runAfter": {}
+                }
+              },
+              "else": {
+                "actions": {}
+              },
+              "runAfter": {
+                "Existing_invoice": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Payment": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "GetItem",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_payments",
+                  "recordId": "@{triggerOutputs()?['body/_gc_payment_value']}",
+                  "$select": "gc_currency,_gc_deal_value"
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {
+                "Already_invoiced": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Deal": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "GetItem",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_deals",
+                  "recordId": "@{body('Payment')?['_gc_deal_value']}",
+                  "$select": "gc_name,_gc_seller_value"
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {
+                "Payment": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Create_invoice": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "CreateRecord",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_invoices",
+                  "item/gc_name": "@{take(concat('Commission – ', body('Deal')?['gc_name']), 200)}",
+                  "item/gc_invoicenumber": "@{concat('DOS-', formatDateTime(utcNow(), 'yyyyMMdd'), '-', toUpper(take(triggerOutputs()?['body/gc_paymentreleaseid'], 8)))}",
+                  "item/gc_kind": 303300000,
+                  "item/gc_status": 303300000,
+                  "item/gc_currency": "@{body('Payment')?['gc_currency']}",
+                  "item/gc_amount": "@triggerOutputs()?['body/gc_commissionamount']",
+                  "item/gc_taxamount": 0,
+                  "item/gc_total": "@triggerOutputs()?['body/gc_commissionamount']",
+                  "item/gc_taxdetails": "{\"note\": \"Deducted at source from the escrow release. Finance sets GST/VAT and issues the invoice.\"}",
+                  "item/gc_Deal@odata.bind": "@{concat('gc_deals(', body('Payment')?['_gc_deal_value'], ')')}",
+                  "item/gc_Release@odata.bind": "@{concat('gc_paymentreleases(', triggerOutputs()?['body/gc_paymentreleaseid'], ')')}",
+                  "item/gc_BillTo@odata.bind": "@{concat('accounts(', body('Deal')?['_gc_seller_value'], ')')}"
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {
+                "Deal": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Audit": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "CreateRecord",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_auditevents",
+                  "item/gc_hash": "set-by-invariants-plugin",
+                  "item/gc_name": "invoice.drafted",
+                  "item/gc_actor": "flow:commission-invoice",
+                  "item/gc_action": "invoice.drafted",
+                  "item/gc_subjecttype": "gc_paymentrelease",
+                  "item/gc_subjectid": "@{triggerOutputs()?['body/gc_paymentreleaseid']}",
+                  "item/gc_details": "@{take(string(addProperty(addProperty(json('{}'), 'invoice', outputs('Create_invoice')?['body/gc_invoiceid']), 'amount', triggerOutputs()?['body/gc_commissionamount'])), 100000)}"
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {
+                "Create_invoice": [
+                  "Succeeded"
+                ]
+              }
+            }
+          },
+          "runAfter": {}
+        },
+        "Catch": {
+          "type": "Scope",
+          "actions": {
+            "Record_failure": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "CreateRecord",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_flowfailures",
+                  "item/gc_name": "DealOS | Commission invoice",
+                  "item/gc_flowname": "DealOS | Commission invoice",
+                  "item/gc_runurl": "https://make.powerautomate.com/environments/@{workflow()?['tags']?['environmentName']}/flows/@{workflow()?['name']}/runs/@{workflow()?['run']?['name']}",
+                  "item/gc_step": "Try",
+                  "item/gc_error": "@{take(string(result('Try')), 3900)}",
+                  "item/gc_payload": "@{take(string(triggerOutputs()?['body']), 100000)}",
+                  "item/gc_status": 303300000
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {}
+            },
+            "Fail_run": {
+              "type": "Terminate",
+              "inputs": {
+                "runStatus": "Failed",
+                "runError": {
+                  "code": "DealOSFlowFailure",
+                  "message": "Recorded in Flow failures"
+                }
+              },
+              "runAfter": {
+                "Record_failure": [
+                  "Succeeded"
+                ]
+              }
+            }
+          },
+          "runAfter": {
+            "Try": [
+              "Failed",
+              "TimedOut"
+            ]
+          }
+        }
+      }
+    },
+    "templateName": null
+  },
+  "schemaVersion": "1.0.0.0"
+}

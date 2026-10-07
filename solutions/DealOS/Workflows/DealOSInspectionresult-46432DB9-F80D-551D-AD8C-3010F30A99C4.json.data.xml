@@ -1,0 +1,30 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Workflow WorkflowId="{46432db9-f80d-551d-ad8c-3010f30a99c4}" Name="DealOS | Inspection result" Description="Inspection set to Passed → verification record (independent inspection, Confirmed) + Inspection milestone Completed with the report → both told. Failed → deal On Hold + Deal Manager task (renegotiate or cancel with refund) → both told." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <JsonFileName>/Workflows/DealOSInspectionresult-46432DB9-F80D-551D-AD8C-3010F30A99C4.json</JsonFileName>
+  <Type>1</Type>
+  <Subprocess>0</Subprocess>
+  <Category>5</Category>
+  <Mode>0</Mode>
+  <Scope>4</Scope>
+  <OnDemand>0</OnDemand>
+  <TriggerOnCreate>0</TriggerOnCreate>
+  <TriggerOnDelete>0</TriggerOnDelete>
+  <AsyncAutodelete>0</AsyncAutodelete>
+  <SyncWorkflowLogOnFailure>0</SyncWorkflowLogOnFailure>
+  <StateCode>1</StateCode>
+  <StatusCode>2</StatusCode>
+  <RunAs>1</RunAs>
+  <IsTransacted>1</IsTransacted>
+  <IntroducedVersion>1.0.0.0</IntroducedVersion>
+  <IsCustomizable>1</IsCustomizable>
+  <BusinessProcessType>0</BusinessProcessType>
+  <IsCustomProcessingStepAllowedForOtherPublishers>1</IsCustomProcessingStepAllowedForOtherPublishers>
+  <ModernFlowType>0</ModernFlowType>
+  <PrimaryEntity>none</PrimaryEntity>
+  <LocalizedNames>
+    <LocalizedName languagecode="1033" description="DealOS | Inspection result" />
+  </LocalizedNames>
+  <Descriptions>
+    <Description languagecode="1033" description="Inspection set to Passed → verification record (independent inspection, Confirmed) + Inspection milestone Completed with the report → both told. Failed → deal On Hold + Deal Manager task (renegotiate or cancel with refund) → both told." />
+  </Descriptions>
+</Workflow>

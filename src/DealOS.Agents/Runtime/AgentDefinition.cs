@@ -53,6 +53,9 @@ namespace DealOS.Agents.Runtime
         /// <summary>Extra content parts for the first user turn (e.g. an inline PDF).</summary>
         public virtual List<object> ExtraParts(AgentContext ctx) { return null; }
 
+        /// <summary>Checks a schema-valid finish result before it is accepted; a non-null problem goes back to the model to fix.</summary>
+        public virtual string CheckFinish(AgentContext ctx, Dictionary<string, object> result) { return null; }
+
         /// <summary>Deterministic post-processing and guards after the model has finished.</summary>
         public virtual void AfterFinish(AgentContext ctx, Dictionary<string, object> result) { }
 

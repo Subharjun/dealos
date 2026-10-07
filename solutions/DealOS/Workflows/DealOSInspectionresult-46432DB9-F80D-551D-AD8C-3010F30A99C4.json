@@ -1,0 +1,523 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_commondataserviceforapps": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "gc_dataverse"
+        },
+        "api": {
+          "name": "shared_commondataserviceforapps"
+        }
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$connections": {
+          "defaultValue": {},
+          "type": "Object"
+        },
+        "$authentication": {
+          "defaultValue": {},
+          "type": "SecureObject"
+        }
+      },
+      "triggers": {
+        "When_an_inspection_concludes": {
+          "type": "OpenApiConnectionWebhook",
+          "inputs": {
+            "host": {
+              "connectionName": "shared_commondataserviceforapps",
+              "operationId": "SubscribeWebhookTrigger",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "subscriptionRequest/message": 3,
+              "subscriptionRequest/entityname": "gc_inspection",
+              "subscriptionRequest/scope": 4,
+              "subscriptionRequest/filteringattributes": "gc_status"
+            },
+            "authentication": "@parameters('$authentication')"
+          },
+          "conditions": [
+            {
+              "expression": "@or(equals(triggerOutputs()?['body/gc_status'], 303300004), equals(triggerOutputs()?['body/gc_status'], 303300005))"
+            }
+          ],
+          "runtimeConfiguration": {
+            "concurrency": {
+              "runs": 1
+            }
+          }
+        }
+      },
+      "actions": {
+        "Try": {
+          "type": "Scope",
+          "actions": {
+            "Deal": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "GetItem",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_deals",
+                  "recordId": "@{triggerOutputs()?['body/_gc_deal_value']}",
+                  "$select": "gc_name,_gc_buyer_value,_gc_seller_value"
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {}
+            },
+            "Passed_or_failed": {
+              "type": "If",
+              "expression": "@equals(triggerOutputs()?['body/gc_status'], 303300004)",
+              "actions": {
+                "Within_spec": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_commondataserviceforapps",
+                      "operationId": "UpdateRecord",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                    },
+                    "parameters": {
+                      "entityName": "gc_inspections",
+                      "recordId": "@{triggerOutputs()?['body/gc_inspectionid']}",
+                      "item/gc_result": 303300001
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  },
+                  "runAfter": {}
+                },
+                "Create_verification": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_commondataserviceforapps",
+                      "operationId": "CreateRecord",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                    },
+                    "parameters": {
+                      "entityName": "gc_verifications",
+                      "item/gc_name": "@{take(concat('Independent inspection passed – ', body('Deal')?['gc_name']), 100)}",
+                      "item/gc_method": 303300002,
+                      "item/gc_result": 303300000,
+                      "item/gc_performedon": "@coalesce(triggerOutputs()?['body/gc_sampledon'], utcNow())",
+                      "item/gc_notes": "@{coalesce(triggerOutputs()?['body/gc_findings'], 'Within specification')}"
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  },
+                  "runAfter": {
+                    "Within_spec": [
+                      "Succeeded"
+                    ]
+                  }
+                },
+                "Verification_links": {
+                  "type": "If",
+                  "expression": "@not(empty(triggerOutputs()?['body/_gc_report_value']))",
+                  "actions": {
+                    "Link_report": {
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "host": {
+                          "connectionName": "shared_commondataserviceforapps",
+                          "operationId": "UpdateRecord",
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                        },
+                        "parameters": {
+                          "entityName": "gc_verifications",
+                          "recordId": "@{outputs('Create_verification')?['body/gc_verificationid']}",
+                          "item/gc_evidencedocument@odata.bind": "@{concat('gc_documents(', triggerOutputs()?['body/_gc_report_value'], ')')}"
+                        },
+                        "authentication": "@parameters('$authentication')"
+                      },
+                      "runAfter": {}
+                    }
+                  },
+                  "else": {
+                    "actions": {}
+                  },
+                  "runAfter": {
+                    "Create_verification": [
+                      "Succeeded"
+                    ]
+                  }
+                },
+                "Verification_agency": {
+                  "type": "If",
+                  "expression": "@not(empty(triggerOutputs()?['body/_gc_agency_value']))",
+                  "actions": {
+                    "Link_agency": {
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "host": {
+                          "connectionName": "shared_commondataserviceforapps",
+                          "operationId": "UpdateRecord",
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                        },
+                        "parameters": {
+                          "entityName": "gc_verifications",
+                          "recordId": "@{outputs('Create_verification')?['body/gc_verificationid']}",
+                          "item/gc_performedbypartner@odata.bind": "@{concat('accounts(', triggerOutputs()?['body/_gc_agency_value'], ')')}"
+                        },
+                        "authentication": "@parameters('$authentication')"
+                      },
+                      "runAfter": {}
+                    }
+                  },
+                  "else": {
+                    "actions": {}
+                  },
+                  "runAfter": {
+                    "Verification_links": [
+                      "Succeeded"
+                    ]
+                  }
+                },
+                "Link_verification": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_commondataserviceforapps",
+                      "operationId": "UpdateRecord",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                    },
+                    "parameters": {
+                      "entityName": "gc_inspections",
+                      "recordId": "@{triggerOutputs()?['body/gc_inspectionid']}",
+                      "item/gc_Verification@odata.bind": "@{concat('gc_verifications(', outputs('Create_verification')?['body/gc_verificationid'], ')')}"
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  },
+                  "runAfter": {
+                    "Verification_agency": [
+                      "Succeeded"
+                    ]
+                  }
+                },
+                "Inspection_milestone": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_commondataserviceforapps",
+                      "operationId": "ListRecords",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                    },
+                    "parameters": {
+                      "entityName": "gc_milestones",
+                      "$select": "gc_milestoneid",
+                      "$filter": "_gc_deal_value eq @{triggerOutputs()?['body/_gc_deal_value']} and gc_type eq 303300000 and gc_status eq 303300000",
+                      "$top": 1
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  },
+                  "runAfter": {
+                    "Link_verification": [
+                      "Succeeded"
+                    ]
+                  }
+                },
+                "Complete_milestone": {
+                  "type": "If",
+                  "expression": "@greater(length(outputs('Inspection_milestone')?['body/value']), 0)",
+                  "actions": {
+                    "Milestone_done": {
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "host": {
+                          "connectionName": "shared_commondataserviceforapps",
+                          "operationId": "UpdateRecord",
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                        },
+                        "parameters": {
+                          "entityName": "gc_milestones",
+                          "recordId": "@{first(outputs('Inspection_milestone')?['body/value'])?['gc_milestoneid']}",
+                          "item/gc_status": 303300001,
+                          "item/gc_completedon": "@utcNow()"
+                        },
+                        "authentication": "@parameters('$authentication')"
+                      },
+                      "runAfter": {}
+                    },
+                    "Milestone_evidence": {
+                      "type": "If",
+                      "expression": "@not(empty(triggerOutputs()?['body/_gc_report_value']))",
+                      "actions": {
+                        "Milestone_report": {
+                          "type": "OpenApiConnection",
+                          "inputs": {
+                            "host": {
+                              "connectionName": "shared_commondataserviceforapps",
+                              "operationId": "UpdateRecord",
+                              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                            },
+                            "parameters": {
+                              "entityName": "gc_milestones",
+                              "recordId": "@{first(outputs('Inspection_milestone')?['body/value'])?['gc_milestoneid']}",
+                              "item/gc_evidencedocument@odata.bind": "@{concat('gc_documents(', triggerOutputs()?['body/_gc_report_value'], ')')}"
+                            },
+                            "authentication": "@parameters('$authentication')"
+                          },
+                          "runAfter": {}
+                        }
+                      },
+                      "else": {
+                        "actions": {}
+                      },
+                      "runAfter": {
+                        "Milestone_done": [
+                          "Succeeded"
+                        ]
+                      }
+                    }
+                  },
+                  "else": {
+                    "actions": {}
+                  },
+                  "runAfter": {
+                    "Inspection_milestone": [
+                      "Succeeded"
+                    ]
+                  }
+                },
+                "Passed_buyer": {
+                  "type": "Workflow",
+                  "inputs": {
+                    "host": {
+                      "workflowReferenceName": "4f7bfa4c-432c-512b-b763-c703a64a583b"
+                    },
+                    "body": {
+                      "text": "@{body('Deal')?['_gc_buyer_value']}",
+                      "text_1": "Inspection passed",
+                      "text_2": "The independent inspection for '@{body('Deal')?['gc_name']}' found the material within specification. Shipment can now be booked.",
+                      "text_3": "inspection.passed"
+                    }
+                  },
+                  "runAfter": {
+                    "Complete_milestone": [
+                      "Succeeded"
+                    ]
+                  }
+                },
+                "Passed_seller": {
+                  "type": "Workflow",
+                  "inputs": {
+                    "host": {
+                      "workflowReferenceName": "4f7bfa4c-432c-512b-b763-c703a64a583b"
+                    },
+                    "body": {
+                      "text": "@{body('Deal')?['_gc_seller_value']}",
+                      "text_1": "Inspection passed",
+                      "text_2": "The independent inspection for '@{body('Deal')?['gc_name']}' found the material within specification. Shipment can now be booked.",
+                      "text_3": "inspection.passed"
+                    }
+                  },
+                  "runAfter": {
+                    "Passed_buyer": [
+                      "Succeeded"
+                    ]
+                  }
+                }
+              },
+              "else": {
+                "actions": {
+                  "Off_spec": {
+                    "type": "OpenApiConnection",
+                    "inputs": {
+                      "host": {
+                        "connectionName": "shared_commondataserviceforapps",
+                        "operationId": "UpdateRecord",
+                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                      },
+                      "parameters": {
+                        "entityName": "gc_inspections",
+                        "recordId": "@{triggerOutputs()?['body/gc_inspectionid']}",
+                        "item/gc_result": 303300002
+                      },
+                      "authentication": "@parameters('$authentication')"
+                    },
+                    "runAfter": {}
+                  },
+                  "Hold_deal": {
+                    "type": "OpenApiConnection",
+                    "inputs": {
+                      "host": {
+                        "connectionName": "shared_commondataserviceforapps",
+                        "operationId": "UpdateRecord",
+                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                      },
+                      "parameters": {
+                        "entityName": "gc_deals",
+                        "recordId": "@{triggerOutputs()?['body/_gc_deal_value']}",
+                        "item/gc_statusoverlay": 303300001
+                      },
+                      "authentication": "@parameters('$authentication')"
+                    },
+                    "runAfter": {
+                      "Off_spec": [
+                        "Succeeded"
+                      ]
+                    }
+                  },
+                  "Off_spec_task": {
+                    "type": "OpenApiConnection",
+                    "inputs": {
+                      "host": {
+                        "connectionName": "shared_commondataserviceforapps",
+                        "operationId": "CreateRecord",
+                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                      },
+                      "parameters": {
+                        "entityName": "gc_reviewtasks",
+                        "item/gc_name": "@{take(concat('Inspection off-spec: ', body('Deal')?['gc_name']), 100)}",
+                        "item/gc_kind": 303300001,
+                        "item/gc_purpose": 303300009,
+                        "item/gc_assigneerole": 303300002,
+                        "item/gc_status": 303300000,
+                        "item/gc_payload": "@{string(addProperty(addProperty(addProperty(json('{}'), 'inspectionId', triggerOutputs()?['body/gc_inspectionid']), 'findings', triggerOutputs()?['body/gc_findings']), 'options', 'Renegotiate the price through a new offer round, or cancel the deal (escrow is refunded). Lift the On Hold overlay when decided.'))}",
+                        "item/gc_deal@odata.bind": "gc_deals(@{triggerOutputs()?['body/_gc_deal_value']})"
+                      },
+                      "authentication": "@parameters('$authentication')"
+                    },
+                    "runAfter": {
+                      "Hold_deal": [
+                        "Succeeded"
+                      ]
+                    }
+                  },
+                  "Failed_buyer": {
+                    "type": "Workflow",
+                    "inputs": {
+                      "host": {
+                        "workflowReferenceName": "4f7bfa4c-432c-512b-b763-c703a64a583b"
+                      },
+                      "body": {
+                        "text": "@{body('Deal')?['_gc_buyer_value']}",
+                        "text_1": "Inspection found deviations",
+                        "text_2": "The independent inspection for '@{body('Deal')?['gc_name']}' found deviations from the agreed specification. Payments on this deal are on hold; a DealOS deal manager will contact you about the next step (price adjustment or cancellation with refund).",
+                        "text_3": "inspection.failed"
+                      }
+                    },
+                    "runAfter": {
+                      "Off_spec_task": [
+                        "Succeeded"
+                      ]
+                    }
+                  },
+                  "Failed_seller": {
+                    "type": "Workflow",
+                    "inputs": {
+                      "host": {
+                        "workflowReferenceName": "4f7bfa4c-432c-512b-b763-c703a64a583b"
+                      },
+                      "body": {
+                        "text": "@{body('Deal')?['_gc_seller_value']}",
+                        "text_1": "Inspection found deviations",
+                        "text_2": "The independent inspection for '@{body('Deal')?['gc_name']}' found deviations from the agreed specification. Payments on this deal are on hold; a DealOS deal manager will contact you about the next step (price adjustment or cancellation with refund).",
+                        "text_3": "inspection.failed"
+                      }
+                    },
+                    "runAfter": {
+                      "Failed_buyer": [
+                        "Succeeded"
+                      ]
+                    }
+                  }
+                }
+              },
+              "runAfter": {
+                "Deal": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Audit": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "CreateRecord",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_auditevents",
+                  "item/gc_hash": "set-by-invariants-plugin",
+                  "item/gc_name": "inspection.result",
+                  "item/gc_actor": "flow:inspection",
+                  "item/gc_action": "inspection.result",
+                  "item/gc_subjecttype": "gc_inspection",
+                  "item/gc_subjectid": "@{triggerOutputs()?['body/gc_inspectionid']}",
+                  "item/gc_details": "@{take(string(addProperty(addProperty(json('{}'), 'status', triggerOutputs()?['body/gc_status']), 'deal', triggerOutputs()?['body/_gc_deal_value'])), 100000)}"
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {
+                "Passed_or_failed": [
+                  "Succeeded"
+                ]
+              }
+            }
+          },
+          "runAfter": {}
+        },
+        "Catch": {
+          "type": "Scope",
+          "actions": {
+            "Record_failure": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "CreateRecord",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_flowfailures",
+                  "item/gc_name": "DealOS | Inspection result",
+                  "item/gc_flowname": "DealOS | Inspection result",
+                  "item/gc_runurl": "https://make.powerautomate.com/environments/@{workflow()?['tags']?['environmentName']}/flows/@{workflow()?['name']}/runs/@{workflow()?['run']?['name']}",
+                  "item/gc_step": "Try",
+                  "item/gc_error": "@{take(string(result('Try')), 3900)}",
+                  "item/gc_payload": "@{take(string(triggerOutputs()?['body']), 100000)}",
+                  "item/gc_status": 303300000
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {}
+            },
+            "Fail_run": {
+              "type": "Terminate",
+              "inputs": {
+                "runStatus": "Failed",
+                "runError": {
+                  "code": "DealOSFlowFailure",
+                  "message": "Recorded in Flow failures"
+                }
+              },
+              "runAfter": {
+                "Record_failure": [
+                  "Succeeded"
+                ]
+              }
+            }
+          },
+          "runAfter": {
+            "Try": [
+              "Failed",
+              "TimedOut"
+            ]
+          }
+        }
+      }
+    },
+    "templateName": null
+  },
+  "schemaVersion": "1.0.0.0"
+}

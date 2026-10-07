@@ -1,0 +1,261 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_commondataserviceforapps": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "gc_dataverse"
+        },
+        "api": {
+          "name": "shared_commondataserviceforapps"
+        }
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$connections": {
+          "defaultValue": {},
+          "type": "Object"
+        },
+        "$authentication": {
+          "defaultValue": {},
+          "type": "SecureObject"
+        }
+      },
+      "triggers": {
+        "When_a_dispute_is_raised": {
+          "type": "OpenApiConnectionWebhook",
+          "inputs": {
+            "host": {
+              "connectionName": "shared_commondataserviceforapps",
+              "operationId": "SubscribeWebhookTrigger",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "subscriptionRequest/message": 1,
+              "subscriptionRequest/entityname": "gc_dispute",
+              "subscriptionRequest/scope": 4
+            },
+            "authentication": "@parameters('$authentication')"
+          },
+          "runtimeConfiguration": {
+            "concurrency": {
+              "runs": 1
+            }
+          }
+        }
+      },
+      "actions": {
+        "Try": {
+          "type": "Scope",
+          "actions": {
+            "Deal": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "GetItem",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_deals",
+                  "recordId": "@{triggerOutputs()?['body/_gc_deal_value']}",
+                  "$select": "gc_name,_gc_buyer_value,_gc_seller_value"
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {}
+            },
+            "Pause_money": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "UpdateRecord",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_deals",
+                  "recordId": "@{triggerOutputs()?['body/_gc_deal_value']}",
+                  "item/gc_statusoverlay": 303300002
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {
+                "Deal": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Dispute_task": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "CreateRecord",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_reviewtasks",
+                  "item/gc_name": "@{take(concat('Dispute: ', body('Deal')?['gc_name']), 100)}",
+                  "item/gc_kind": 303300001,
+                  "item/gc_purpose": 303300009,
+                  "item/gc_assigneerole": 303300002,
+                  "item/gc_status": 303300000,
+                  "item/gc_payload": "@{string(addProperty(addProperty(addProperty(addProperty(json('{}'), 'disputeId', triggerOutputs()?['body/gc_disputeid']), 'reason', triggerOutputs()?['body/gc_reason']), 'description', triggerOutputs()?['body/gc_description']), 'amount', triggerOutputs()?['body/gc_amountdisputed']))}",
+                  "item/gc_deal@odata.bind": "gc_deals(@{triggerOutputs()?['body/_gc_deal_value']})"
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {
+                "Pause_money": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Under_review": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "UpdateRecord",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_disputes",
+                  "recordId": "@{triggerOutputs()?['body/gc_disputeid']}",
+                  "item/gc_status": 303300001,
+                  "item/gc_openedon": "@coalesce(triggerOutputs()?['body/gc_openedon'], utcNow())",
+                  "item/gc_ReviewTask@odata.bind": "@{concat('gc_reviewtasks(', outputs('Dispute_task')?['body/gc_reviewtaskid'], ')')}"
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {
+                "Dispute_task": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Notify_buyer": {
+              "type": "Workflow",
+              "inputs": {
+                "host": {
+                  "workflowReferenceName": "4f7bfa4c-432c-512b-b763-c703a64a583b"
+                },
+                "body": {
+                  "text": "@{body('Deal')?['_gc_buyer_value']}",
+                  "text_1": "A dispute was raised",
+                  "text_2": "A dispute was raised on '@{body('Deal')?['gc_name']}'. Payments on this deal are paused while DealOS reviews it; you may be asked for evidence. Escrow funds stay with the partner until it is resolved.",
+                  "text_3": "dispute.opened"
+                }
+              },
+              "runAfter": {
+                "Under_review": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Notify_seller": {
+              "type": "Workflow",
+              "inputs": {
+                "host": {
+                  "workflowReferenceName": "4f7bfa4c-432c-512b-b763-c703a64a583b"
+                },
+                "body": {
+                  "text": "@{body('Deal')?['_gc_seller_value']}",
+                  "text_1": "A dispute was raised",
+                  "text_2": "A dispute was raised on '@{body('Deal')?['gc_name']}'. Payments on this deal are paused while DealOS reviews it; you may be asked for evidence. Escrow funds stay with the partner until it is resolved.",
+                  "text_3": "dispute.opened"
+                }
+              },
+              "runAfter": {
+                "Notify_buyer": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Audit": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "CreateRecord",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_auditevents",
+                  "item/gc_hash": "set-by-invariants-plugin",
+                  "item/gc_name": "dispute.opened",
+                  "item/gc_actor": "flow:dispute",
+                  "item/gc_action": "dispute.opened",
+                  "item/gc_subjecttype": "gc_dispute",
+                  "item/gc_subjectid": "@{triggerOutputs()?['body/gc_disputeid']}",
+                  "item/gc_details": "@{take(string(addProperty(addProperty(json('{}'), 'deal', triggerOutputs()?['body/_gc_deal_value']), 'reason', triggerOutputs()?['body/gc_reason'])), 100000)}"
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {
+                "Notify_seller": [
+                  "Succeeded"
+                ]
+              }
+            }
+          },
+          "runAfter": {}
+        },
+        "Catch": {
+          "type": "Scope",
+          "actions": {
+            "Record_failure": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "CreateRecord",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_flowfailures",
+                  "item/gc_name": "DealOS | Dispute opened",
+                  "item/gc_flowname": "DealOS | Dispute opened",
+                  "item/gc_runurl": "https://make.powerautomate.com/environments/@{workflow()?['tags']?['environmentName']}/flows/@{workflow()?['name']}/runs/@{workflow()?['run']?['name']}",
+                  "item/gc_step": "Try",
+                  "item/gc_error": "@{take(string(result('Try')), 3900)}",
+                  "item/gc_payload": "@{take(string(triggerOutputs()?['body']), 100000)}",
+                  "item/gc_status": 303300000
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {}
+            },
+            "Fail_run": {
+              "type": "Terminate",
+              "inputs": {
+                "runStatus": "Failed",
+                "runError": {
+                  "code": "DealOSFlowFailure",
+                  "message": "Recorded in Flow failures"
+                }
+              },
+              "runAfter": {
+                "Record_failure": [
+                  "Succeeded"
+                ]
+              }
+            }
+          },
+          "runAfter": {
+            "Try": [
+              "Failed",
+              "TimedOut"
+            ]
+          }
+        }
+      }
+    },
+    "templateName": null
+  },
+  "schemaVersion": "1.0.0.0"
+}

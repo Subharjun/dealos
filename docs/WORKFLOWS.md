@@ -73,6 +73,21 @@ Each arrow label is a flow. A box ending in "agent" is a `gc_Agent_*` call.
 | **Notify party** | child flow | Emails a party (account email, otherwise the primary contact's), or only records the message; see [Notifications](#notifications). | — |
 | **Daily digest** | 03:00 UTC daily | Runs the AdminSupervisor agent and emails the digest. | — |
 | **Daily sweep** *(unchanged)* | 02:00 UTC daily | Re-checks expired facts and expires stale offers. | — |
+| **RFQ invite sent** | `gc_rfqinvite` created (Invited) | Stamps the seller (from the listing) and the invite date, then tells the seller without naming the buyer. | — |
+| **RFQ invite answered** | invite → Accepted or Declined | Accepted: one deal (Inquiry) linked to the RFQ and listing, invite linked to it, buyer told. Declined: buyer told. | — |
+| **Inspection booking** | deal stage → Funded | One `gc_inspection` (Requested) for the deal's lot, a Logistics Coordinator task to book an independent agency, both parties told. | Booking (task) |
+| **Inspection result** | inspection → Passed or Failed | Passed: a `gc_verification` (inspection, Confirmed) with the report and agency, the Inspection milestone Completed with the report (Milestone progress takes over). Failed: deal **On Hold**, Deal Manager task (renegotiate or cancel with refund), both told. | Off-spec decision |
+| **Dispute opened** | `gc_dispute` created | Deal overlay **Disputed**, so `gc_InstructRelease` refuses every release. Deal Manager task linked to the dispute, dispute Under Review, both told. | Resolution |
+| **Dispute closed** | dispute → Resolved or Withdrawn | Cancels the dispute's open task. Lifts the overlay when no other dispute is open. A refund outcome opens a Finance Refund task; a cancel outcome moves the deal to Cancelled. Both told. | Refund (Finance) |
+| **Deal settled** | deal stage → Settled | Each KYB-verified party gets a Tier Upgrade approval to Trade Verified (first settled trade); both are asked to rate. | Tier Upgrade |
+| **Rating received** | `gc_rating` created | Stamps the date; a score of 2 or less opens a Support review on the rated party. | — |
+| **Commission invoice** | release → Settled with commission | One Draft commission invoice (bill to the seller, amount = commission deducted at source) for Finance to complete and issue. | Issue (Finance) |
+| **Daily deadlines** | 02:30 UTC daily | Expires RFQs past validity (buyer told) and invites unanswered for `rfq.invite_days` (default 5). Deal Manager task when escrow is not funded by the deadline (**never cancels on its own**). Funding reminder 2 days before. Logistics task when an inspection result is 2 days overdue. | Extend or cancel |
+| **Flow failure triage** | every hour | Groups new `gc_flowfailure` rows per flow into one Support review task with the run links. One open task per flow. | Resubmit the runs |
+| **Mailbox sync** (Email Desk) | every 3 minutes, when `email.enabled` = true | Gmail (custom connector **DealOS Gmail**, connection reference `gc_gmail`) → `gc_IngestEmail` + `gc_AttachEmailFile` → Mail Triage agent → Gmail labels `DealOS/Buyer`, `Seller`, `Genuine`, `Review` or `Ignored`, plus `Processed`. Then sent mail: a reply sent from a desk thread is recorded and its draft closes; other sent mail gets the hidden label `DealOS/Seen`. Failures → `DealOS/Error`. See [EMAIL_DESK.md](EMAIL_DESK.md). | — |
+| **Trade desk** (Email Desk) | received email's triage → Genuine (by Mail Triage or a person) | Trade Desk agent on the email's thread. On failure, a Deal Manager task. | — |
+| **Desk drafts** (Email Desk) | desk draft `gc_message` (Pending, or Discarded) | Pending → `gc_BuildEmailRaw` → a Gmail draft in the thread (new thread for a first enquiry; the thread id is saved). Discarded → the Gmail draft is deleted. | A person sends it from Gmail |
+| **Desk contract** (Email Desk) | contract → Sent For Signature on an email desk deal | `gc_DeskContract`: back-to-back PDFs (sales contract to the buyer at our price, purchase contract from the seller at their price), each attached to a draft in its thread | — |
 
 ### What each decision does (Review decisions)
 
@@ -100,6 +115,7 @@ These run in the `DealOS.Agents` assembly as the plug-in type `DealOS.Agents.Ope
 | `gc_AcceptOffer` | `OfferId` → `Status` (Accepted / AlreadyAccepted), `DealId`, `Stage`, `ClosedDeals`, `Summary` | Offer Open or Countered and not expired. Deal at Inquiry or Negotiation with no overlay. Prices the offer if it has no quote. Copies the price, quantity, currency, Incoterm, named place, payment terms and quote to the deal. **Reserves the lot**, splitting it when the offer is for part of it: the rest becomes a new Available lot, and other deals move to that lot. Rejects the deal's other open offers. **Closes competing deals:** on the same lot if it is fully taken, and on the same RFQ once accepted quantities cover it (RFQ → Fulfilled). Then moves the deal to Terms Agreed through `gc_TransitionDeal`. Concurrent accepts are serialised by row locks on the deal and the lot, so only one wins. |
 | `gc_OpenEscrow` | `DealId` → `Status` (Opened / Exists), `PaymentId`, `Releases`, `Summary` | Deal Signed or Awaiting Funding. Creates one `gc_payment` (Awaiting Funding, amount = value + buyer-paid commission, deadline from `escrow.funding_days`). Creates one `gc_paymentrelease` per tranche in `escrow.default_schedule`, using the same commission maths as the Payment agent. |
 | `gc_ReleaseDeal` | `DealId` → `Status`, `Lots`, `Offers`, `Summary` | Cancelled deals only. Frees the lots reserved for the deal and rejects its open offers. |
+| `gc_RefreshCatalog` | `ListingId` (optional) → `Refreshed`, `Removed` | Rebuilds the public masked catalog entry (`gc_catalogentry`) of one listing, or of every published listing, removing stale entries. Normally the `CatalogPlugin` does this on every listing, fact or lot change; see [PORTAL.md](PORTAL.md). |
 | `gc_InstructRelease` | `ReleaseId` → `Status` (Instructed / AlreadyInstructed), `Summary` | Requires an **Approved Fund Release task** for this release, a funded payment, and no hold, dispute or compliance overlay on the deal. Sets the release → Instructed and the payment → Release Instructed. Finance then instructs the escrow partner; this step becomes an API call once a partner is chosen. |
 
 There is also a new column, **`gc_deal.gc_requirement`** (lookup to `gc_buyerrequirement`). It records the RFQ a deal came from. In code and OData, its navigation property is `gc_Requirement`.
@@ -181,9 +197,36 @@ All runs were live on `[AGENT-TEST]` data, with email notifications off, so each
 | Two PDFs uploaded to a draft listing | file upload | Document intake ran Document Intelligence on each; injection PDF flagged `prompt_injection` |
 | Listing submitted | status → Submitted | Listing verification: seller request drafted for approval; recommendation **Hold** (forced by the risk-flag floor) |
 
+**Added later the same day (all live, `[AGENT-TEST]` data):**
+
+| Step | Outcome |
+|---|---|
+| Invite created for a draft test RFQ and the published copper listing | Seller stamped from the listing, invite date set, seller notification recorded (buyer masked) |
+| Invite → Accepted | Deal "RFQ: [AGENT-TEST] Copper cathode 300 MT" (Inquiry) created and linked to the invite; buyer told |
+| Dispute raised on deal A | Overlay Disputed, Deal Manager task linked, dispute Under Review, both told |
+| Dispute → Resolved (Release To Seller) | Overlay lifted, both told "Outcome: Release To Seller" |
+| Second dispute → Withdrawn | Its open task → Cancelled, overlay stays None |
+| Rating 2/5 | Support review task "Low rating (2/5)" |
+| Inspection Booked → Passed | Verification (Own Inspection, Confirmed) created and linked, result Within Spec, both told |
+
+Not yet exercised live: **Inspection booking** (needs a deal reaching Funded), **Deal settled** and **Commission invoice** (need a release settling). The scheduled **Daily deadlines** and **Flow failure triage** first run on their schedules; check them with `python3 tools/watch.py 24h`.
+
 **Bugs found by these runs, and fixed:**
 - The buyer's funding request included the seller's commission; it now shows only the amount due and the deadline.
 - The Pricing agent re-priced an offer with costs it assumed; cost inputs now come only from the caller.
 - A file upload fired the intake flow twice; the flow now re-reads the document's status first.
 - `gc_AcceptOffer` re-triggered its own flow; it no longer rewrites the offer's status.
 - A listing with an injected document was recommended "Needs Info"; the floor now forces Hold.
+
+## Email Desk changes to existing flows (7 Oct 2026)
+
+Email desk deals (`gc_deal.gc_emaildesk` = true) are back to back and have **no escrow**:
+
+- **Contract signed:** for a desk deal it stops after Signed: no `gc_OpenEscrow`, and the requirement's desk stage becomes Signed.
+- **Inspection booking:** triggers on Funded (marketplace) **or Signed (desk)**.
+- **Offer pricing:** still runs the price engine for desk offers, but skips the Pricing agent and the party notice. The desk drafts its own emails.
+- **RFQ matching:** skips requirements that came by email; the desk sources those from leads.
+- **RFQ invite sent / answered:** only for portal invites (with a listing). Desk source requests have none.
+- **Review decisions:** handles the desk's purpose "Other" tasks:
+  - `desk.accept_offer` (Confirm deal): sets the deal's buyer price, then accepts the offer. The **Offer accepted** flow (`gc_AcceptOffer`) takes it from there: Terms Agreed, competing deals closed, compliance, contract.
+  - `desk.contract_signed`: marks the contract Signed.

@@ -1,0 +1,4 @@
+description: "DealOS: Web API access to gc_conversation"
+id: 11be65da-9abe-53da-b4d3-a5644ac3f2cb
+name: Webapi/gc_conversation/enabled
+value: true

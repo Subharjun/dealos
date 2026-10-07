@@ -1,0 +1,30 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Workflow WorkflowId="{d32f376a-16b5-5f06-beb6-32bf4d4e3087}" Name="DealOS | Daily deadlines" Description="Every day 02:30 UTC: expire RFQs past validity (buyer told) and invites unanswered for rfq.invite_days; Deal Manager task for escrow not funded by the deadline (no automatic cancel); funding reminder 2 days before; Logistics task for inspection results overdue." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <JsonFileName>/Workflows/DealOSDailydeadlines-D32F376A-16B5-5F06-BEB6-32BF4D4E3087.json</JsonFileName>
+  <Type>1</Type>
+  <Subprocess>0</Subprocess>
+  <Category>5</Category>
+  <Mode>0</Mode>
+  <Scope>4</Scope>
+  <OnDemand>0</OnDemand>
+  <TriggerOnCreate>0</TriggerOnCreate>
+  <TriggerOnDelete>0</TriggerOnDelete>
+  <AsyncAutodelete>0</AsyncAutodelete>
+  <SyncWorkflowLogOnFailure>0</SyncWorkflowLogOnFailure>
+  <StateCode>1</StateCode>
+  <StatusCode>2</StatusCode>
+  <RunAs>1</RunAs>
+  <IsTransacted>1</IsTransacted>
+  <IntroducedVersion>1.0.0.0</IntroducedVersion>
+  <IsCustomizable>1</IsCustomizable>
+  <BusinessProcessType>0</BusinessProcessType>
+  <IsCustomProcessingStepAllowedForOtherPublishers>1</IsCustomProcessingStepAllowedForOtherPublishers>
+  <ModernFlowType>0</ModernFlowType>
+  <PrimaryEntity>none</PrimaryEntity>
+  <LocalizedNames>
+    <LocalizedName languagecode="1033" description="DealOS | Daily deadlines" />
+  </LocalizedNames>
+  <Descriptions>
+    <Description languagecode="1033" description="Every day 02:30 UTC: expire RFQs past validity (buyer told) and invites unanswered for rfq.invite_days; Deal Manager task for escrow not funded by the deadline (no automatic cancel); funding reminder 2 days before; Logistics task for inspection results overdue." />
+  </Descriptions>
+</Workflow>

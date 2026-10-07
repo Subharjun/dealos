@@ -1,0 +1,18 @@
+<customapi uniquename="gc_Agent_BuyerConcierge">
+  <allowedcustomprocessingsteptype>0</allowedcustomprocessingsteptype>
+  <bindingtype>0</bindingtype>
+  <description default="Chat agent for buyers: searches the masked catalog, explains evidence, shows the buyer's RFQs, deals and offers, and drafts RFQs for the buyer to send.">
+    <label description="Chat agent for buyers: searches the masked catalog, explains evidence, shows the buyer's RFQs, deals and offers, and drafts RFQs for the buyer to send." languagecode="1033" />
+  </description>
+  <displayname default="Agent: Buyer Concierge">
+    <label description="Agent: Buyer Concierge" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isfunction>0</isfunction>
+  <isprivate>0</isprivate>
+  <name>gc_Agent_BuyerConcierge</name>
+  <plugintypeid>
+    <plugintypeexportkey>80e9c839-6ac1-f111-aaaf-7ced8daf451f</plugintypeexportkey>
+  </plugintypeid>
+  <workflowsdkstepenabled>0</workflowsdkstepenabled>
+</customapi>

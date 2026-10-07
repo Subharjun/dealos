@@ -24,7 +24,11 @@ namespace DealOS.Agents
             new ContractAgent(),
             new PaymentAgent(),
             new LogisticsAgent(),
-            new AdminSupervisorAgent()
+            new AdminSupervisorAgent(),
+            new BuyerConciergeAgent(),
+            new SellerAssistantAgent(),
+            new MailTriageAgent(),
+            new TradeDeskAgent()
         };
 
         public static AgentDefinition Find(string messageName)
@@ -46,40 +50,73 @@ namespace DealOS.Agents
             var context = (IPluginExecutionContext)serviceProvider.GetService(typeof(IPluginExecutionContext));
             var trace = (ITracingService)serviceProvider.GetService(typeof(ITracingService));
             var factory = (IOrganizationServiceFactory)serviceProvider.GetService(typeof(IOrganizationServiceFactory));
-            var started = DateTime.UtcNow;
 
             var def = AgentCatalog.Find(context.MessageName);
             if (def == null) throw new InvalidPluginExecutionException("No DealOS agent is registered for message " + context.MessageName + ".");
 
-            var dv = new Dv(factory.CreateOrganizationService(context.UserId), factory.CreateOrganizationService(null));
-            var ctx = new AgentContext
-            {
-                Agent = def,
-                Dv = dv,
-                Trace = trace,
-                DryRun = Get<bool?>(context, "DryRun") ?? false,
-                Deadline = started.AddSeconds(Math.Max(30, Math.Min(110, dv.SettingInt("agents.time_budget_seconds", 100)))),
-                Model = dv.Setting(def.ModelSettingKey) ?? dv.Setting("agents.model.default") ?? "gemini-3.5-flash"
-            };
-
+            var input = new Dictionary<string, object>();
             var inputText = Get<string>(context, "Input");
             if (!string.IsNullOrWhiteSpace(inputText))
             {
-                try { ctx.Input = Json.ParseObject(inputText); }
+                try { input = Json.ParseObject(inputText); }
                 catch (FormatException ex) { throw new InvalidPluginExecutionException("Input must be a JSON object: " + ex.Message); }
             }
 
+            Guid? subjectId = null;
             var subject = Get<string>(context, "SubjectId");
             if (def.SubjectTable != null)
             {
                 Guid id;
                 if (string.IsNullOrWhiteSpace(subject) || !Guid.TryParse(subject, out id))
                     throw new InvalidPluginExecutionException(def.ApiName + " requires SubjectId: the GUID of a " + def.SubjectTable + " record.");
-                ctx.SubjectId = id;
+                subjectId = id;
             }
 
+            var dv = new Dv(factory.CreateOrganizationService(context.UserId), factory.CreateOrganizationService(null));
+            var run = AgentHost.Run(def, dv, trace, subjectId, input, Get<bool?>(context, "DryRun") ?? false, "custom-api:" + def.ApiName);
+
+            context.OutputParameters["AgentRunId"] = run.Context.RunId.ToString();
+            context.OutputParameters["Status"] = run.Outcome.Status;
+            context.OutputParameters["Summary"] = run.Outcome.Summary ?? run.Outcome.Error ?? "";
+            context.OutputParameters["NeedsHuman"] = run.Outcome.Status != "Succeeded" || run.Outcome.NeedsHuman;
+            context.OutputParameters["Result"] = Json.Serialize(run.Result);
+        }
+
+        private static T Get<T>(IPluginExecutionContext context, string name)
+        {
+            object v;
+            return context.InputParameters.TryGetValue(name, out v) && v is T ? (T)v : default(T);
+        }
+    }
+
+    /// <summary>Runs one agent with run logging; shared by the Custom APIs and the chat trigger.</summary>
+    public static class AgentHost
+    {
+        public sealed class RunResult
+        {
+            public AgentContext Context;
+            public AgentOutcome Outcome;
+            public Dictionary<string, object> Result;
+        }
+
+        /// <summary>Throws InvalidPluginExecutionException when Dataverse rejected an operation (the transaction is lost anyway).</summary>
+        public static RunResult Run(AgentDefinition def, Dv dv, ITracingService trace, Guid? subjectId, Dictionary<string, object> input, bool dryRun, string trigger)
+        {
+            var started = DateTime.UtcNow;
+            var ctx = new AgentContext
+            {
+                Agent = def,
+                Dv = dv,
+                Trace = trace,
+                DryRun = dryRun,
+                SubjectId = subjectId,
+                Input = input ?? new Dictionary<string, object>(),
+                Deadline = started.AddSeconds(Math.Max(30, Math.Min(110, dv.SettingInt("agents.time_budget_seconds", 100)))),
+                Model = dv.Setting(def.ModelSettingKey) ?? dv.Setting("agents.model.default") ?? "gemini-3.5-flash"
+            };
+
             var log = new RunLogger(dv);
-            ctx.RunId = log.StartRun(ctx, J.Str(ctx.Input, "trigger") ?? "custom-api:" + def.ApiName);
+            ctx.RunId = log.StartRun(ctx, J.Str(ctx.Input, "trigger") ?? trigger);
             var outcome = new AgentOutcome();
             try
             {
@@ -136,18 +173,7 @@ namespace DealOS.Agents
                 "error", outcome.Error,
                 "result", outcome.Result,
                 "actions", ctx.Actions);
-
-            context.OutputParameters["AgentRunId"] = ctx.RunId.ToString();
-            context.OutputParameters["Status"] = outcome.Status;
-            context.OutputParameters["Summary"] = outcome.Summary ?? outcome.Error ?? "";
-            context.OutputParameters["NeedsHuman"] = outcome.Status != "Succeeded" || outcome.NeedsHuman;
-            context.OutputParameters["Result"] = Json.Serialize(result);
-        }
-
-        private static T Get<T>(IPluginExecutionContext context, string name)
-        {
-            object v;
-            return context.InputParameters.TryGetValue(name, out v) && v is T ? (T)v : default(T);
+            return new RunResult { Context = ctx, Outcome = outcome, Result = result };
         }
     }
 }

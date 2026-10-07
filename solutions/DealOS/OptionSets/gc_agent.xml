@@ -23,6 +23,16 @@
         <label description="Listing Verification" languagecode="1033" />
       </labels>
     </option>
+    <option value="303300012" IsHidden="0">
+      <labels>
+        <label description="Buyer Concierge" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="303300013" IsHidden="0">
+      <labels>
+        <label description="Seller Assistant" languagecode="1033" />
+      </labels>
+    </option>
     <option value="303300002" ExternalValue="" IsHidden="0">
       <labels>
         <label description="Buyer Verification" languagecode="1033" />

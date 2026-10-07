@@ -1,0 +1,4 @@
+description: "DealOS: Web API access to gc_offer"
+id: 6fcc6205-bd36-5d87-81cb-2d83496104fc
+name: Webapi/gc_offer/enabled
+value: true

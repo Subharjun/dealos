@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<SdkMessageProcessingStep Name="DealOS.Agents.ChatPlugin: Create of gc_message" SdkMessageProcessingStepId="{ef6b8cd6-91c1-f111-aaaf-7ced8daf451f}" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <SdkMessageId>9ebdbb1b-ea3e-db11-86a7-000a3a5473e8</SdkMessageId>
+  <PluginTypeName>DealOS.Agents.ChatPlugin, DealOS.Agents, Version=1.0.0.0, Culture=neutral, PublicKeyToken=6a7897f805501b8c</PluginTypeName>
+  <PluginTypeId>ba7f2eb2-91c1-f111-aaaf-7ced8daf451f</PluginTypeId>
+  <PrimaryEntity>gc_message</PrimaryEntity>
+  <AsyncAutoDelete>1</AsyncAutoDelete>
+  <Description>Runs gc_Agent_BuyerConcierge or gc_Agent_SellerAssistant on a user's chat message and stores the reply.</Description>
+  <FilteringAttributes></FilteringAttributes>
+  <InvocationSource>1</InvocationSource>
+  <Mode>1</Mode>
+  <Rank>1</Rank>
+  <EventHandlerTypeCode>4602</EventHandlerTypeCode>
+  <Stage>40</Stage>
+  <IsCustomizable>1</IsCustomizable>
+  <IsHidden>0</IsHidden>
+  <SupportedDeployment>0</SupportedDeployment>
+  <IntroducedVersion>1.0.0.0</IntroducedVersion>
+  <SdkMessageProcessingStepImages />
+</SdkMessageProcessingStep>

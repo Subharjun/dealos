@@ -128,6 +128,11 @@ Non-negotiable rules:
                     var errors = S.Validate(def.OutputSchema, finish.Args);
                     if (errors.Count == 0)
                     {
+                        var problem = def.CheckFinish(ctx, finish.Args);
+                        if (problem != null) errors.Add(problem);
+                    }
+                    if (errors.Count == 0)
+                    {
                         Complete(ctx, finish.Args, outcome);
                         return outcome;
                     }

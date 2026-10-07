@@ -1,0 +1,4 @@
+description: "DealOS: columns of gc_question the site may read or write"
+id: 633e91ef-d9cd-593d-9cac-e45ab01157de
+name: Webapi/gc_question/fields
+value: "_gc_answeredby_value,_gc_listing_value,gc_askedon,gc_name,gc_questionid"

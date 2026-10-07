@@ -1,0 +1,208 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_commondataserviceforapps": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "gc_dataverse"
+        },
+        "api": {
+          "name": "shared_commondataserviceforapps"
+        }
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$connections": {
+          "defaultValue": {},
+          "type": "Object"
+        },
+        "$authentication": {
+          "defaultValue": {},
+          "type": "SecureObject"
+        }
+      },
+      "triggers": {
+        "Every_hour": {
+          "type": "Recurrence",
+          "recurrence": {
+            "frequency": "Hour",
+            "interval": 1
+          }
+        }
+      },
+      "actions": {
+        "Try": {
+          "type": "Scope",
+          "actions": {
+            "New_failures": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "ListRecords",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_flowfailures",
+                  "$select": "gc_flowfailureid,gc_flowname,gc_step,gc_error,gc_runurl,createdon",
+                  "$filter": "gc_status eq 303300000",
+                  "$top": 100,
+                  "$orderby": "createdon desc"
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {}
+            },
+            "Failure_names": {
+              "type": "Select",
+              "inputs": {
+                "from": "@outputs('New_failures')?['body/value']",
+                "select": "@coalesce(item()?['gc_flowname'], 'unknown')"
+              },
+              "runAfter": {
+                "New_failures": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Each_failing_flow": {
+              "type": "Foreach",
+              "foreach": "@union(body('Failure_names'), body('Failure_names'))",
+              "actions": {
+                "Triage_task_exists": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_commondataserviceforapps",
+                      "operationId": "ListRecords",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                    },
+                    "parameters": {
+                      "entityName": "gc_reviewtasks",
+                      "$select": "gc_reviewtaskid",
+                      "$filter": "gc_status eq 303300000 and gc_name eq '@{replace(take(concat('Flow failures: ', items('Each_failing_flow')), 100), '''', '''''')}'",
+                      "$top": 1
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  },
+                  "runAfter": {}
+                },
+                "Open_triage_task": {
+                  "type": "If",
+                  "expression": "@equals(length(outputs('Triage_task_exists')?['body/value']), 0)",
+                  "actions": {
+                    "Failures_of_flow": {
+                      "type": "Query",
+                      "inputs": {
+                        "from": "@outputs('New_failures')?['body/value']",
+                        "where": "@equals(coalesce(item()?['gc_flowname'], 'unknown'), items('Each_failing_flow'))"
+                      },
+                      "runAfter": {}
+                    },
+                    "Triage_task": {
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "host": {
+                          "connectionName": "shared_commondataserviceforapps",
+                          "operationId": "CreateRecord",
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                        },
+                        "parameters": {
+                          "entityName": "gc_reviewtasks",
+                          "item/gc_name": "@{take(concat('Flow failures: ', items('Each_failing_flow')), 100)}",
+                          "item/gc_kind": 303300001,
+                          "item/gc_purpose": 303300009,
+                          "item/gc_assigneerole": 303300006,
+                          "item/gc_status": 303300000,
+                          "item/gc_payload": "@{string(addProperty(addProperty(addProperty(addProperty(json('{}'), 'flow', items('Each_failing_flow')), 'count', length(body('Failures_of_flow'))), 'how', 'Open each run link, fix the cause, then Resubmit the run in Power Automate and set the failure to Replayed (or Ignored).'), 'failures', take(body('Failures_of_flow'), 20)))}"
+                        },
+                        "authentication": "@parameters('$authentication')"
+                      },
+                      "runAfter": {
+                        "Failures_of_flow": [
+                          "Succeeded"
+                        ]
+                      }
+                    }
+                  },
+                  "else": {
+                    "actions": {}
+                  },
+                  "runAfter": {
+                    "Triage_task_exists": [
+                      "Succeeded"
+                    ]
+                  }
+                }
+              },
+              "runtimeConfiguration": {
+                "concurrency": {
+                  "repetitions": 1
+                }
+              },
+              "runAfter": {
+                "Failure_names": [
+                  "Succeeded"
+                ]
+              }
+            }
+          },
+          "runAfter": {}
+        },
+        "Catch": {
+          "type": "Scope",
+          "actions": {
+            "Record_failure": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "CreateRecord",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_flowfailures",
+                  "item/gc_name": "DealOS | Flow failure triage",
+                  "item/gc_flowname": "DealOS | Flow failure triage",
+                  "item/gc_runurl": "https://make.powerautomate.com/environments/@{workflow()?['tags']?['environmentName']}/flows/@{workflow()?['name']}/runs/@{workflow()?['run']?['name']}",
+                  "item/gc_step": "Try",
+                  "item/gc_error": "@{take(string(result('Try')), 3900)}",
+                  "item/gc_payload": "@{take(string(triggerOutputs()?['body']), 100000)}",
+                  "item/gc_status": 303300000
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {}
+            },
+            "Fail_run": {
+              "type": "Terminate",
+              "inputs": {
+                "runStatus": "Failed",
+                "runError": {
+                  "code": "DealOSFlowFailure",
+                  "message": "Recorded in Flow failures"
+                }
+              },
+              "runAfter": {
+                "Record_failure": [
+                  "Succeeded"
+                ]
+              }
+            }
+          },
+          "runAfter": {
+            "Try": [
+              "Failed",
+              "TimedOut"
+            ]
+          }
+        }
+      }
+    },
+    "templateName": null
+  },
+  "schemaVersion": "1.0.0.0"
+}

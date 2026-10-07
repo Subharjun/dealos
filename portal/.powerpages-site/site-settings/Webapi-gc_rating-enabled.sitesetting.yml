@@ -1,0 +1,4 @@
+description: "DealOS: Web API access to gc_rating"
+id: c29950d6-0059-5a42-b45f-4bd00470cefd
+name: Webapi/gc_rating/enabled
+value: true

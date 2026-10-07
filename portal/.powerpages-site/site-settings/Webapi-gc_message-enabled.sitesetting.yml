@@ -1,0 +1,4 @@
+description: "DealOS: Web API access to gc_message"
+id: bb256845-4930-5bd1-8902-8a975a76dac3
+name: Webapi/gc_message/enabled
+value: true

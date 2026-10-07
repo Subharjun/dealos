@@ -1,0 +1,18 @@
+<customapi uniquename="gc_RefreshCatalog">
+  <allowedcustomprocessingsteptype>0</allowedcustomprocessingsteptype>
+  <bindingtype>0</bindingtype>
+  <description default="Rebuild the public catalog entry of one listing, or (no ListingId) of every published listing and remove stale entries.">
+    <label description="Rebuild the public catalog entry of one listing, or (no ListingId) of every published listing and remove stale entries." languagecode="1033" />
+  </description>
+  <displayname default="Refresh catalog">
+    <label description="Refresh catalog" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isfunction>0</isfunction>
+  <isprivate>0</isprivate>
+  <name>gc_RefreshCatalog</name>
+  <plugintypeid>
+    <plugintypeexportkey>e9a16793-95c1-f111-aaaf-7ced8daf451f</plugintypeexportkey>
+  </plugintypeid>
+  <workflowsdkstepenabled>0</workflowsdkstepenabled>
+</customapi>

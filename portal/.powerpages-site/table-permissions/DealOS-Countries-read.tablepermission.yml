@@ -1,0 +1,12 @@
+adx_entitypermission_webrole:
+- 7e5b23a5-7fb9-4e98-b46f-7c02a184baed
+append: false
+appendto: true
+create: false
+delete: false
+entitylogicalname: gc_country
+entityname: DealOS - Countries - read
+id: 0e749f01-646e-54fb-96c0-433f527c18f5
+read: true
+scope: 756150000
+write: false

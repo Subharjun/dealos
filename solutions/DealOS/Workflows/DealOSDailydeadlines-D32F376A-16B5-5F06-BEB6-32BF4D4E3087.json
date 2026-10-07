@@ -1,0 +1,536 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_commondataserviceforapps": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "gc_dataverse"
+        },
+        "api": {
+          "name": "shared_commondataserviceforapps"
+        }
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$connections": {
+          "defaultValue": {},
+          "type": "Object"
+        },
+        "$authentication": {
+          "defaultValue": {},
+          "type": "SecureObject"
+        }
+      },
+      "triggers": {
+        "Every_day_0230_UTC": {
+          "type": "Recurrence",
+          "recurrence": {
+            "frequency": "Day",
+            "interval": 1,
+            "schedule": {
+              "hours": [
+                "2"
+              ],
+              "minutes": [
+                30
+              ]
+            },
+            "timeZone": "UTC"
+          }
+        }
+      },
+      "actions": {
+        "Try": {
+          "type": "Scope",
+          "actions": {
+            "Expired_rfqs": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "ListRecords",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_buyerrequirements",
+                  "$select": "gc_buyerrequirementid,gc_name,_gc_buyer_value",
+                  "$filter": "gc_status eq 303300001 and gc_validuntil lt @{utcNow()}",
+                  "$top": 100
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {}
+            },
+            "Each_expired_rfq": {
+              "type": "Foreach",
+              "foreach": "@outputs('Expired_rfqs')?['body/value']",
+              "actions": {
+                "Expire_rfq": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_commondataserviceforapps",
+                      "operationId": "UpdateRecord",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                    },
+                    "parameters": {
+                      "entityName": "gc_buyerrequirements",
+                      "recordId": "@{items('Each_expired_rfq')?['gc_buyerrequirementid']}",
+                      "item/gc_status": 303300004
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  },
+                  "runAfter": {}
+                },
+                "Tell_buyer": {
+                  "type": "Workflow",
+                  "inputs": {
+                    "host": {
+                      "workflowReferenceName": "4f7bfa4c-432c-512b-b763-c703a64a583b"
+                    },
+                    "body": {
+                      "text": "@{items('Each_expired_rfq')?['_gc_buyer_value']}",
+                      "text_1": "Your RFQ has expired",
+                      "text_2": "Your RFQ '@{items('Each_expired_rfq')?['gc_name']}' passed its validity date and is now closed. Open DealOS to post it again if you still need the material.",
+                      "text_3": "rfq.expired"
+                    }
+                  },
+                  "runAfter": {
+                    "Expire_rfq": [
+                      "Succeeded"
+                    ]
+                  }
+                }
+              },
+              "runtimeConfiguration": {
+                "concurrency": {
+                  "repetitions": 1
+                }
+              },
+              "runAfter": {
+                "Expired_rfqs": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Invite_days_setting": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "ListRecords",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_platformsettings",
+                  "$select": "gc_value",
+                  "$filter": "gc_key eq 'rfq.invite_days'",
+                  "$top": 1
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {
+                "Each_expired_rfq": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Stale_invites": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "ListRecords",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_rfqinvites",
+                  "$select": "gc_rfqinviteid",
+                  "$filter": "gc_status eq 303300000 and gc_invitedon lt @{addDays(utcNow(), mul(-1, int(coalesce(first(outputs('Invite_days_setting')?['body/value'])?['gc_value'], '5'))))}",
+                  "$top": 200
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {
+                "Invite_days_setting": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Each_stale_invite": {
+              "type": "Foreach",
+              "foreach": "@outputs('Stale_invites')?['body/value']",
+              "actions": {
+                "Expire_invite": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_commondataserviceforapps",
+                      "operationId": "UpdateRecord",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                    },
+                    "parameters": {
+                      "entityName": "gc_rfqinvites",
+                      "recordId": "@{items('Each_stale_invite')?['gc_rfqinviteid']}",
+                      "item/gc_status": 303300004
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  },
+                  "runAfter": {}
+                }
+              },
+              "runtimeConfiguration": {
+                "concurrency": {
+                  "repetitions": 5
+                }
+              },
+              "runAfter": {
+                "Stale_invites": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Missed_funding": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "ListRecords",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_payments",
+                  "$select": "gc_paymentid,gc_name,_gc_deal_value,gc_fundingdeadline",
+                  "$filter": "gc_state eq 303300000 and gc_fundingdeadline lt @{utcNow()}",
+                  "$top": 50
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {
+                "Each_stale_invite": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Each_missed_payment": {
+              "type": "Foreach",
+              "foreach": "@outputs('Missed_funding')?['body/value']",
+              "actions": {
+                "Missed_task_exists": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_commondataserviceforapps",
+                      "operationId": "ListRecords",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                    },
+                    "parameters": {
+                      "entityName": "gc_reviewtasks",
+                      "$select": "gc_reviewtaskid",
+                      "$filter": "gc_status eq 303300000 and gc_name eq '@{replace(take(concat('Funding deadline missed: ', items('Each_missed_payment')?['gc_name']), 100), '''', '''''')}' and _gc_deal_value eq @{coalesce(items('Each_missed_payment')?['_gc_deal_value'], '00000000-0000-0000-0000-000000000000')}",
+                      "$top": 1
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  },
+                  "runAfter": {}
+                },
+                "Open_missed_task": {
+                  "type": "If",
+                  "expression": "@equals(length(outputs('Missed_task_exists')?['body/value']), 0)",
+                  "actions": {
+                    "Missed_task": {
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "host": {
+                          "connectionName": "shared_commondataserviceforapps",
+                          "operationId": "CreateRecord",
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                        },
+                        "parameters": {
+                          "entityName": "gc_reviewtasks",
+                          "item/gc_name": "@{take(concat('Funding deadline missed: ', items('Each_missed_payment')?['gc_name']), 100)}",
+                          "item/gc_kind": 303300001,
+                          "item/gc_purpose": 303300009,
+                          "item/gc_assigneerole": 303300002,
+                          "item/gc_status": 303300000,
+                          "item/gc_payload": "@{string(addProperty(addProperty(addProperty(json('{}'), 'paymentId', items('Each_missed_payment')?['gc_paymentid']), 'deadline', items('Each_missed_payment')?['gc_fundingdeadline']), 'options', 'Extend the deadline on the payment, or cancel the deal (stage Cancelled).'))}",
+                          "item/gc_deal@odata.bind": "gc_deals(@{items('Each_missed_payment')?['_gc_deal_value']})"
+                        },
+                        "authentication": "@parameters('$authentication')"
+                      },
+                      "runAfter": {}
+                    }
+                  },
+                  "else": {
+                    "actions": {}
+                  },
+                  "runAfter": {
+                    "Missed_task_exists": [
+                      "Succeeded"
+                    ]
+                  }
+                }
+              },
+              "runtimeConfiguration": {
+                "concurrency": {
+                  "repetitions": 1
+                }
+              },
+              "runAfter": {
+                "Missed_funding": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Due_soon": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "ListRecords",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_payments",
+                  "$select": "gc_paymentid,_gc_deal_value,gc_amountdue,gc_currency,gc_fundingdeadline",
+                  "$filter": "gc_state eq 303300000 and gc_fundingdeadline ge @{utcNow()} and gc_fundingdeadline lt @{addDays(utcNow(), 2)}",
+                  "$top": 50
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {
+                "Each_missed_payment": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Each_reminder": {
+              "type": "Foreach",
+              "foreach": "@outputs('Due_soon')?['body/value']",
+              "actions": {
+                "Reminder_deal": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_commondataserviceforapps",
+                      "operationId": "GetItem",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                    },
+                    "parameters": {
+                      "entityName": "gc_deals",
+                      "recordId": "@{items('Each_reminder')?['_gc_deal_value']}",
+                      "$select": "gc_name,_gc_buyer_value"
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  },
+                  "runAfter": {}
+                },
+                "Remind_buyer": {
+                  "type": "Workflow",
+                  "inputs": {
+                    "host": {
+                      "workflowReferenceName": "4f7bfa4c-432c-512b-b763-c703a64a583b"
+                    },
+                    "body": {
+                      "text": "@{body('Reminder_deal')?['_gc_buyer_value']}",
+                      "text_1": "Reminder: escrow funding due",
+                      "text_2": "Please fund escrow for '@{body('Reminder_deal')?['gc_name']}': @{items('Each_reminder')?['gc_currency']} @{formatNumber(items('Each_reminder')?['gc_amountdue'], 'N2')} by @{formatDateTime(items('Each_reminder')?['gc_fundingdeadline'], 'd MMM yyyy')}.",
+                      "text_3": "escrow.reminder"
+                    }
+                  },
+                  "runAfter": {
+                    "Reminder_deal": [
+                      "Succeeded"
+                    ]
+                  }
+                }
+              },
+              "runtimeConfiguration": {
+                "concurrency": {
+                  "repetitions": 1
+                }
+              },
+              "runAfter": {
+                "Due_soon": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Overdue_inspections": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "ListRecords",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_inspections",
+                  "$select": "gc_inspectionid,gc_name,_gc_deal_value,gc_scheduledon",
+                  "$filter": "(gc_status eq 303300001 or gc_status eq 303300002) and gc_scheduledon lt @{addDays(utcNow(), -2)}",
+                  "$top": 50
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {
+                "Each_reminder": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Each_overdue_inspection": {
+              "type": "Foreach",
+              "foreach": "@outputs('Overdue_inspections')?['body/value']",
+              "actions": {
+                "Overdue_task_exists": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_commondataserviceforapps",
+                      "operationId": "ListRecords",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                    },
+                    "parameters": {
+                      "entityName": "gc_reviewtasks",
+                      "$select": "gc_reviewtaskid",
+                      "$filter": "gc_status eq 303300000 and gc_name eq '@{replace(take(concat('Inspection result overdue: ', items('Each_overdue_inspection')?['gc_name']), 100), '''', '''''')}' and _gc_deal_value eq @{coalesce(items('Each_overdue_inspection')?['_gc_deal_value'], '00000000-0000-0000-0000-000000000000')}",
+                      "$top": 1
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  },
+                  "runAfter": {}
+                },
+                "Open_overdue_task": {
+                  "type": "If",
+                  "expression": "@equals(length(outputs('Overdue_task_exists')?['body/value']), 0)",
+                  "actions": {
+                    "Overdue_task": {
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "host": {
+                          "connectionName": "shared_commondataserviceforapps",
+                          "operationId": "CreateRecord",
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                        },
+                        "parameters": {
+                          "entityName": "gc_reviewtasks",
+                          "item/gc_name": "@{take(concat('Inspection result overdue: ', items('Each_overdue_inspection')?['gc_name']), 100)}",
+                          "item/gc_kind": 303300001,
+                          "item/gc_purpose": 303300009,
+                          "item/gc_assigneerole": 303300005,
+                          "item/gc_status": 303300000,
+                          "item/gc_payload": "@{string(addProperty(addProperty(json('{}'), 'inspectionId', items('Each_overdue_inspection')?['gc_inspectionid']), 'scheduled', items('Each_overdue_inspection')?['gc_scheduledon']))}",
+                          "item/gc_deal@odata.bind": "gc_deals(@{items('Each_overdue_inspection')?['_gc_deal_value']})"
+                        },
+                        "authentication": "@parameters('$authentication')"
+                      },
+                      "runAfter": {}
+                    }
+                  },
+                  "else": {
+                    "actions": {}
+                  },
+                  "runAfter": {
+                    "Overdue_task_exists": [
+                      "Succeeded"
+                    ]
+                  }
+                }
+              },
+              "runtimeConfiguration": {
+                "concurrency": {
+                  "repetitions": 1
+                }
+              },
+              "runAfter": {
+                "Overdue_inspections": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Audit": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "CreateRecord",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_auditevents",
+                  "item/gc_hash": "set-by-invariants-plugin",
+                  "item/gc_name": "sweep.deadlines",
+                  "item/gc_actor": "flow:daily-deadlines",
+                  "item/gc_action": "sweep.deadlines",
+                  "item/gc_subjecttype": "none",
+                  "item/gc_subjectid": "",
+                  "item/gc_details": "@{take(string(addProperty(addProperty(addProperty(addProperty(addProperty(json('{}'), 'rfqs_expired', length(outputs('Expired_rfqs')?['body/value'])), 'invites_expired', length(outputs('Stale_invites')?['body/value'])), 'funding_missed', length(outputs('Missed_funding')?['body/value'])), 'reminders', length(outputs('Due_soon')?['body/value'])), 'inspections_overdue', length(outputs('Overdue_inspections')?['body/value']))), 100000)}"
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {
+                "Each_overdue_inspection": [
+                  "Succeeded"
+                ]
+              }
+            }
+          },
+          "runAfter": {}
+        },
+        "Catch": {
+          "type": "Scope",
+          "actions": {
+            "Record_failure": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "CreateRecord",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "gc_flowfailures",
+                  "item/gc_name": "DealOS | Daily deadlines",
+                  "item/gc_flowname": "DealOS | Daily deadlines",
+                  "item/gc_runurl": "https://make.powerautomate.com/environments/@{workflow()?['tags']?['environmentName']}/flows/@{workflow()?['name']}/runs/@{workflow()?['run']?['name']}",
+                  "item/gc_step": "Try",
+                  "item/gc_error": "@{take(string(result('Try')), 3900)}",
+                  "item/gc_payload": "@{take(string(triggerOutputs()?['body']), 100000)}",
+                  "item/gc_status": 303300000
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {}
+            },
+            "Fail_run": {
+              "type": "Terminate",
+              "inputs": {
+                "runStatus": "Failed",
+                "runError": {
+                  "code": "DealOSFlowFailure",
+                  "message": "Recorded in Flow failures"
+                }
+              },
+              "runAfter": {
+                "Record_failure": [
+                  "Succeeded"
+                ]
+              }
+            }
+          },
+          "runAfter": {
+            "Try": [
+              "Failed",
+              "TimedOut"
+            ]
+          }
+        }
+      }
+    },
+    "templateName": null
+  },
+  "schemaVersion": "1.0.0.0"
+}

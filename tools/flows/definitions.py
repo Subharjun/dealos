@@ -8,11 +8,19 @@ import glob
 import json
 import os
 
-from .lib import (AUTH, B, CONTRACT, DV, EMPTY_GUID, KYB, LISTING, MATCH, MESSAGE, MESSAGE_KIND, MILESTONE, MILESTONE_TYPE, NOTIFY_FLOW,
-                  OFFER, OUTLOOK, OVERLAY, PARSE, PARTY, PAYMENT, PURPOSE, RELEASE, REQUIREMENT, REVIEW_STATUS, ROOT, SCOPE, SHIPMENT,
-                  STAGE, TIER, agent, agent_ok, agent_result, audit, chain, compose, condition, create, daily_trigger, definition, flow_failure,
-                  flow_id, foreach, get_row, list_rows, notify, review_task, row_trigger, run_agent, switch, terminate, transition, try_catch,
-                  unbound, update)
+from .lib import (AUTH, B, CONTRACT, GMAIL, gmail, minutes_trigger, scope, DISPUTE, DV, EMPTY_GUID, FAILURE, INSPECTION, INSPECTION_RESULT, INVITE, INVOICE, INVOICE_KIND, KYB,
+                  LISTING, MATCH, MESSAGE, MESSAGE_KIND, MILESTONE, MILESTONE_INSPECTION, MILESTONE_PENDING, MILESTONE_TYPE, NOTIFY_FLOW, OFFER,
+                  OUTLOOK, OVERLAY, OVERLAY_DISPUTED, OVERLAY_ON_HOLD, PARSE, PARTY, PAYMENT, PURPOSE, RELEASE, REQUIREMENT, REQUIREMENT_EXPIRED,
+                  RESOLUTION, REVIEW_STATUS, ROOT, SCOPE, SHIPMENT, STAGE, TIER, TIER_TRADE_VERIFIED, VERIFICATION_CONFIRMED,
+                  VERIFICATION_METHOD_OWN_INSPECTION, agent, agent_ok, agent_result, audit, chain, compose, condition, create, daily_trigger,
+                  definition, flow_failure, flow_id, foreach, get_row, hourly_trigger, list_rows, notify, review_task, row_trigger, run_agent, switch,
+                  terminate, transition, try_catch, unbound, update)
+
+DESK_SOURCE_EMAIL = B + 1  # gc_buyerrequirement.gc_source = Email
+DESK_STAGE = dict(Qualifying=B, Sourcing=B + 1, Quoted=B + 2, Negotiating=B + 3, Agreed=B + 4, ContractSent=B + 5, Signed=B + 6, Closed=B + 7)
+DRAFT = dict(Pending=B, Sent=B + 1, Discarded=B + 2)
+DIRECTION = dict(Inbound=B, Outbound=B + 1, Draft=B + 2)
+TRIAGE = dict(Genuine=B, Review=B + 1, Ignored=B + 2)
 
 EXISTING = {
     "DealOS | Listing verification": "02bdd963-de7f-412e-829d-b86ad5bb05ff",
@@ -221,7 +229,8 @@ def rfq_matching():
                         props(proposed=f"length(coalesce({agent_result('Matching', 'proposed')}, json('[]')))", summary="outputs('Run_Matching')?['body/Summary']"))),
     ]
     return flow(name, "Buyer requirement opened → Matching agent scores published listings and proposes matches (both sides notified by Match notifications).",
-                row_trigger("When_an_RFQ_opens", "gc_buyerrequirement", 4, filter=f"gc_status eq {REQUIREMENT['Open']}", attributes="gc_status", concurrency=1),
+                row_trigger("When_an_RFQ_opens", "gc_buyerrequirement", 4, filter=f"gc_status eq {REQUIREMENT['Open']}", attributes="gc_status", concurrency=1,
+                            conditions=[f"@not(equals({T('gc_source')}, {DESK_SOURCE_EMAIL}))"]),
                 steps)
 
 
@@ -315,15 +324,17 @@ def offer_pricing():
     counterparty = f"if(equals({T('_gc_fromparty_value')}, {dl('_gc_seller_value')}), {dl('_gc_buyer_value')}, {dl('_gc_seller_value')})"
     steps = [
         ("Price_offer", unbound("gc_CalculatePriceQuote", OfferId=S(oid))),
-        ("Deal", get_row("gc_deals", S(did), select="gc_name,gc_stage,_gc_buyer_value,_gc_seller_value")),
+        ("Deal", get_row("gc_deals", S(did), select="gc_name,gc_stage,_gc_buyer_value,_gc_seller_value,gc_emaildesk")),
         ("First_offer", condition(f"@equals({dl('gc_stage')}, {STAGE['Inquiry']})", [("To_negotiation", transition(S(did), STAGE["Negotiation"], "First offer received"))])),
-        *run_agent("Pricing", S(oid), "offer-pricing", name, on_fail="record"),
-        ("Notify_counterparty", notify(S(counterparty), "New offer on your deal",
-                                       f"A new offer was made on '{S(dl('gc_name'))}': {S(T('gc_price'))} {S(T('gc_currency'))} per unit for "
-                                       f"{S(T('gc_quantity'))} units, {S(incoterm_label(T('gc_incoterm')))}.\n"
-                                       "Open DealOS to see your landed cost or net payout, then accept, counter or decline.", "offer.created")),
+        ("Marketplace_offer", condition(f"@not(equals({dl('gc_emaildesk')}, true))", [
+            *run_agent("Pricing", S(oid), "offer-pricing", name, on_fail="record"),
+            ("Notify_counterparty", notify(S(counterparty), "New offer on your deal",
+                                           f"A new offer was made on '{S(dl('gc_name'))}': {S(T('gc_price'))} {S(T('gc_currency'))} per unit for "
+                                           f"{S(T('gc_quantity'))} units, {S(incoterm_label(T('gc_incoterm')))}.\n"
+                                           "Open DealOS to see your landed cost or net payout, then accept, counter or decline.", "offer.created")),
+        ])),
         ("Audit", audit("flow:offer-pricing", "offer.priced", "gc_offer", S(oid),
-                        props(summary="outputs('Price_offer')?['body/Summary']", explanation="outputs('Run_Pricing')?['body/Summary']"))),
+                        props(summary="outputs('Price_offer')?['body/Summary']", explanation="coalesce(outputs('Run_Pricing')?['body/Summary'], 'email desk deal')"))),
     ]
     return flow(name, "Offer created → gc_CalculatePriceQuote (engine numbers) → deal to Negotiation on the first offer → Pricing agent explanation → notify the other party.",
                 row_trigger("When_an_offer_is_created", "gc_offer", 1), steps)
@@ -415,6 +426,13 @@ def contract_signed():
         ("Signed_refused", condition(allowed("To_signed"), [
             ("Signed_stuck_task", stuck_task("concat('Contract signed but deal not moved: ', " + T("gc_name") + ")", did, "To_signed")),
             ("Stop_not_signed", terminate("Succeeded"))])),
+        ("Desk_deal", get_row("gc_deals", S(did), select="gc_emaildesk,_gc_requirement_value")),
+        ("No_escrow_for_desk", condition("@equals(body('Desk_deal')?['gc_emaildesk'], true)", [
+            ("Desk_requirement_signed", condition("@not(empty(body('Desk_deal')?['_gc_requirement_value']))", [
+                ("Set_desk_signed", update("gc_buyerrequirements", S("body('Desk_deal')?['_gc_requirement_value']"), gc_deskstage=DESK_STAGE["Signed"]))])),
+            ("Audit_desk_signed", audit("flow:contract-signed", "deal.signed", "gc_deal", S(did), props(escrow="'none: email desk deal (payment between the parties per contract)'"))),
+            ("Stop_desk_signed", terminate("Succeeded")),
+        ])),
         ("Open_escrow", unbound("gc_OpenEscrow", retry_none=True, DealId=S(did))),
         ("To_awaiting_funding", transition(S(did), STAGE["AwaitingFunding"], "Escrow opened")),
         ("Funding_refused", condition(allowed("To_awaiting_funding"), [
@@ -576,6 +594,15 @@ def review_decisions():
             ], [("Void_contract", update("gc_contracts", S(pl("contractId")), gc_status=CONTRACT["Void"]))]))]),
         ("Fund_release", PURPOSE["FundRelease"], [
             ("Release_decision", condition("@" + approved, [("Instruct_release", unbound("gc_InstructRelease", retry_none=True, ReleaseId=S(pl("releaseId"))))]))]),
+        ("Desk_decisions", PURPOSE["Other"], [
+            ("Desk_accept_offer", condition(f"@and({approved}, equals({pl('action')}, 'desk.accept_offer'))", [
+                ("Set_buyer_price", update("gc_deals", S(pl("dealId")), gc_buyerprice=f"@float({pl('buyerPrice')})")),
+                ("Accept_offer", update("gc_offers", S(pl("offerId")), gc_status=OFFER["Accepted"])),
+            ])),
+            ("Desk_contract_signed", condition(f"@and({approved}, equals({pl('action')}, 'desk.contract_signed'))", [
+                ("Mark_contract_signed", update("gc_contracts", S(pl("contractId")), gc_status=CONTRACT["Signed"], gc_signedon="@utcNow()")),
+            ])),
+        ]),
         ("Shipment_booking", PURPOSE["ShipmentBooking"], [
             ("Booking_decision", condition("@" + approved, [
                 ("Booking_deal", get_row("gc_deals", S(deal), select="gc_name,_gc_origincountry_value,_gc_destinationcountry_value")),
@@ -659,6 +686,642 @@ def daily_digest():
                       "(default: the approvals.assignees default).", daily_trigger("Every_day_0300_UTC", 3), steps, connections=(DV, OUTLOOK))
 
 
+# ---------------------------------------------------------------- RFQ fan-out (plan #8)
+
+def open_task_exists(title_expr, deal_expr=None, account_expr=None):
+    """List open review tasks with this exact title (and deal / account), to avoid opening the same task twice."""
+    escaped = "replace(take(" + title_expr + ", 100), '''', '''''')"  # ' → '' inside the OData string literal
+    flt = f"gc_status eq {REVIEW_STATUS['Open']} and gc_name eq '" + S(escaped) + "'"
+    if deal_expr:
+        flt += f" and _gc_deal_value eq {or_empty_guid(deal_expr)}"
+    if account_expr:
+        flt += f" and _gc_account_value eq {or_empty_guid(account_expr)}"
+    return list_rows("gc_reviewtasks", filter=flt, select="gc_reviewtaskid", top=1)
+
+
+def none_found(action):
+    return f"@equals(length(outputs('{action}')?['body/value']), 0)"
+
+
+def rfq_invite_sent():
+    name = "DealOS | RFQ invite sent"
+    iid = T("gc_rfqinviteid")
+    rq = lambda c: body("Requirement", c)
+    ls = lambda c: body("Listing", c)
+    steps = [
+        ("Requirement", get_row("gc_buyerrequirements", S(T("_gc_requirement_value")), select="gc_name,gc_quantity,gc_validuntil")),
+        ("Listing", get_row("gc_listings", S(T("_gc_listing_value")), select="gc_name,_gc_seller_value")),
+        ("Stamp_invite", update("gc_rfqinvites", S(iid), gc_invitedon=f"@coalesce({T('gc_invitedon')}, utcNow())",
+                                **{"gc_Seller@odata.bind": S(f"concat('accounts(', coalesce({T('_gc_seller_value')}, {ls('_gc_seller_value')}), ')')")})),
+        ("Notify_seller", notify(S(ls("_gc_seller_value")), "A buyer invites you to quote",
+                                 f"A verified buyer invites you to quote on '{S(rq('gc_name'))}' for your listing '{S(ls('gc_name'))}'.\n"
+                                 "Open the invite in DealOS to accept (a deal opens where you can send your offer) or decline. "
+                                 "The buyer's identity stays hidden until a contract is signed.", "rfq.invited")),
+        ("Audit", audit("flow:rfq-invite", "rfq.invited", "gc_rfqinvite", S(iid), props(requirement=T("_gc_requirement_value"), listing=T("_gc_listing_value")))),
+    ]
+    return flow(name, "RFQ invite created (buyer sends one RFQ to N sellers from the portal) → seller and invite date stamped → seller told (buyer masked).",
+                row_trigger("When_a_seller_is_invited", "gc_rfqinvite", 1, filter=f"gc_status eq {INVITE['Invited']}",
+                            conditions=[f"@not(empty({T('_gc_listing_value')}))"]), steps)
+
+
+def rfq_invite_answered():
+    name = "DealOS | RFQ invite answered"
+    iid, req_id, lst_id = T("gc_rfqinviteid"), T("_gc_requirement_value"), T("_gc_listing_value")
+    rq = lambda c: body("Requirement", c)
+    ls = lambda c: body("Listing", c)
+    deal = "outputs('Create_deal')?['body/gc_dealid']"
+    accepted = [
+        ("Existing_deal", list_rows("gc_deals", filter=f"_gc_requirement_value eq {S(req_id)} and _gc_listing_value eq {S(lst_id)}", select="gc_dealid", top=1)),
+        ("Need_deal", condition(none_found("Existing_deal"), [
+            ("Create_deal", create("gc_deals", gc_name=S(f"take(concat('RFQ: ', {ls('gc_name')}), 100)"), gc_stage=STAGE["Inquiry"],
+                                   gc_currency=S(f"coalesce({rq('gc_currency')}, {ls('gc_currency')}, 'USD')"),
+                                   gc_quantity=f"@{rq('gc_quantity')}", gc_quantityunit=f"@{rq('gc_quantityunit')}",
+                                   gc_incoterm=f"@coalesce({rq('gc_incoterm')}, {ls('gc_incoterm')})", gc_namedplace=S(f"coalesce({ls('gc_namedplace')}, '')"),
+                                   **{"gc_buyer@odata.bind": S(f"concat('accounts(', {rq('_gc_buyer_value')}, ')')"),
+                                      "gc_seller@odata.bind": S(f"concat('accounts(', {ls('_gc_seller_value')}, ')')"),
+                                      "gc_listing@odata.bind": S(f"concat('gc_listings(', {lst_id}, ')')"),
+                                      "gc_Requirement@odata.bind": S(f"concat('gc_buyerrequirements(', {req_id}, ')')")})),
+            ("Set_commodity", condition(f"@not(empty({ls('_gc_commodity_value')}))", [
+                ("Link_commodity", update("gc_deals", S(deal), **{"gc_commodity@odata.bind": S(f"concat('gc_commodities(', {ls('_gc_commodity_value')}, ')')")}))])),
+            ("Link_invite", update("gc_rfqinvites", S(iid), **{"gc_Deal@odata.bind": S(f"concat('gc_deals(', {deal}, ')')")})),
+        ])),
+        ("Notify_buyer_accepted", notify(S(rq("_gc_buyer_value")), "A seller accepted your RFQ invite",
+                                         f"A seller accepted your invite for '{S(rq('gc_name'))}' (listing '{S(ls('gc_name'))}'). Their offer will appear in DealOS, "
+                                         "with landed cost, so you can compare it with other sellers. Identities stay masked until a contract is signed.", "rfq.accepted")),
+    ]
+    declined = [
+        ("Notify_buyer_declined", notify(S(rq("_gc_buyer_value")), "A seller declined your RFQ invite",
+                                         f"A seller declined your invite for '{S(rq('gc_name'))}' (listing '{S(ls('gc_name'))}'). "
+                                         "Your other invites are unaffected; you can invite more sellers from the RFQ in DealOS.", "rfq.declined")),
+    ]
+    steps = [
+        ("Requirement", get_row("gc_buyerrequirements", S(req_id),
+                                select="gc_name,_gc_buyer_value,gc_quantity,gc_quantityunit,gc_incoterm,gc_currency")),
+        ("Listing", get_row("gc_listings", S(lst_id), select="gc_name,_gc_seller_value,_gc_commodity_value,gc_currency,gc_incoterm,gc_namedplace")),
+        ("Stamp_response", update("gc_rfqinvites", S(iid), gc_respondedon="@utcNow()")),
+        ("Accepted_or_declined", condition(f"@equals({T('gc_status')}, {INVITE['Accepted']})", accepted, declined)),
+        ("Audit", audit("flow:rfq-invite", "rfq.answered", "gc_rfqinvite", S(iid), props(status=T("gc_status")))),
+    ]
+    return flow(name, "Seller accepts an RFQ invite → one deal (Inquiry) linked to the RFQ and listing, buyer told; declines → buyer told. Identities stay masked.",
+                row_trigger("When_an_invite_is_answered", "gc_rfqinvite", 3, attributes="gc_status", concurrency=1, conditions=[
+                    f"@and(not(empty({T('_gc_listing_value')})), or(equals({T('gc_status')}, {INVITE['Accepted']}), equals({T('gc_status')}, {INVITE['Declined']})))"]),
+                steps)
+
+
+# ---------------------------------------------------------------- inspection (plan #13)
+
+def inspection_booking():
+    name = "DealOS | Inspection booking"
+    did = T("gc_dealid")
+    insp = "outputs('Create_inspection')?['body/gc_inspectionid']"
+    steps = [
+        ("Wrong_stage_for_deal", condition(f"@not(equals({T('gc_stage')}, if(equals({T('gc_emaildesk')}, true), {STAGE['Signed']}, {STAGE['Funded']})))",
+                                           [("Not_this_deal", terminate("Succeeded"))])),
+        ("Existing_inspection", list_rows("gc_inspections", filter=f"_gc_deal_value eq {S(did)} and gc_status ne {INSPECTION['Cancelled']}", select="gc_inspectionid", top=1)),
+        ("Already_booked", condition("@greater(length(outputs('Existing_inspection')?['body/value']), 0)", [("Inspection_exists", terminate("Succeeded"))])),
+        ("Create_inspection", create("gc_inspections", gc_name=S(f"take(concat('Inspection – ', {T('gc_name')}), 200)"),
+                                     gc_status=INSPECTION["Requested"], gc_result=INSPECTION_RESULT["Pending"],
+                                     **{"gc_Deal@odata.bind": S(f"concat('gc_deals(', {did}, ')')")})),
+        ("Link_lot", condition(f"@not(empty({T('_gc_lot_value')}))", [
+            ("Set_lot", update("gc_inspections", S(insp), **{"gc_Lot@odata.bind": S(f"concat('gc_lots(', {T('_gc_lot_value')}, ')')")}))])),
+        ("Booking_task", review_task(f"concat('Book independent inspection: ', {T('gc_name')})", "Other", "LogisticsCoordinator",
+                                     props(inspectionId=insp, instructions="'Choose an independent agency (never one proposed by the seller), set the warehouse, date and agency on the inspection, then set it to Booked. The agency uploads the report directly.'"),
+                                     deal=S(did), kind="Review")),
+        *notify_both("Notify", "Independent inspection is being arranged",
+                     f"'{S(T('gc_name'))}' is ready for inspection. DealOS is booking an independent inspection (sampling, assay, weighing and sealing) "
+                     "before shipment. You will be told the date.", "inspection.requested"),
+        ("Audit", audit("flow:inspection", "inspection.requested", "gc_deal", S(did), props(inspection=insp))),
+    ]
+    return flow(name, "Deal Funded (marketplace) or Signed (email desk, no escrow) → one inspection (Requested) for the deal's lot → Logistics Coordinator task "
+                      "to book an independent agency → both parties told.",
+                row_trigger("When_a_deal_is_ready_for_inspection", "gc_deal", 3, filter=f"gc_stage eq {STAGE['Funded']} or gc_stage eq {STAGE['Signed']}",
+                            attributes="gc_stage", concurrency=1), steps)
+
+
+def inspection_result():
+    name = "DealOS | Inspection result"
+    iid, did = T("gc_inspectionid"), T("_gc_deal_value")
+    dl = lambda c: body("Deal", c)
+    verification = "outputs('Create_verification')?['body/gc_verificationid']"
+    milestone = "first(outputs('Inspection_milestone')?['body/value'])?['gc_milestoneid']"
+    passed = [
+        ("Within_spec", update("gc_inspections", S(iid), gc_result=INSPECTION_RESULT["WithinSpec"])),
+        ("Create_verification", create("gc_verifications", gc_name=S(f"take(concat('Independent inspection passed – ', {dl('gc_name')}), 100)"),
+                                       gc_method=VERIFICATION_METHOD_OWN_INSPECTION, gc_result=VERIFICATION_CONFIRMED,
+                                       gc_performedon=f"@coalesce({T('gc_sampledon')}, utcNow())",
+                                       gc_notes=S(f"coalesce({T('gc_findings')}, 'Within specification')"))),
+        ("Verification_links", condition(f"@not(empty({T('_gc_report_value')}))", [
+            ("Link_report", update("gc_verifications", S(verification), **{"gc_evidencedocument@odata.bind": S(f"concat('gc_documents(', {T('_gc_report_value')}, ')')")}))])),
+        ("Verification_agency", condition(f"@not(empty({T('_gc_agency_value')}))", [
+            ("Link_agency", update("gc_verifications", S(verification), **{"gc_performedbypartner@odata.bind": S(f"concat('accounts(', {T('_gc_agency_value')}, ')')")}))])),
+        ("Link_verification", update("gc_inspections", S(iid), **{"gc_Verification@odata.bind": S(f"concat('gc_verifications(', {verification}, ')')")})),
+        ("Inspection_milestone", list_rows("gc_milestones", filter=f"_gc_deal_value eq {S(did)} and gc_type eq {MILESTONE_INSPECTION} and gc_status eq {MILESTONE_PENDING}",
+                                           select="gc_milestoneid", top=1)),
+        ("Complete_milestone", condition("@greater(length(outputs('Inspection_milestone')?['body/value']), 0)", [
+            ("Milestone_done", update("gc_milestones", S(milestone), gc_status=MILESTONE["Completed"], gc_completedon="@utcNow()")),
+            ("Milestone_evidence", condition(f"@not(empty({T('_gc_report_value')}))", [
+                ("Milestone_report", update("gc_milestones", S(milestone), **{"gc_evidencedocument@odata.bind": S(f"concat('gc_documents(', {T('_gc_report_value')}, ')')")}))])),
+        ])),
+        *notify_both("Passed", "Inspection passed",
+                     f"The independent inspection for '{S(dl('gc_name'))}' found the material within specification. Shipment can now be booked.",
+                     "inspection.passed", buyer=dl("_gc_buyer_value"), seller=dl("_gc_seller_value")),
+    ]
+    failed = [
+        ("Off_spec", update("gc_inspections", S(iid), gc_result=INSPECTION_RESULT["OffSpec"])),
+        ("Hold_deal", update("gc_deals", S(did), gc_statusoverlay=OVERLAY_ON_HOLD)),
+        ("Off_spec_task", review_task(f"concat('Inspection off-spec: ', {dl('gc_name')})", "Other", "DealManager",
+                                      props(inspectionId=iid, findings=T("gc_findings"),
+                                            options="'Renegotiate the price through a new offer round, or cancel the deal (escrow is refunded). Lift the On Hold overlay when decided.'"),
+                                      deal=S(did), kind="Review")),
+        *notify_both("Failed", "Inspection found deviations",
+                     f"The independent inspection for '{S(dl('gc_name'))}' found deviations from the agreed specification. Payments on this deal are on hold; "
+                     "a DealOS deal manager will contact you about the next step (price adjustment or cancellation with refund).",
+                     "inspection.failed", buyer=dl("_gc_buyer_value"), seller=dl("_gc_seller_value")),
+    ]
+    steps = [
+        ("Deal", get_row("gc_deals", S(did), select="gc_name,_gc_buyer_value,_gc_seller_value")),
+        ("Passed_or_failed", condition(f"@equals({T('gc_status')}, {INSPECTION['Passed']})", passed, failed)),
+        ("Audit", audit("flow:inspection", "inspection.result", "gc_inspection", S(iid), props(status=T("gc_status"), deal=did))),
+    ]
+    return flow(name, "Inspection set to Passed → verification record (independent inspection, Confirmed) + Inspection milestone Completed with the report → both told. "
+                      "Failed → deal On Hold + Deal Manager task (renegotiate or cancel with refund) → both told.",
+                row_trigger("When_an_inspection_concludes", "gc_inspection", 3, attributes="gc_status", concurrency=1, conditions=[
+                    f"@or(equals({T('gc_status')}, {INSPECTION['Passed']}), equals({T('gc_status')}, {INSPECTION['Failed']}))"]),
+                steps)
+
+
+# ---------------------------------------------------------------- disputes (plan #17)
+
+def dispute_opened():
+    name = "DealOS | Dispute opened"
+    xid, did = T("gc_disputeid"), T("_gc_deal_value")
+    dl = lambda c: body("Deal", c)
+    task = "outputs('Dispute_task')?['body/gc_reviewtaskid']"
+    steps = [
+        ("Deal", get_row("gc_deals", S(did), select="gc_name,_gc_buyer_value,_gc_seller_value")),
+        ("Pause_money", update("gc_deals", S(did), gc_statusoverlay=OVERLAY_DISPUTED)),
+        ("Dispute_task", review_task(f"concat('Dispute: ', {dl('gc_name')})", "Other", "DealManager",
+                                     props(disputeId=xid, reason=T("gc_reason"), description=T("gc_description"), amount=T("gc_amountdisputed")),
+                                     deal=S(did), kind="Review")),
+        ("Under_review", update("gc_disputes", S(xid), gc_status=DISPUTE["UnderReview"], gc_openedon=f"@coalesce({T('gc_openedon')}, utcNow())",
+                                **{"gc_ReviewTask@odata.bind": S(f"concat('gc_reviewtasks(', {task}, ')')")})),
+        *notify_both("Notify", "A dispute was raised",
+                     f"A dispute was raised on '{S(dl('gc_name'))}'. Payments on this deal are paused while DealOS reviews it; "
+                     "you may be asked for evidence. Escrow funds stay with the partner until it is resolved.",
+                     "dispute.opened", buyer=dl("_gc_buyer_value"), seller=dl("_gc_seller_value")),
+        ("Audit", audit("flow:dispute", "dispute.opened", "gc_dispute", S(xid), props(deal=did, reason=T("gc_reason")))),
+    ]
+    return flow(name, "Dispute raised → deal overlay Disputed (gc_InstructRelease refuses every release) → Deal Manager task → dispute Under Review → both told.",
+                row_trigger("When_a_dispute_is_raised", "gc_dispute", 1, concurrency=1), steps)
+
+
+def dispute_closed():
+    name = "DealOS | Dispute closed"
+    xid, did = T("gc_disputeid"), T("_gc_deal_value")
+    dl = lambda c: body("Deal", c)
+    open_states = " or ".join(f"gc_status eq {DISPUTE[k]}" for k in ("Open", "UnderReview", "AwaitingEvidence", "Escalated"))
+    labels = json.dumps({str(B + i): l for i, l in enumerate(RESOLUTION)}).replace("'", "''")
+    resolution = f"coalesce(json('{labels}')?[string({T('gc_resolution')})], 'None')"
+    refund = f"or(equals({T('gc_resolution')}, {B + 2}), equals({T('gc_resolution')}, {B + 3}))"
+    outcome = f"if(equals({T('gc_status')}, {DISPUTE['Withdrawn']}), 'withdrawn', {resolution})"
+    steps = [
+        ("Deal", get_row("gc_deals", S(did), select="gc_name,gc_statusoverlay,_gc_buyer_value,_gc_seller_value")),
+        ("Stamp_resolved", update("gc_disputes", S(xid), gc_resolvedon="@utcNow()")),
+        ("Close_task", condition(f"@not(empty({T('_gc_reviewtask_value')}))", [
+            ("Task_state", get_row("gc_reviewtasks", S(T("_gc_reviewtask_value")), select="gc_status")),
+            ("Still_open", condition(f"@equals(body('Task_state')?['gc_status'], {REVIEW_STATUS['Open']})", [
+                ("Cancel_task", update("gc_reviewtasks", S(T("_gc_reviewtask_value")), gc_status=B + 3))])),  # Cancelled: nothing to apply
+        ])),
+        ("Other_open", list_rows("gc_disputes", filter=f"_gc_deal_value eq {S(did)} and gc_disputeid ne {S(xid)} and ({open_states})", select="gc_disputeid", top=1)),
+        ("Lift_overlay", condition(f"@and({none_found('Other_open')[1:]}, equals({dl('gc_statusoverlay')}, {OVERLAY_DISPUTED}))", [
+            ("Clear_overlay", update("gc_deals", S(did), gc_statusoverlay=OVERLAY["None_"]))])),
+        ("Refund_outcome", condition(f"@and(equals({T('gc_status')}, {DISPUTE['Resolved']}), {refund})", [
+            ("Refund_task", review_task(f"concat('Refund after dispute: ', {dl('gc_name')})", "Refund", "Finance",
+                                        props(disputeId=xid, resolution=resolution, amount=T("gc_amountdisputed"), outcome=T("gc_financialoutcome")), deal=S(did)))])),
+        ("Cancel_outcome", condition(f"@and(equals({T('gc_status')}, {DISPUTE['Resolved']}), equals({T('gc_resolution')}, {B + 5}))", [
+            ("To_cancelled", transition(S(did), STAGE["Cancelled"], "Dispute resolved: deal cancelled")),
+            ("Cancel_refused", condition(allowed("To_cancelled"), [
+                ("Cancel_stuck_task", stuck_task(f"concat('Dispute resolved but deal not cancelled: ', {dl('gc_name')})", did, "To_cancelled"))])),
+        ])),
+        *notify_both("Notify", "Dispute closed",
+                     f"The dispute on '{S(dl('gc_name'))}' is closed. Outcome: {S(outcome)}. "
+                     "Any payment step that follows will be confirmed to you in DealOS.",
+                     "dispute.closed", buyer=dl("_gc_buyer_value"), seller=dl("_gc_seller_value")),
+        ("Audit", audit("flow:dispute", "dispute.closed", "gc_dispute", S(xid), props(status=T("gc_status"), resolution=resolution))),
+    ]
+    return flow(name, "Dispute Resolved or Withdrawn → overlay lifted when no other dispute is open → refund outcome: Finance Refund task; cancel outcome: "
+                      "deal Cancelled → both told.",
+                row_trigger("When_a_dispute_closes", "gc_dispute", 3, attributes="gc_status", concurrency=1, conditions=[
+                    f"@or(equals({T('gc_status')}, {DISPUTE['Resolved']}), equals({T('gc_status')}, {DISPUTE['Withdrawn']}))"]),
+                steps)
+
+
+# ---------------------------------------------------------------- settlement, ratings, invoices (plan P5, P7)
+
+def deal_settled():
+    name = "DealOS | Deal settled"
+    did = T("gc_dealid")
+    upgrade = lambda side: [
+        (f"{side}_account", get_row("accounts", S(T(f"_gc_{side.lower()}_value")), select="name,gc_trusttier")),
+        (f"{side}_open_upgrade", list_rows("gc_reviewtasks", select="gc_reviewtaskid", top=1,
+                                           filter=f"gc_status eq {REVIEW_STATUS['Open']} and gc_purpose eq {PURPOSE['TierUpgrade']} and _gc_account_value eq {or_empty_guid(T(f'_gc_{side.lower()}_value'))}")),
+        (f"{side}_first_trade", condition(f"@and(equals(body('{side}_account')?['gc_trusttier'], {TIER['KYBVerified']}), {none_found(f'{side}_open_upgrade')[1:]})", [
+            (f"{side}_tier_task", review_task(f"concat('Tier upgrade to Trade Verified: ', body('{side}_account')?['name'])", "TierUpgrade", "VerificationOfficer",
+                                              props(tier="'Trade Verified'", tierValue=str(TIER_TRADE_VERIFIED), reason="'First trade settled on DealOS'", deal=did),
+                                              account=S(T(f"_gc_{side.lower()}_value"))))])),
+    ]
+    steps = [
+        *upgrade("Buyer"),
+        *upgrade("Seller"),
+        *notify_both("Notify", "Deal settled: please rate your counterparty",
+                     f"'{S(T('gc_name'))}' is settled. Please take a minute to rate the other party in DealOS (quality, timeliness, communication, documents). "
+                     "Ratings build each company's trust tier.", "deal.settled"),
+        ("Audit", audit("flow:deal-settled", "deal.settled", "gc_deal", S(did), props(buyer=T("_gc_buyer_value"), seller=T("_gc_seller_value")))),
+    ]
+    return flow(name, "Deal Settled → a KYB-verified party gets a Tier Upgrade (Trade Verified) approval for its first settled trade → both asked to rate.",
+                deal_trigger("When_a_deal_is_settled", "Settled"), steps)
+
+
+def rating_received():
+    name = "DealOS | Rating received"
+    rid = T("gc_ratingid")
+    steps = [
+        ("Stamp_rating", update("gc_ratings", S(rid), gc_ratedon=f"@coalesce({T('gc_ratedon')}, utcNow())")),
+        ("Low_rating", condition(f"@lessOrEquals(coalesce({T('gc_score')}, 5), 2)", [
+            ("Low_rating_task", review_task(f"concat('Low rating (', string({T('gc_score')}), '/5): ', coalesce({T('gc_name')}, ''))", "Other", "Support",
+                                            props(ratingId=rid, score=T("gc_score"), comment=T("gc_comment"), dimensions=T("gc_dimensions")),
+                                            deal=S(T("_gc_deal_value")), account=S(T("_gc_ratee_value")), kind="Review"))])),
+        ("Audit", audit("flow:rating", "rating.received", "gc_rating", S(rid), props(score=T("gc_score"), ratee=T("_gc_ratee_value")))),
+    ]
+    return flow(name, "Rating created → stamped → a score of 2 or less opens a Support review on the rated party.",
+                row_trigger("When_a_rating_is_given", "gc_rating", 1), steps)
+
+
+def commission_invoice():
+    name = "DealOS | Commission invoice"
+    rid, pid = T("gc_paymentreleaseid"), T("_gc_payment_value")
+    deal = "body('Payment')?['_gc_deal_value']"
+    steps = [
+        ("Has_commission", condition(f"@greater(coalesce({T('gc_commissionamount')}, 0), 0)", [], [("No_commission", terminate("Succeeded"))])),
+        ("Existing_invoice", list_rows("gc_invoices", filter=f"_gc_release_value eq {S(rid)}", select="gc_invoiceid", top=1)),
+        ("Already_invoiced", condition("@greater(length(outputs('Existing_invoice')?['body/value']), 0)", [("Invoice_exists", terminate("Succeeded"))])),
+        ("Payment", get_row("gc_payments", S(pid), select="gc_currency,_gc_deal_value")),
+        ("Deal", get_row("gc_deals", S(deal), select="gc_name,_gc_seller_value")),
+        ("Create_invoice", create("gc_invoices", gc_name=S(f"take(concat('Commission – ', body('Deal')?['gc_name']), 200)"),
+                                  gc_invoicenumber=S(f"concat('DOS-', formatDateTime(utcNow(), 'yyyyMMdd'), '-', toUpper(take({rid}, 8)))"),
+                                  gc_kind=INVOICE_KIND["Commission"], gc_status=INVOICE["Draft"], gc_currency=S("body('Payment')?['gc_currency']"),
+                                  gc_amount=f"@{T('gc_commissionamount')}", gc_taxamount=0, gc_total=f"@{T('gc_commissionamount')}",
+                                  gc_taxdetails="{\"note\": \"Deducted at source from the escrow release. Finance sets GST/VAT and issues the invoice.\"}",
+                                  **{"gc_Deal@odata.bind": S(f"concat('gc_deals(', {deal}, ')')"),
+                                     "gc_Release@odata.bind": S(f"concat('gc_paymentreleases(', {rid}, ')')"),
+                                     "gc_BillTo@odata.bind": S("concat('accounts(', body('Deal')?['_gc_seller_value'], ')')")})),
+        ("Audit", audit("flow:commission-invoice", "invoice.drafted", "gc_paymentrelease", S(rid),
+                        props(invoice="outputs('Create_invoice')?['body/gc_invoiceid']", amount=T("gc_commissionamount")))),
+    ]
+    return flow(name, "Release Settled with commission → one Draft commission invoice (bill to the seller, amount = commission deducted at source) for Finance to complete and issue.",
+                row_trigger("When_commission_is_taken", "gc_paymentrelease", 3, filter=f"gc_status eq {RELEASE['Settled']}", attributes="gc_status", concurrency=1),
+                steps)
+
+
+# ---------------------------------------------------------------- operations: deadlines and failures (plan #3 additions, #18)
+
+def daily_deadlines():
+    name = "DealOS | Daily deadlines"
+    setting = lambda key: list_rows("gc_platformsettings", filter=f"gc_key eq '{key}'", select="gc_value", top=1)
+    invite_days = f"mul(-1, int(coalesce({first_value('Invite_days_setting', 'gc_value')}, '5')))"
+    pay = lambda c: f"items('Each_missed_payment')?['{c}']"
+    rem = lambda c: f"items('Each_reminder')?['{c}']"
+    ins = lambda c: f"items('Each_overdue_inspection')?['{c}']"
+    rfq_name = "items('Each_expired_rfq')?['gc_name']"
+    steps = [
+        # RFQs past their validity
+        ("Expired_rfqs", list_rows("gc_buyerrequirements", select="gc_buyerrequirementid,gc_name,_gc_buyer_value", top=100,
+                                   filter=f"gc_status eq {REQUIREMENT['Open']} and gc_validuntil lt {S('utcNow()')}")),
+        ("Each_expired_rfq", foreach("@outputs('Expired_rfqs')?['body/value']", [
+            ("Expire_rfq", update("gc_buyerrequirements", S("items('Each_expired_rfq')?['gc_buyerrequirementid']"), gc_status=REQUIREMENT_EXPIRED)),
+            ("Tell_buyer", notify(S("items('Each_expired_rfq')?['_gc_buyer_value']"), "Your RFQ has expired",
+                                  f"Your RFQ '{S(rfq_name)}' passed its validity date and is now closed. "
+                                  "Open DealOS to post it again if you still need the material.", "rfq.expired")),
+        ])),
+        # Invites nobody answered
+        ("Invite_days_setting", setting("rfq.invite_days")),
+        ("Stale_invites", list_rows("gc_rfqinvites", select="gc_rfqinviteid", top=200,
+                                    filter=f"gc_status eq {INVITE['Invited']} and gc_invitedon lt {S(f'addDays(utcNow(), {invite_days})')}")),
+        ("Each_stale_invite", foreach("@outputs('Stale_invites')?['body/value']", [
+            ("Expire_invite", update("gc_rfqinvites", S("items('Each_stale_invite')?['gc_rfqinviteid']"), gc_status=INVITE["Expired"]))], concurrency=5)),
+        # Escrow not funded by the deadline: a person decides (extend or cancel); the platform never cancels on its own
+        ("Missed_funding", list_rows("gc_payments", select="gc_paymentid,gc_name,_gc_deal_value,gc_fundingdeadline", top=50,
+                                     filter=f"gc_state eq {PAYMENT['AwaitingFunding']} and gc_fundingdeadline lt {S('utcNow()')}")),
+        ("Each_missed_payment", foreach("@outputs('Missed_funding')?['body/value']", [
+            ("Missed_task_exists", open_task_exists(f"concat('Funding deadline missed: ', {pay('gc_name')})", deal_expr=pay("_gc_deal_value"))),
+            ("Open_missed_task", condition(none_found("Missed_task_exists"), [
+                ("Missed_task", review_task(f"concat('Funding deadline missed: ', {pay('gc_name')})", "Other", "DealManager",
+                                            props(paymentId=pay("gc_paymentid"), deadline=pay("gc_fundingdeadline"),
+                                                  options="'Extend the deadline on the payment, or cancel the deal (stage Cancelled).'"),
+                                            deal=S(pay("_gc_deal_value")), kind="Review"))])),
+        ])),
+        # Reminder two days before the funding deadline
+        ("Due_soon", list_rows("gc_payments", select="gc_paymentid,_gc_deal_value,gc_amountdue,gc_currency,gc_fundingdeadline", top=50,
+                               filter=f"gc_state eq {PAYMENT['AwaitingFunding']} and gc_fundingdeadline ge {S('utcNow()')} and gc_fundingdeadline lt {S('addDays(utcNow(), 2)')}")),
+        ("Each_reminder", foreach("@outputs('Due_soon')?['body/value']", [
+            ("Reminder_deal", get_row("gc_deals", S(rem("_gc_deal_value")), select="gc_name,_gc_buyer_value")),
+            ("Remind_buyer", notify(S("body('Reminder_deal')?['_gc_buyer_value']"), "Reminder: escrow funding due",
+                                    f"Please fund escrow for '{S(body('Reminder_deal', 'gc_name'))}': {S(rem('gc_currency'))} "
+                                    f"{S(FMT_AMOUNT.format(rem('gc_amountdue')))} by {S(FMT_DATE.format(rem('gc_fundingdeadline')))}.", "escrow.reminder")),
+        ])),
+        # Inspections booked but no result two days after the date
+        ("Overdue_inspections", list_rows("gc_inspections", select="gc_inspectionid,gc_name,_gc_deal_value,gc_scheduledon", top=50,
+                                          filter=f"(gc_status eq {INSPECTION['Booked']} or gc_status eq {INSPECTION['SamplingDone']}) and gc_scheduledon lt {S('addDays(utcNow(), -2)')}")),
+        ("Each_overdue_inspection", foreach("@outputs('Overdue_inspections')?['body/value']", [
+            ("Overdue_task_exists", open_task_exists(f"concat('Inspection result overdue: ', {ins('gc_name')})", deal_expr=ins("_gc_deal_value"))),
+            ("Open_overdue_task", condition(none_found("Overdue_task_exists"), [
+                ("Overdue_task", review_task(f"concat('Inspection result overdue: ', {ins('gc_name')})", "Other", "LogisticsCoordinator",
+                                             props(inspectionId=ins("gc_inspectionid"), scheduled=ins("gc_scheduledon")),
+                                             deal=S(ins("_gc_deal_value")), kind="Review"))])),
+        ])),
+        ("Audit", audit("flow:daily-deadlines", "sweep.deadlines", "none", "", props(
+            rfqs_expired="length(outputs('Expired_rfqs')?['body/value'])", invites_expired="length(outputs('Stale_invites')?['body/value'])",
+            funding_missed="length(outputs('Missed_funding')?['body/value'])", reminders="length(outputs('Due_soon')?['body/value'])",
+            inspections_overdue="length(outputs('Overdue_inspections')?['body/value'])"))),
+    ]
+    return flow(name, "Every day 02:30 UTC: expire RFQs past validity (buyer told) and invites unanswered for rfq.invite_days; Deal Manager task for escrow "
+                      "not funded by the deadline (no automatic cancel); funding reminder 2 days before; Logistics task for inspection results overdue.",
+                daily_trigger("Every_day_0230_UTC", 2, 30), steps)
+
+
+def flow_failure_triage():
+    name = "DealOS | Flow failure triage"
+    each = "items('Each_failing_flow')"
+    steps = [
+        ("New_failures", list_rows("gc_flowfailures", select="gc_flowfailureid,gc_flowname,gc_step,gc_error,gc_runurl,createdon", top=100,
+                                   orderby="createdon desc", filter=f"gc_status eq {FAILURE['New']}")),
+        ("Failure_names", {"type": "Select", "inputs": {"from": "@outputs('New_failures')?['body/value']", "select": "@coalesce(item()?['gc_flowname'], 'unknown')"}}),
+        ("Each_failing_flow", foreach("@union(body('Failure_names'), body('Failure_names'))", [
+            ("Triage_task_exists", open_task_exists(f"concat('Flow failures: ', {each})")),
+            ("Open_triage_task", condition(none_found("Triage_task_exists"), [
+                ("Failures_of_flow", {"type": "Query", "inputs": {"from": "@outputs('New_failures')?['body/value']",
+                                                                  "where": f"@equals(coalesce(item()?['gc_flowname'], 'unknown'), {each})"}}),
+                ("Triage_task", review_task(f"concat('Flow failures: ', {each})", "Other", "Support",
+                                            props(flow=each, count="length(body('Failures_of_flow'))",
+                                                  how="'Open each run link, fix the cause, then Resubmit the run in Power Automate and set the failure to Replayed (or Ignored).'",
+                                                  failures="take(body('Failures_of_flow'), 20)"), kind="Review")),
+            ])),
+        ])),
+    ]
+    return flow(name, "Every hour: new gc_flowfailure rows are grouped per flow into one Support review task with the run links (resubmit from the link, "
+                      "then mark the failure Replayed). One open task per flow at a time.", hourly_trigger("Every_hour"), steps)
+
+
+# ---------------------------------------------------------------- Email Desk (docs/EMAIL_DESK.md)
+
+MAIL_LABELS = ["DealOS/Buyer", "DealOS/Seller", "DealOS/Genuine", "DealOS/Review", "DealOS/Ignored", "DealOS/Processed", "DealOS/Error", "DealOS/Seen"]
+
+
+def mailbox_sync():
+    """Every 3 minutes: new Gmail messages → gc_IngestEmail (+ attachments) → Mail Triage agent → Gmail labels.
+    A message is labelled DealOS/Processed when done, or DealOS/Error when it failed (remove that label to retry)."""
+    name = "DealOS | Mailbox sync"
+    setting = lambda key: list_rows("gc_platformsettings", filter=f"gc_key eq '{key}'", select="gc_value", top=1)
+    msg = "items('Each_email')?['id']"
+    ingest = lambda col: f"outputs('Ingest')?['body/{col}']"
+    att = lambda col: f"items('Each_attachment')?['{col}']"
+    label_id = lambda expr: f"outputs('Label_map')?[{expr}]"
+    triage_label = "coalesce(json(coalesce(outputs('Run_MailTriage')?['body/Result'], '{}'))?['result']?['label'], 'DealOS/Review')"
+    add_labels = lambda *names: gmail("ModifyMessage", id=S(msg), body__addLabelIds="@createArray(" + ", ".join(label_id(n) for n in names) + ")")
+    sent_id = "items('Each_sent')?['id']"
+    label_sent = lambda name_: gmail("ModifyMessage", id=S(sent_id), body__addLabelIds="@createArray(" + label_id(name_) + ")")
+    handle = [
+        ("Get_email", gmail("GetMessage", id=S(msg), format="full")),
+        ("Ingest", unbound("gc_IngestEmail", retry_none=True, MessageJson="@{string(body('Get_email'))}", MailboxAddress="@{outputs('Mailbox')}")),
+        ("Each_attachment", foreach(f"@json(coalesce({ingest('Attachments')}, '[]'))", [
+            ("Get_attachment", gmail("GetAttachment", messageId=S(msg), id=S(att("attachmentId")))),
+            ("Store_attachment", unbound("gc_AttachEmailFile", retry_none=True, MessageId=S(ingest("MessageId")), FileName=S(att("fileName")),
+                                         MimeType=S(att("mimeType")), Data="@{body('Get_attachment')?['data']}")),
+        ])),
+        ("Triage_needed", condition(f"@equals({ingest('NeedsTriage')}, true)", [
+            ("Run_MailTriage", agent("MailTriage", S(ingest("MessageId")), "mailbox-sync")),
+            ("Triage_ok", condition(agent_ok("Run_MailTriage"), [
+                ("Label_triaged", add_labels("'DealOS/Processed'", triage_label)),
+            ], [
+                ("Record_triage_failure", flow_failure(name, "Run_MailTriage", "@{coalesce(outputs('Run_MailTriage')?['body/Summary'], 'triage call failed')} (Gmail " + S(msg) + ")")),
+                ("Label_triage_error", add_labels("'DealOS/Error'")),
+            ]), {"Run_MailTriage": ["Succeeded", "Failed", "TimedOut"]}),
+        ], [
+            ("Label_processed", add_labels("'DealOS/Processed'")),
+        ])),
+    ]
+    steps = [
+        ("Enabled_setting", setting("email.enabled")),
+        ("Stop_if_disabled", condition(f"@not(equals(toLower(coalesce({first_value('Enabled_setting', 'gc_value')}, 'false')), 'true'))",
+                                       [("Email_desk_off", terminate("Succeeded"))])),
+        ("Query_setting", setting("email.sync.query")),
+        ("Max_setting", setting("email.sync.max_per_run")),
+        # Whichever Gmail account the connection signed in with is the desk's mailbox; nothing is tied to one address.
+        ("Profile", gmail("GetProfile")),
+        ("Mailbox", compose("@toLower(body('Profile')?['emailAddress'])")),
+        ("Search", compose("@" + f"concat(replace(replace(coalesce({first_value('Query_setting', 'gc_value')}, 'in:inbox newer_than:2d'), "
+                                 "'{user}', first(split(outputs('Mailbox'), '@'))), '{domain}', last(split(outputs('Mailbox'), '@'))), "
+                                 "' -label:dealos-processed -label:dealos-error -in:drafts')")),
+        # Labels: create the DealOS ones that are missing, then map name → id
+        ("Labels", gmail("ListLabels")),
+        ("Label_names", {"type": "Select", "inputs": {"from": "@coalesce(body('Labels')?['labels'], json('[]'))", "select": "@item()?['name']"}}),
+        ("Each_needed_label", foreach("@json('" + json.dumps(MAIL_LABELS) + "')", [
+            ("Label_missing", condition("@not(contains(body('Label_names'), item()))", [
+                ("Create_label", gmail("CreateLabel", body__name="@item()",
+                                       body__labelListVisibility="@if(equals(item(), 'DealOS/Seen'), 'labelHide', 'labelShow')",
+                                       body__messageListVisibility="@if(equals(item(), 'DealOS/Seen'), 'hide', 'show')"))])),
+        ])),
+        ("Labels_now", gmail("ListLabels")),
+        ("DealOS_labels", {"type": "Query", "inputs": {"from": "@coalesce(body('Labels_now')?['labels'], json('[]'))",
+                                                       "where": "@startsWith(item()?['name'], 'DealOS/')"}}),
+        ("Label_pairs", {"type": "Select", "inputs": {"from": "@body('DealOS_labels')",
+                                                      "select": "@concat('\"', item()?['name'], '\":\"', item()?['id'], '\"')"}}),
+        ("Label_map", compose("@json(concat('{', join(body('Label_pairs'), ','), '}'))")),
+        # New mail: the configured search, minus what is already handled
+        ("New_email", gmail("ListMessages", q="@{outputs('Search')}",
+                            maxResults=f"@int(coalesce({first_value('Max_setting', 'gc_value')}, '5'))")),
+        ("Each_email", foreach("@coalesce(body('New_email')?['messages'], json('[]'))", [
+            ("Handle_email", scope(handle)),
+            ("On_email_failure", scope([
+                ("Record_email_failure", flow_failure(name, "Handle_email", "@{take(string(result('Handle_email')), 3000)} (Gmail " + S(msg) + ")")),
+                ("Label_email_error", add_labels("'DealOS/Error'")),
+            ]), {"Handle_email": ["Failed", "TimedOut"]}),
+        ])),
+        # Sent mail: a person sent a desk draft from Gmail → it is recorded in its thread and the draft is closed.
+        # Our other sent mail is only marked with the hidden label DealOS/Seen.
+        ("Sent_email", gmail("ListMessages", q="in:sent newer_than:3d -label:dealos-processed -label:dealos-seen -label:dealos-error", maxResults=10)),
+        ("Each_sent", foreach("@coalesce(body('Sent_email')?['messages'], json('[]'))", [
+            ("Handle_sent", scope([
+                ("Get_sent", gmail("GetMessage", id=S(sent_id), format="full")),
+                ("Ingest_sent", unbound("gc_IngestEmail", retry_none=True, MessageJson="@{string(body('Get_sent'))}", MailboxAddress="@{outputs('Mailbox')}")),
+                ("Desk_thread", condition("@equals(outputs('Ingest_sent')?['body/Status'], 'Skipped')",
+                                          [("Label_sent_seen", label_sent("'DealOS/Seen'"))],
+                                          [("Label_sent_done", label_sent("'DealOS/Processed'"))])),
+            ])),
+            ("On_sent_failure", scope([
+                ("Record_sent_failure", flow_failure(name, "Handle_sent", "@{take(string(result('Handle_sent')), 3000)} (Gmail " + S(sent_id) + ")")),
+                ("Label_sent_error", label_sent("'DealOS/Error'")),
+            ]), {"Handle_sent": ["Failed", "TimedOut"]}),
+        ])),
+        ("Any_email", condition("@greater(length(coalesce(body('New_email')?['messages'], json('[]'))), 0)", [
+            ("Audit", audit("flow:mailbox-sync", "email.synced", "none", "", props(emails="length(body('New_email')?['messages'])"))),
+        ])),
+    ]
+    return flow(name, "Every 3 minutes (when email.enabled = true): Gmail messages matching email.sync.query that are not yet labelled → gc_IngestEmail "
+                      "(+ attachments, Quarantined) → Mail Triage agent → labels DealOS/Buyer, Seller, Genuine, Review or Ignored plus DealOS/Processed. "
+                      "Then sent mail: replies sent from desk threads are recorded (their drafts close); other sent mail gets the hidden label DealOS/Seen. "
+                      "Failures are recorded and labelled DealOS/Error (remove the label to retry).",
+                minutes_trigger("Every_3_minutes", 3), steps, connections=(DV, GMAIL))
+
+
+def trade_desk():
+    """A received email is (or is set to) Genuine → the Trade Desk agent works it in its thread."""
+    name = "DealOS | Trade desk"
+    mid, conv = T("gc_messageid"), T("_gc_conversation_value")
+    run = _dv_unbound_agent("TradeDesk", S(conv), '{"message_id":"' + S(mid) + '","trigger":"flow:trade-desk"}')
+    steps = [
+        ("Run_TradeDesk", run),
+        ("Desk_failed", condition(f"@not({agent_ok('Run_TradeDesk')[1:]})", [
+            ("Record_desk_failure", flow_failure(name, "Run_TradeDesk", S("coalesce(outputs('Run_TradeDesk')?['body/Summary'], 'agent call failed')"))),
+            ("Desk_failure_task", review_task(f"concat('Trade desk could not handle: ', coalesce({T('gc_subject')}, {T('gc_name')}, 'email'))", "Other", "DealManager",
+                                              props(messageId=mid, conversationId=conv, error="outputs('Run_TradeDesk')?['body/Summary']",
+                                                    how="'Reply to the email from Gmail yourself, or set the email back to Genuine (gc_triage) to retry once the cause is fixed.'"),
+                                              kind="Review")),
+        ]), {"Run_TradeDesk": ["Succeeded", "Failed", "TimedOut"]}),
+        ("Brief_owner", unbound("gc_DeskBrief", retry_none=True,
+                                Subject=S(f"concat(coalesce(json(coalesce(outputs('Run_TradeDesk')?['body/Result'], '{{}}'))?['result']?['intent'], 'Update'), ': ', "
+                                          f"coalesce({T('gc_subject')}, {T('gc_name')}, 'email'))"),
+                                Text=S("concat('From: ', coalesce(" + T('gc_senderlabel') + ", ''), decodeUriComponent('%0A%0A'), "
+                                       "coalesce(outputs('Run_TradeDesk')?['body/Summary'], 'The desk could not handle this email; a task is open.'), "
+                                       "decodeUriComponent('%0A%0ANext: '), coalesce(json(coalesce(outputs('Run_TradeDesk')?['body/Result'], '{}'))?['result']?['next_step'], '-'), "
+                                       "decodeUriComponent('%0A%0A'), if(equals(json(coalesce(outputs('Run_TradeDesk')?['body/Result'], '{}'))?['result']?['drafted'], true), "
+                                       "'Drafts are waiting in Gmail > Drafts (unless auto-send sent them).', 'No email was drafted.'))")),
+         {"Desk_failed": ["Succeeded", "Skipped"]}),
+        ("Audit", audit("flow:trade-desk", "email.worked", "gc_message", S(mid), props(summary="outputs('Run_TradeDesk')?['body/Summary']"))),
+    ]
+    return flow(name, "A received email's triage becomes Genuine (by Mail Triage or a person) → Trade Desk agent: records requirement / quote / price, "
+                      "sources sellers, opens confirm tasks, drafts the replies. Failures → Deal Manager task.",
+                row_trigger("When_an_email_is_genuine", "gc_message", 3, attributes="gc_triage", concurrency=1, conditions=[
+                    f"@and(equals({T('gc_triage')}, {TRIAGE['Genuine']}), equals({T('gc_direction')}, {DIRECTION['Inbound']}))"]),
+                steps)
+
+
+def _dv_unbound_agent(name, subject, input_text):
+    a = unbound(f"gc_Agent_{name}", retry_none=True, SubjectId=subject, Input=input_text)
+    return a
+
+
+def desk_drafts():
+    """Desk drafts → Gmail drafts in the right thread (a person checks and sends them); replaced drafts are deleted from Gmail."""
+    name = "DealOS | Desk drafts"
+    mid, conv = T("gc_messageid"), T("_gc_conversation_value")
+    build = lambda col: f"outputs('Build')?['body/{col}']"
+    created = lambda path: f"coalesce(body('Draft_in_thread')?{path}, body('Draft_new_thread')?{path})"
+    pending = [
+        ("Profile", gmail("GetProfile")),
+        ("Build", unbound("gc_BuildEmailRaw", retry_none=True, MessageId=S(mid), MailboxAddress="@{body('Profile')?['emailAddress']}")),
+        ("Has_thread", condition(f"@not(empty({build('ThreadId')}))",
+                                 [("Draft_in_thread", gmail("CreateDraft", body__message__raw=S(build("Raw")), body__message__threadId=S(build("ThreadId"))))],
+                                 [("Draft_new_thread", gmail("CreateDraft", body__message__raw=S(build("Raw"))))])),
+        ("Save_draft_id", update("gc_messages", S(mid), gc_gmaildraftid=S(created("['id']")))),
+        ("New_thread", condition(f"@empty({build('ThreadId')})", [
+            ("Save_thread_id", update("gc_conversations", S(conv), gc_gmailthreadid=S(created("['message']?['threadId']"))))])),
+        ("Auto_send", condition(f"@equals({T('gc_autosend')}, true)", [("Send_now", gmail("SendDraft", body__id=S(created("['id']"))))])),
+        ("Audit_draft", audit("flow:desk-drafts", "email.drafted", "gc_message", S(mid), props(to=build("To"), draft=created("['id']"), auto_send=T("gc_autosend")))),
+    ]
+    discarded = [
+        ("Delete_gmail_draft", gmail("DeleteDraft", id=S(T("gc_gmaildraftid")))),
+        ("Draft_gone", compose("deleted or already sent"), {"Delete_gmail_draft": ["Succeeded", "Failed"]}),
+    ]
+    steps = [
+        ("Pending_or_discarded", condition(f"@equals({T('gc_draftstatus')}, {DRAFT['Pending']})", pending, discarded)),
+    ]
+    return flow(name, "A desk draft (gc_message, Draft, Pending) → gc_BuildEmailRaw → Gmail draft in the thread (new thread for a first enquiry; the "
+                      "thread id is saved). A draft replaced by a newer one (Discarded) is deleted from Gmail.",
+                row_trigger("When_a_desk_draft_changes", "gc_message", 4, attributes="gc_draftstatus", concurrency=1, conditions=[
+                    f"@or(and(equals({T('gc_draftstatus')}, {DRAFT['Pending']}), empty({T('gc_gmaildraftid')})), "
+                    f"and(equals({T('gc_draftstatus')}, {DRAFT['Discarded']}), not(empty({T('gc_gmaildraftid')}))))"]),
+                steps, connections=(DV, GMAIL))
+
+
+def desk_contract():
+    name = "DealOS | Desk contract"
+    cid = T("gc_contractid")
+    steps = [
+        ("Deal", get_row("gc_deals", S(T("_gc_deal_value")), select="gc_emaildesk,gc_name")),
+        ("Desk_only", condition("@not(equals(body('Deal')?['gc_emaildesk'], true))", [("Marketplace_contract", terminate("Succeeded"))])),
+        ("Contract_out", unbound("gc_DeskContract", retry_none=True, ContractId=S(cid))),
+        ("Brief_owner", unbound("gc_DeskBrief", retry_none=True, Subject=S(f"concat('Contracts ready to send: ', coalesce(body('Deal')?['gc_name'], ''))"),
+                                Text="Both contracts are generated (sales contract to the buyer at our price, purchase contract from the seller at their price) and "
+                                     "attached to drafts in each thread. Check them in Gmail > Drafts and send. When a signed copy comes back, the desk opens a task to confirm it.")),
+        ("Audit", audit("flow:desk-contract", "contract.sent_by_email", "gc_contract", S(cid), props(result="outputs('Contract_out')?['body/Result']"))),
+    ]
+    return flow(name, "Contract approved (Sent For Signature) on an email desk deal → gc_DeskContract: back-to-back contract PDFs, each attached to a draft "
+                      "in its thread (buyer: sales contract at our price; seller: purchase contract at their price).",
+                row_trigger("When_a_contract_is_issued", "gc_contract", 3, filter=f"gc_status eq {CONTRACT['SentForSignature']}", attributes="gc_status", concurrency=1),
+                steps)
+
+
+def seller_discovery():
+    """Sourcing has started for an email requirement → find more sellers on the web, contact the new ones, brief the owner."""
+    name = "DealOS | Seller discovery"
+    rid = T("gc_buyerrequirementid")
+    found = "json(coalesce(outputs('Discover')?['body/Result'], '{}'))"
+    steps = [
+        ("Discover", unbound("gc_DiscoverSellers", retry_none=True, RequirementId=S(rid))),
+        ("Found_some", condition("@greater(int(coalesce(outputs('Discover')?['body/Found'], 0)), 0)", [
+            ("Source_again", unbound("gc_SourceRequirement", retry_none=True, RequirementId=S(rid))),
+        ])),
+        ("Brief_owner", unbound("gc_DeskBrief", retry_none=True, Subject=S(f"concat('Seller search: ', coalesce({T('gc_commoditytext')}, {T('gc_name')}))"),
+                                Text=S(f"concat('Web search: ', coalesce({found}?['status'], ''), '. ', coalesce({found}?['reason'], ''), decodeUriComponent('%0A'), "
+                                       f"'Companies found: ', string(coalesce({found}?['found'], 0)), ', with a published email: ', string(coalesce({found}?['with_email'], 0)), "
+                                       f"decodeUriComponent('%0A'), 'New enquiries opened: ', string(coalesce(outputs('Source_again')?['body/Invited'], 0)), "
+                                       f"decodeUriComponent('%0A%0A'), 'Leads without an email are listed in the task Find contacts for sourcing. Enquiry drafts are in Gmail > Drafts.')")),
+         {"Found_some": ["Succeeded", "Failed", "Skipped"]}),
+        ("Audit", audit("flow:seller-discovery", "requirement.discovered", "gc_buyerrequirement", S(rid), props(result=f"outputs('Discover')?['body/Result']"))),
+    ]
+    return flow(name, "Email requirement moves to desk stage Sourcing (first round sent to known leads) → gc_DiscoverSellers (Gemini + Google Search, "
+                      "public business contacts) → new leads with an email get enquiries (gc_SourceRequirement) → briefing to the owner.",
+                row_trigger("When_sourcing_starts", "gc_buyerrequirement", 3, filter=f"gc_deskstage eq {DESK_STAGE['Sourcing']}", attributes="gc_deskstage", concurrency=1,
+                            conditions=[f"@and(equals({T('gc_source')}, {DESK_SOURCE_EMAIL}), empty({T('gc_discoveredon')}))"]),
+                steps)
+
+
+def email_test_kit():
+    """Test only (not in ALL; deployed with --tests and switched on only while tools/mail_test.py runs):
+    HTTP-triggered access to the DealOS Gmail connector, so tests can put mail into the inbox and send drafts."""
+    name = "DealOS | Email Desk test kit"
+    inp = lambda k: f"triggerBody()?['{k}']"
+    respond = lambda action: {"type": "Response", "kind": "Http", "inputs": {"statusCode": 200, "body": f"@body('{action}')"}}
+    trig = {"manual": {"type": "Request", "kind": "Http", "inputs": {"schema": {"type": "object", "properties": {
+        "action": {"type": "string"}, "raw": {"type": "string"}, "thread_id": {"type": "string"}, "id": {"type": "string"},
+        "q": {"type": "string"}}}}}}
+    cases = [
+        ("Insert", "insert", [("Insert_message", gmail("InsertMessage", internalDateSource="receivedTime", body__raw=f"@{inp('raw')}",
+                                                       body__threadId=f"@{inp('thread_id')}", body__labelIds="@createArray('INBOX', 'UNREAD')")),
+                              ("Inserted", respond("Insert_message"))]),
+        ("Send", "send_draft", [("Send_draft", gmail("SendDraft", body__id=f"@{inp('id')}")), ("Sent", respond("Send_draft"))]),
+        ("Get", "get", [("Get_message", gmail("GetMessage", id=f"@{inp('id')}", format="metadata")), ("Got", respond("Get_message"))]),
+        ("List", "list", [("List_messages", gmail("ListMessages", q=f"@{inp('q')}", maxResults=20)), ("Listed", respond("List_messages"))]),
+        ("Labels", "labels", [("List_labels", gmail("ListLabels")), ("Labelled", respond("List_labels"))]),
+        ("Me", "profile", [("Get_profile", gmail("GetProfile")), ("Profiled", respond("Get_profile"))]),
+        ("Draft", "create_draft", [("Create_draft", gmail("CreateDraft", body__message__raw=f"@{inp('raw')}", body__message__threadId=f"@{inp('thread_id')}")),
+                                   ("Drafted", respond("Create_draft"))]),
+        ("Label", "add_label", [("Add_label", gmail("ModifyMessage", id=f"@{inp('id')}", body__addLabelIds=f"@createArray({inp('q')})")),
+                                ("Label_added", respond("Add_label"))]),
+        ("Unlabel", "remove_label", [("Remove_label", gmail("ModifyMessage", id=f"@{inp('id')}", body__removeLabelIds=f"@createArray({inp('q')})")),
+                                     ("Label_removed", respond("Remove_label"))]),
+    ]
+    actions = {"Do": dict(switch(f"@{inp('action')}", cases), runAfter={})}
+    return {"name": name, "id": flow_id(name), "connections": (GMAIL,),
+            "description": "Test only: HTTP access to Gmail for tools/mail_test.py (insert mail, send a draft, read labels). Keep off outside tests.",
+            "definition": definition(trig, actions)}
+
+
+TESTS = [email_test_kit]
+
 ALL = [notify_party, listing_verification, document_intake, party_onboarding, rfq_matching, listing_published_matching, match_notifications,
        match_to_deal, offer_pricing, offer_accepted, terms_agreed, compliance_check, contracting, contract_signed, escrow_funded,
-       milestone_progress, release_settled, deal_cancelled, review_decisions, approvals, daily_sweep, daily_digest]
+       milestone_progress, release_settled, deal_cancelled, review_decisions, approvals, daily_sweep, daily_digest,
+       rfq_invite_sent, rfq_invite_answered, inspection_booking, inspection_result, dispute_opened, dispute_closed, deal_settled,
+       rating_received, commission_invoice, daily_deadlines, flow_failure_triage, mailbox_sync, trade_desk, desk_drafts, desk_contract, seller_discovery]

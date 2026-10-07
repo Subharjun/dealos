@@ -1,0 +1,12 @@
+<customapirequestparameter uniquename="ListingId">
+  <description default="Optional gc_listing GUID; empty = all published listings.">
+    <label description="Optional gc_listing GUID; empty = all published listings." languagecode="1033" />
+  </description>
+  <displayname default="ListingId">
+    <label description="ListingId" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isoptional>1</isoptional>
+  <name>gc_RefreshCatalog.ListingId</name>
+  <type>10</type>
+</customapirequestparameter>
